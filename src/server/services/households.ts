@@ -106,11 +106,11 @@ export async function acceptInvite(actor: Actor, token: string) {
   return { householdId: inv.householdId };
 }
 
-export async function updateMember(actor: Actor, householdId: string, userId: string, input: { role?: "ADMIN" | "MEMBER" }) {
+export async function updateMember(actor: Actor, householdId: string, userId: string, input: { role?: "ADMIN" | "MEMBER" | "READ_ONLY" }) {
   await requireHouseholdAdmin(actor, householdId);
   const m = await db.householdMember.findUnique({ where: { householdId_userId: { householdId, userId } } });
   if (!m) throw notFound("Member");
-  if (input.role === "MEMBER" && m.role === "ADMIN") {
+  if (input.role && input.role !== "ADMIN" && m.role === "ADMIN") {
     const admins = await db.householdMember.count({ where: { householdId, role: "ADMIN" } });
     if (admins <= 1) throw conflict("A household needs at least one administrator");
   }

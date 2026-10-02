@@ -1,79 +1,91 @@
+@import "@fontsource/ibm-plex-sans/latin-400.css";
+@import "@fontsource/ibm-plex-sans/latin-500.css";
+@import "@fontsource/ibm-plex-sans/latin-600.css";
+@import "@fontsource/ibm-plex-sans/latin-700.css";
+@import "@fontsource/instrument-serif/latin-400.css";
+@import "@fontsource/instrument-serif/latin-400-italic.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens (space-separated RGB so Tailwind can apply opacity). Deep charcoal / neutral grey / white with restrained blue. */
+/* Design tokens (space-separated RGB so Tailwind can apply opacity).
+   Identity: warm paper, ink, deep green, brass. Gains are green, losses are brick; meaning is never carried by colour alone. */
 :root {
-  --background: 246 247 249;
-  --foreground: 15 23 42;
-  --card: 255 255 255;
-  --card-foreground: 15 23 42;
-  --muted: 241 245 249;
-  --muted-foreground: 100 116 139;
-  --border: 226 232 240;
-  --input: 203 213 225;
-  --primary: 37 99 235;
-  --primary-foreground: 255 255 255;
-  --ring: 37 99 235;
-  --success: 22 128 61;
-  --warning: 180 83 9;
-  --danger: 220 38 38;
-  --info: 2 132 199;
-  --sidebar: 15 23 42;
-  --sidebar-foreground: 203 213 225;
-  --hero-from: 15 23 42;
-  --hero-to: 30 41 59;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --background: 247 245 240;
+  --foreground: 26 31 28;
+  --card: 255 254 251;
+  --card-foreground: 26 31 28;
+  --muted: 238 235 228;
+  --muted-foreground: 98 103 97;
+  --border: 224 220 210;
+  --input: 196 191 180;
+  --primary: 24 80 64;
+  --primary-foreground: 250 248 242;
+  --ring: 24 80 64;
+  --accent: 154 117 48;
+  --success: 28 112 70;
+  --warning: 160 98 16;
+  --danger: 168 48 40;
+  --info: 56 92 112;
+  --sidebar: 19 27 24;
+  --sidebar-foreground: 200 205 196;
+  --hero-from: 19 27 24;
+  --hero-to: 19 27 24;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: 11 15 20;
-    --foreground: 230 234 240;
-    --card: 18 24 31;
-    --card-foreground: 230 234 240;
-    --muted: 28 36 46;
-    --muted-foreground: 148 163 184;
-    --border: 38 48 60;
-    --input: 55 68 84;
-    --primary: 96 154 255;
-    --primary-foreground: 8 14 26;
-    --ring: 96 154 255;
-    --success: 74 222 128;
-    --warning: 251 191 36;
-    --danger: 248 113 113;
-    --info: 56 189 248;
-    --sidebar: 8 11 16;
-    --hero-from: 21 30 43;
-    --hero-to: 12 17 24;
+    --background: 15 18 17;
+    --foreground: 232 230 222;
+    --card: 22 27 25;
+    --card-foreground: 232 230 222;
+    --muted: 31 38 35;
+    --muted-foreground: 152 158 150;
+    --border: 42 50 46;
+    --input: 62 72 67;
+    --primary: 124 190 160;
+    --primary-foreground: 10 20 16;
+    --ring: 124 190 160;
+    --accent: 206 168 94;
+    --success: 110 200 150;
+    --warning: 230 170 80;
+    --danger: 238 120 108;
+    --info: 130 180 204;
+    --sidebar: 10 14 12;
+    --hero-from: 22 30 27;
+    --hero-to: 22 30 27;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --background: 11 15 20;
-  --foreground: 230 234 240;
-  --card: 18 24 31;
-  --card-foreground: 230 234 240;
-  --muted: 28 36 46;
-  --muted-foreground: 148 163 184;
-  --border: 38 48 60;
-  --input: 55 68 84;
-  --primary: 96 154 255;
-  --primary-foreground: 8 14 26;
-  --ring: 96 154 255;
-  --success: 74 222 128;
-  --warning: 251 191 36;
-  --danger: 248 113 113;
-  --info: 56 189 248;
-  --sidebar: 8 11 16;
-  --hero-from: 21 30 43;
-  --hero-to: 12 17 24;
+  --background: 15 18 17;
+  --foreground: 232 230 222;
+  --card: 22 27 25;
+  --card-foreground: 232 230 222;
+  --muted: 31 38 35;
+  --muted-foreground: 152 158 150;
+  --border: 42 50 46;
+  --input: 62 72 67;
+  --primary: 124 190 160;
+  --primary-foreground: 10 20 16;
+  --ring: 124 190 160;
+  --accent: 206 168 94;
+  --success: 110 200 150;
+  --warning: 230 170 80;
+  --danger: 238 120 108;
+  --info: 130 180 204;
+  --sidebar: 10 14 12;
+  --hero-from: 22 30 27;
+  --hero-to: 22 30 27;
   color-scheme: dark;
 }
 
 @layer base {
   * { @apply border-border; }
   html { -webkit-text-size-adjust: 100%; }
-  body { @apply bg-background text-foreground antialiased; font-feature-settings: "cv02", "cv03", "cv04", "cv11"; }
+  body { @apply bg-background text-foreground antialiased; font-family: var(--font-sans); font-feature-settings: "tnum" 1, "lnum" 1; }
   :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
   ::selection { background: rgb(var(--primary) / 0.25); }
   input, select, textarea, button { font: inherit; }
@@ -82,12 +94,15 @@
 }
 
 @layer components {
-  .hero-card { background: linear-gradient(135deg, rgb(var(--hero-from)), rgb(var(--hero-to))); @apply text-white; }
-  .tabular { font-variant-numeric: tabular-nums; }
+  .hero-card { background: rgb(var(--hero-from)); @apply text-white; }
+  .display { font-family: var(--font-display); font-weight: 400; letter-spacing: -0.01em; }
+  .money { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1, "lnum" 1; }
+  .rule-accent { border-top: 2px solid rgb(var(--accent)); }
+  .tabular { font-variant-numeric: tabular-nums lining-nums; }
   .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
   .safe-top { padding-top: env(safe-area-inset-top); }
   .skeleton { @apply relative overflow-hidden rounded-md bg-muted; }
-  .skeleton::after { content: ""; @apply absolute inset-0 -translate-x-full animate-shimmer; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent); }
+  .skeleton::after { content: ""; @apply absolute inset-0 -translate-x-full animate-shimmer; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.10), transparent); }
 }
 
 @media (prefers-reduced-motion: reduce) {

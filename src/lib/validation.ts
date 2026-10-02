@@ -88,10 +88,10 @@ export const vehicleLevelEnum = z.enum(["OWNER", "CO_OWNER", "MAINTENANCE_MANAGE
 export const vehicleGrant = z.object({ vehicleId: id, level: vehicleLevelEnum, canViewFinancials: z.boolean().default(false) });
 export const inviteSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(200),
-  role: z.enum(["ADMIN", "MEMBER"]).default("MEMBER"),
+  role: z.enum(["ADMIN", "MEMBER", "READ_ONLY"]).default("MEMBER"),
   vehicleAccess: z.array(vehicleGrant).max(50).default([]),
 });
-export const memberUpdateSchema = z.object({ role: z.enum(["ADMIN", "MEMBER"]).optional() });
+export const memberUpdateSchema = z.object({ role: z.enum(["ADMIN", "MEMBER", "READ_ONLY"]).optional() });
 
 // ───────── vehicles
 const year = z.coerce.number().int().min(1886).max(new Date().getFullYear() + 2);
