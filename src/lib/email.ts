@@ -59,22 +59,22 @@ export async function flushOutbox(limit = 50) {
 }
 
 const layout = (title: string, bodyHtml: string) =>
-  `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;padding:24px;color:#111"><h2 style="margin:0 0 16px">AutoVault</h2><h3>${esc(title)}</h3>${bodyHtml}<p style="color:#666;font-size:12px;margin-top:32px">You received this because of activity on your AutoVault account.</p></div>`;
+  `<div style="font-family:system-ui,sans-serif;max-width:520px;margin:auto;padding:24px;color:#111"><h2 style="margin:0 0 16px">Family Finance Hub</h2><h3>${esc(title)}</h3>${bodyHtml}<p style="color:#666;font-size:12px;margin-top:32px">You received this because of activity on your Family Finance Hub account.</p></div>`;
 
 export const appUrl = (path: string) => `${env().APP_URL.replace(/\/$/, "")}${path}`;
 
 export function verifyEmailMessage(name: string, token: string) {
   const link = appUrl(`/verify-email?token=${encodeURIComponent(token)}`);
   return {
-    subject: "Verify your AutoVault email",
-    text: `Hi ${name},\n\nConfirm your email address to finish setting up AutoVault:\n${link}\n\nThis link expires in 24 hours. If you didn't create an account, ignore this email.`,
+    subject: "Verify your Family Finance Hub email",
+    text: `Hi ${name},\n\nConfirm your email address to finish setting up Family Finance Hub:\n${link}\n\nThis link expires in 24 hours. If you didn't create an account, ignore this email.`,
     html: layout("Verify your email", `<p>Hi ${esc(name)}, confirm your email to finish setting up your account.</p><p><a href="${link}">Verify email</a></p><p style="color:#666">Link expires in 24 hours.</p>`),
   };
 }
 export function resetPasswordMessage(name: string, token: string) {
   const link = appUrl(`/reset-password?token=${encodeURIComponent(token)}`);
   return {
-    subject: "Reset your AutoVault password",
+    subject: "Reset your Family Finance Hub password",
     text: `Hi ${name},\n\nUse this link to choose a new password:\n${link}\n\nThe link expires in 1 hour. If you didn't ask for this, you can ignore this email.`,
     html: layout("Reset your password", `<p>Hi ${esc(name)}, use the link below to choose a new password.</p><p><a href="${link}">Reset password</a></p><p style="color:#666">Link expires in 1 hour.</p>`),
   };
@@ -82,16 +82,16 @@ export function resetPasswordMessage(name: string, token: string) {
 export function inviteMessage(inviter: string, household: string, token: string) {
   const link = appUrl(`/invite/${encodeURIComponent(token)}`);
   return {
-    subject: `${inviter} invited you to ${household} on AutoVault`,
-    text: `${inviter} invited you to join the household "${household}" on AutoVault.\n\nAccept the invitation:\n${link}\n\nThe invitation expires in 7 days.`,
+    subject: `${inviter} invited you to ${household} on Family Finance Hub`,
+    text: `${inviter} invited you to join the household "${household}" on Family Finance Hub.\n\nAccept the invitation:\n${link}\n\nThe invitation expires in 7 days.`,
     html: layout("You're invited", `<p>${esc(inviter)} invited you to join the household <strong>${esc(household)}</strong>.</p><p><a href="${link}">Accept invitation</a></p>`),
   };
 }
 export function notificationMessage(title: string, body: string, actionPath: string | null) {
   const link = actionPath ? appUrl(actionPath) : appUrl("/dashboard");
   return {
-    subject: `AutoVault: ${title}`,
-    text: `${title}\n\n${body}\n\nOpen AutoVault: ${link}`,
-    html: layout(title, `<p>${esc(body)}</p><p><a href="${link}">Open AutoVault</a></p>`),
+    subject: `Family Finance Hub: ${title}`,
+    text: `${title}\n\n${body}\n\nOpen Family Finance Hub: ${link}`,
+    html: layout(title, `<p>${esc(body)}</p><p><a href="${link}">Open Family Finance Hub</a></p>`),
   };
 }

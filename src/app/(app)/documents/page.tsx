@@ -11,7 +11,7 @@ export default function DocumentsPage() {
   const v = data?.find((x) => x.id === vehicleId);
   return (
     <>
-      <PageHeader title="Documents" description="Receipts, invoices, insurance, warranty and registration documents — stored privately with access controls." />
+      <PageHeader title="Documents" description="Receipts, invoices, insurance, warranty and registration documents - stored privately with access controls." />
       <DocumentsPanel vehicleId={vehicleId} openId={doc} canWrite={v ? v.canWrite : (data ?? []).some((x) => x.canWrite)} />
     </>
   );

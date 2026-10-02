@@ -1,64 +1,43 @@
 # Database
 
-PostgreSQL 16, Prisma 6 (`prisma/schema.prisma`, migrations in `prisma/migrations`). Apply with `npx prisma migrate deploy`.
+PostgreSQL 16 through Prisma. Migrations are committed SQL in `prisma/migrations` (`init`, then `finance_hub`, which also contains the integrity SQL below). Apply with `npx prisma migrate deploy`.
 
-## Conventions
+## Finance tables
 
-* **IDs** `cuid` strings. **Timestamps** `timestamptz` (`createdAt`, `updatedAt`); **calendar dates** `date`.
-* **Money** `Decimal(12,2)` with an explicit `currency` column; arithmetic in application code uses integer cents (`lib/money.ts`) — no floating-point drift.
-* **Odometer** `Decimal(10,1)` **kilometres**; volume stored as litres (`quantityL`) with the entered value/unit retained.
-* **Soft deletion** (`deletedAt`) on user-authored records (vehicles, records, expenses, issues, parts, documents, schedules…) so history, audit and exports stay coherent; hard deletion only on account deletion/purge.
-* **Cascade**: deleting a household or vehicle cascades to owned data; shared reference data (`MaintenanceCategory`, system `MaintenanceSchedule`) is never cascaded.
+| Table | Purpose |
+| --- | --- |
+| Household, HouseholdMember, HouseholdInvite | Household, members (roles ADMIN, MEMBER, READ_ONLY), email invitations (hashed single use tokens, 7 day expiry) |
+| MemberPrivacy | Each member's own default sharing per record type |
+| FinAccount | Accounts. `ownerMemberId` is null for joint accounts, which are always HOUSEHOLD visibility |
+| FinCategory, FinMerchant | Two level category tree per household, merchant memory for default categories |
+| FinTransaction | One row per ledger entry: signed amount, type, owner, payer, creator, last editor, allocation mode, visibility, selected members, transfer group, import batch |
+| TransactionAllocation | Split rows for SPLIT allocation (member or household, amount) |
+| ContributionRule, Settlement | Contribution arrangement per household and period, member to member settlements |
+| IncomeSource, IncomeChange | Gross and net amounts kept in separate columns, frequency, history of changes |
+| RecurringRule, Bill, BillPayment, RecurringSubscription, InsurancePolicy | Scheduled and recurring items |
+| Debt, DebtPayment | Debts linked to a liability account, payments split into principal and interest |
+| SavingsGoal, GoalContribution | Goals and contributions |
+| InvestmentProfile, InvestmentEntry, InvestmentValuation, Asset, AssetValuation | Investments and assets with dated valuations |
+| TaxRecord, TaxRuleSet | Tax records and rule sets stored as JSON data per country, region and year |
+| FinBudget, FinBudgetLine | Budgets and lines |
+| FinScenario, CalendarEvent, ImportBatch, FxRate, FinAlertSetting | Saved scenarios and plans, custom events, import tracking, manual exchange rates, per member alert preferences |
+| AuditLog | Who changed what and when, with before and after |
+| Document | Files; `finEntity` and `finEntityId` link a file to a finance record and it inherits that record's visibility |
 
-## Entity overview
+All money columns are `Decimal(19,4)`. Dates for ledger entries are `DATE` (no time zone drift).
 
-```
-User ─┬─ Account (OAuth)          Household ─┬─ HouseholdMember (role ADMIN/MEMBER) ─ User
-      ├─ Session                             ├─ HouseholdInvite
-      ├─ VerificationToken                   ├─ Vehicle ─┬─ VehicleSpecification (decoded data, confirmedFields)
-      ├─ UserPreference                      │           ├─ VehicleOwnership (timeline)
-      ├─ PushSubscription                    │           ├─ VehicleAccess (level + canViewFinancials) ─ User
-      ├─ Notification                        │           ├─ OdometerEntry
-      └─ AIConversation ─ AIMessage          │           ├─ MaintenanceScheduleAssignment ─ MaintenanceSchedule (template) ─ MaintenanceCategory
-                                             │           ├─ MaintenanceRecord ─ MaintenanceRecordItem (→ assignment)
-                                             │           ├─ RepairIssue ─ DiagnosticCode
-                                             │           ├─ Part ─ InstalledPart (installation periods)
-                                             │           ├─ Expense · FuelEntry · Reminder · Inspection · Warranty
-                                             │           ├─ Document (links to record/issue/expense/part/inspection/warranty)
-                                             │           └─ Integration ─ IntegrationCredentialReference (references only, never secrets)
-                                             ├─ ServiceProvider · Budget · Subscription
-Platform: AuditLog · FeatureFlag · EmailOutbox · JobRun · RateLimitBucket
-```
+## Integrity enforced by the database
 
-All 32 requested models exist (`Account`, `Session`, `HouseholdMember`, `VehicleSpecification`, `VehicleOwnership`, `MaintenanceScheduleAssignment`, `MaintenanceRecordItem`, `InstalledPart`, `Warranty`, `Inspection`, `Budget`, `Integration`, `IntegrationCredentialReference`, `AIConversation`, `AIMessage`, …).
+Raw SQL in the `finance_hub` migration:
 
-## Important constraints
+- Sign rules: income and refunds positive, expenses negative, per type, and no zero amounts except adjustments.
+- Transfers need a transfer group id, and only transfers have one.
+- A joint account cannot have an owner and must be HOUSEHOLD visibility.
+- Allocation rows must be positive.
+- A deferred constraint trigger requires that the allocation rows of a SPLIT transaction sum exactly to the transaction amount at commit.
 
-| Constraint | Purpose |
-|---|---|
-| `User.email` unique | one account per address |
-| `HouseholdMember(householdId,userId)` unique; `VehicleAccess(vehicleId,userId)` unique | one membership/grant each |
-| `MaintenanceScheduleAssignment(vehicleId,scheduleId)` unique | a library rule is applied to a vehicle once |
-| `Notification(userId,dedupeKey)` unique | **no duplicate notifications** |
-| `MaintenanceRecord.idempotencyKey`, `Expense.idempotencyKey`, `FuelEntry.idempotencyKey` unique | safe offline replay |
-| `Expense.fuelEntryId` unique; one expense per record (enforced in service) | no double counting |
-| `ServiceProvider(householdId,name)` unique | provider de-duplication |
-| `Session.tokenHash`, `VerificationToken.tokenHash`, `HouseholdInvite.tokenHash` unique | only hashes are stored |
-| `Document.fileKey` unique | storage key integrity |
+## Seeds
 
-Application-level integrity (inside transactions): odometer monotonicity, duplicate-service detection (same vehicle+date+title+odometer), cross-vehicle reference checks (an item may only reference its own vehicle's schedule), at-least-one-owner/admin rules.
-
-## Indexing strategy
-
-Composite indexes follow the access paths: `OdometerEntry(vehicleId,date)` and `(vehicleId,valueKm)`; `MaintenanceRecord(vehicleId,serviceDate)` / `(vehicleId,kind,status)`; `Expense(vehicleId,date)` / `(vehicleId,category)`; `Notification(userId,readAt,dismissedAt)`; `FuelEntry(vehicleId,date)`; `Document(householdId,category)`; `AuditLog(entity,entityId)` / `(vehicleId,createdAt)`; `Vehicle(householdId,deletedAt)` and `(vin)`; `MaintenanceScheduleAssignment(vehicleId,enabled)` / `(status)`.
-
-## Migrations
-
-* `prisma migrate dev --name <change>` while developing; commit the generated SQL.
-* `prisma migrate deploy` in CI/production (the Docker entrypoint does this on start).
-* `npm run db:seed` upserts reference data (categories, 68 suggested rules, feature flags) and is safe to run repeatedly — run it after every deploy.
-* `npm run db:seed:demo` creates **development-only** demo data (flagged `isDemo`); it refuses to run with `NODE_ENV=production`.
-
-## Backup & restore
-
-See [DEPLOYMENT.md](DEPLOYMENT.md#backup-and-restore).
+- `npm run db:seed`: reference data (categories and library schedules for the vehicle module).
+- `npm run db:seed:demo`: development demo household with two real logins. Refuses to run when `NODE_ENV=production`.
+- Per household, default categories are created when the household is created. Seeded tax rule estimates (federal, AB, ON, BC, 2025) are available as defaults and can be overridden per household.

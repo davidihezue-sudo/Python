@@ -17,7 +17,7 @@ export function computeTotal(p: { partsCost?: number | null; laborCost?: number 
   return fromCents(Math.max(0, c));
 }
 export function formatMoney(amount: number | null | undefined, currency = "CAD", locale = "en-CA"): string {
-  if (amount === null || amount === undefined || Number.isNaN(amount)) return "—";
+  if (amount === null || amount === undefined || Number.isNaN(amount)) return "n/a";
   try {
     return new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
   } catch {

@@ -59,7 +59,7 @@ async function resolveVehicle(ctx: Ctx, input: ToolInput) {
   return { scope, vehicles: scope };
 }
 
-const recLine = (r: RecordView, unit: "KM" | "MI") => `${r.serviceDate} — ${r.title}${r.odometerKm !== null ? ` at ${formatDistance(r.odometerKm, unit)}` : " (odometer not recorded)"}${r.totalCost !== null && r.totalCost > 0 ? `, ${formatMoney(r.totalCost, r.currency)}` : ""}${r.providerName ? `, ${r.providerName}` : ""}`;
+const recLine = (r: RecordView, unit: "KM" | "MI") => `${r.serviceDate} - ${r.title}${r.odometerKm !== null ? ` at ${formatDistance(r.odometerKm, unit)}` : " (odometer not recorded)"}${r.totalCost !== null && r.totalCost > 0 ? `, ${formatMoney(r.totalCost, r.currency)}` : ""}${r.providerName ? `, ${r.providerName}` : ""}`;
 
 export const TOOLS = {
   async get_vehicles(ctx: Ctx) {
@@ -153,7 +153,7 @@ export const TOOLS = {
         vehicle: `${v.vehicle.year} ${v.vehicle.make} ${v.vehicle.model} (${v.vehicle.nickname})`,
         odometer: v.vehicle.currentOdometerKm !== null ? formatDistance(Number(v.vehicle.currentOdometerKm), unit) : "not recorded",
         completedServices: count,
-        recentServices: last.map((r) => `${iso(r.serviceDate)} — ${r.title}${r.odometerKm !== null ? ` at ${formatDistance(Number(r.odometerKm), unit)}` : ""}`),
+        recentServices: last.map((r) => `${iso(r.serviceDate)} - ${r.title}${r.odometerKm !== null ? ` at ${formatDistance(Number(r.odometerKm), unit)}` : ""}`),
         openIssues: open,
         overdue: b.items.filter((i) => i.enabled && i.status === "OVERDUE").map((i) => i.name),
         dueSoon: b.items.filter((i) => i.enabled && ["DUE_NOW", "DUE_SOON"].includes(i.status)).map((i) => `${i.name} (${i.summary})`),
@@ -177,7 +177,7 @@ const TOOL_SPECS = [
   { name: "get_vehicle_summary", description: "Summary of a vehicle's recorded maintenance history, spend, and status.", input_schema: { type: "object", properties: { vehicleId: { type: "string" } } } },
 ];
 
-const SYSTEM = `You are AutoVault's vehicle maintenance assistant.
+const SYSTEM = `You are Family Finance Hub's vehicle maintenance assistant.
 Rules:
 - Answer ONLY from data returned by the tools. Call tools before answering any question about the user's vehicles.
 - If the tools return nothing for something, say plainly that it is not recorded. NEVER invent services, dates, odometer readings, costs, or manufacturer recommendations.
@@ -279,13 +279,13 @@ export async function deterministicAnswer(ctx: Ctx, question: string, vehicleHin
   const scopeLabel = vname ? `for ${vname}` : "across your vehicles";
   const subject = extractSubject(q);
   const range = parseYearRange(q, today);
-  const tail = "\n\n_Based on the information recorded in AutoVault. This is not a manufacturer recommendation._";
+  const tail = "\n\n_Based on the information recorded in Family Finance Hub. This is not a manufacturer recommendation._";
 
   // 1. what's coming up / due
   if (/\b(upcoming|coming up|due|next service|overdue|what services|need(s)? (to be )?(done|service))/.test(lower) && !/spent|cost/.test(lower)) {
     const r = await call("get_upcoming", { vehicleId });
     if (!r.count) return { answer: `Nothing is due or approaching ${scopeLabel} based on the recorded data. ${r.note}${tail}`, provider: "deterministic", tools: used, advisory: true };
-    return { answer: `Here is what is coming up ${scopeLabel}:\n${r.items.map((i: any) => `• **${i.title}** (${i.vehicle}) — ${i.summary}${i.dueDate ? `, est. ${i.dueDate}` : ""}`).join("\n")}\n\n${r.note}${tail}`, provider: "deterministic", tools: used, advisory: true };
+    return { answer: `Here is what is coming up ${scopeLabel}:\n${r.items.map((i: any) => `• **${i.title}** (${i.vehicle}) - ${i.summary}${i.dueDate ? `, est. ${i.dueDate}` : ""}`).join("\n")}\n\n${r.note}${tail}`, provider: "deterministic", tools: used, advisory: true };
   }
   // 2. missing records
   if (/\bmissing|gaps?|incomplete|what records\b/.test(lower)) {
@@ -296,7 +296,7 @@ export async function deterministicAnswer(ctx: Ctx, question: string, vehicleHin
   if (/\b(spent|spend|spending|how much|total cost|costs?)\b/.test(lower) && !/\blast (oil|brake|service)\b/.test(lower) && !/cost of my last/.test(lower)) {
     const r = await call("get_spending", { vehicleId, query: subject && !/^(spent|spend)$/.test(subject) ? subject : undefined, from: range?.from, to: range?.to, category: /repair/.test(lower) && !subject ? "REPAIRS" : undefined });
     if (r.note && !r.count) return { answer: `${r.note}${tail}`, provider: "deterministic", tools: used, advisory: true };
-    return { answer: `${r.totals.map((t: any) => `You've spent **${t.formatted}**`).join(" and ")}${subject ? ` on ${subject}` : ""}${range ? ` in ${range.label}` : ""} ${scopeLabel} (${r.count} recorded expense${r.count === 1 ? "" : "s"}).\n${r.entries.slice(0, 5).map((e: any) => `• ${e.date}: ${formatMoney(e.amount, e.currency)} — ${e.description ?? e.category}`).join("\n")}${tail}`, provider: "deterministic", tools: used, advisory: true };
+    return { answer: `${r.totals.map((t: any) => `You've spent **${t.formatted}**`).join(" and ")}${subject ? ` on ${subject}` : ""}${range ? ` in ${range.label}` : ""} ${scopeLabel} (${r.count} recorded expense${r.count === 1 ? "" : "s"}).\n${r.entries.slice(0, 5).map((e: any) => `• ${e.date}: ${formatMoney(e.amount, e.currency)} - ${e.description ?? e.category}`).join("\n")}${tail}`, provider: "deterministic", tools: used, advisory: true };
   }
   // 4. last service of X / cost of last X
   if (/\blast\b|\bwhen (was|were|did)\b|\bmost recent\b/.test(lower) && subject) {
@@ -304,13 +304,13 @@ export async function deterministicAnswer(ctx: Ctx, question: string, vehicleHin
     if (!r.count) return { answer: `There is no completed service matching "${subject}" recorded ${scopeLabel}. If it was done, you can add it from Service History.${tail}`, provider: "deterministic", tools: used, advisory: true };
     const last = r.records[0];
     const costQ = /\bcost|price|paid|how much\b/.test(lower);
-    return { answer: `${costQ ? `The most recent ${subject} service cost ${last.cost !== null && last.cost > 0 ? `**${formatMoney(last.cost, last.currency)}**` : "— no cost is recorded"}.` : `The most recent ${subject}-related service recorded is:`}\n• ${last.summary}${r.count > 1 ? `\n\nPrevious: ${r.records.slice(1, 4).map((x: any) => x.date).join(", ")}` : ""}${tail}`, provider: "deterministic", tools: used, advisory: true };
+    return { answer: `${costQ ? `The most recent ${subject} service cost ${last.cost !== null && last.cost > 0 ? `**${formatMoney(last.cost, last.currency)}**` : "- no cost is recorded"}.` : `The most recent ${subject}-related service recorded is:`}\n• ${last.summary}${r.count > 1 ? `\n\nPrevious: ${r.records.slice(1, 4).map((x: any) => x.date).join(", ")}` : ""}${tail}`, provider: "deterministic", tools: used, advisory: true };
   }
   // 5. repairs
   if (/\brepairs?\b|\bissues?\b|\bproblems?\b/.test(lower)) {
     const r = await call("get_repairs", { vehicleId, query: subject ?? undefined, openOnly: /open|outstanding|unresolved/.test(lower) });
     if (r.note) return { answer: `${r.note}${tail}`, provider: "deterministic", tools: used, advisory: true };
-    const lines = [...r.issues.map((i: any) => `• ${i.discovered} — **${i.title}** (${i.vehicle}) — ${i.status.toLowerCase().replace("_", " ")}${i.actualCost ? `, ${i.actualCost}` : ""}`), ...r.repairRecords.map((x: any) => `• ${x.summary}`)];
+    const lines = [...r.issues.map((i: any) => `• ${i.discovered} - **${i.title}** (${i.vehicle}) - ${i.status.toLowerCase().replace("_", " ")}${i.actualCost ? `, ${i.actualCost}` : ""}`), ...r.repairRecords.map((x: any) => `• ${x.summary}`)];
     return { answer: `Repairs and issues${subject ? ` involving ${subject}` : ""} ${scopeLabel}:\n${lines.join("\n")}${tail}`, provider: "deterministic", tools: used, advisory: true };
   }
   // 6. history for a year / summary

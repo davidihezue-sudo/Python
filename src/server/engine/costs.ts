@@ -152,7 +152,7 @@ export function budgetStatus(p: { amount: number; actual: number; periodStart: I
     note = "Too early in the period for a reliable projection.";
   } else {
     projected = fromCents(Math.round((toCents(p.actual) * totalDays) / elapsed));
-    note = "Straight-line projection of spending so far across the whole period — maintenance costs are lumpy, so treat as a rough guide.";
+    note = "Straight-line projection of spending so far across the whole period - maintenance costs are lumpy, so treat as a rough guide.";
   }
   return {
     budget: p.amount,

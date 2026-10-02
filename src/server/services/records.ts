@@ -461,7 +461,7 @@ export async function prefillFromAssignment(actor: Actor, assignmentId: string) 
     currency: vehicle.currency,
     estimatedCost: fin ? { min: num(a.estCostMin), max: num(a.estCostMax) } : null,
     items: chosen.map((x) => ({ assignmentId: x.id, categoryId: x.categoryId, componentKey: x.componentKey, name: x.name, completed: true, quantity: 1, unitCost: 0, laborCost: 0, trackAsPart: false })),
-    note: chosen.length > 1 ? "Related items from the same service were pre-selected — untick anything you did not do." : undefined,
+    note: chosen.length > 1 ? "Related items from the same service were pre-selected - untick anything you did not do." : undefined,
   };
 }
 

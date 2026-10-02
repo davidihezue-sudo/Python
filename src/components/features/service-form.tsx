@@ -127,7 +127,7 @@ export function ServiceForm({ recordId, initialAssignmentId, initialKind = "MAIN
   return (
     <form onSubmit={submit} className="space-y-5" noValidate>
       {error && <Alert tone="danger">{error}</Alert>}
-      {dup && <Alert tone="warning" title="This looks like a duplicate">{dup}<div className="mt-2"><Checkbox label="It's a different service — save it anyway" onChange={(e) => form.setValue("allowDuplicate", e.target.checked)} /></div></Alert>}
+      {dup && <Alert tone="warning" title="This looks like a duplicate">{dup}<div className="mt-2"><Checkbox label="It's a different service - save it anyway" onChange={(e) => form.setValue("allowDuplicate", e.target.checked)} /></div></Alert>}
       {regression && <Alert tone="warning" title="Odometer conflicts with earlier readings">{regression}<div className="mt-2"><Checkbox label="This is a legitimate correction" onChange={(e) => form.setValue("confirmOdometerCorrection", e.target.checked)} /></div></Alert>}
       {prefill.data?.note && <Alert tone="info">{prefill.data.note}</Alert>}
 
@@ -146,7 +146,7 @@ export function ServiceForm({ recordId, initialAssignmentId, initialKind = "MAIN
           {form.watch("status") !== "COMPLETED" && <p className="text-xs text-muted-foreground">Only <strong>completed</strong> records update schedules, mileage and expenses.</p>}
           {form.watch("workPerformedBy") !== "OWNER_DIY" && (
             <div className="grid gap-3 sm:grid-cols-3">
-              <Field label="Service provider">{(p) => newProvider ? <Input {...p} {...form.register("providerName")} placeholder="Workshop name" /> : <Select {...p} {...form.register("providerId")} onChange={(e) => { if (e.target.value === "__new") { setNewProvider(true); form.setValue("providerId", ""); } else form.setValue("providerId", e.target.value); }}><option value="">—</option>{providers?.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}<option value="__new">+ New provider…</option></Select>}</Field>
+              <Field label="Service provider">{(p) => newProvider ? <Input {...p} {...form.register("providerName")} placeholder="Workshop name" /> : <Select {...p} {...form.register("providerId")} onChange={(e) => { if (e.target.value === "__new") { setNewProvider(true); form.setValue("providerId", ""); } else form.setValue("providerId", e.target.value); }}><option value="">n/a</option>{providers?.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}<option value="__new">+ New provider…</option></Select>}</Field>
               <Field label="Mechanic">{(p) => <Input {...p} {...form.register("mechanicName")} />}</Field>
               <Field label="Location">{(p) => <Input {...p} {...form.register("location")} />}</Field>
             </div>
@@ -156,9 +156,9 @@ export function ServiceForm({ recordId, initialAssignmentId, initialKind = "MAIN
       </Card>
 
       <Card>
-        <CardHeader title="Work items" description="Select the schedule items you completed — only these are marked as done. Add several for one workshop visit." action={<Button size="sm" variant="outline" onClick={() => append({ ...blankItem })}><Plus className="h-4 w-4" /> Add item</Button>} />
+        <CardHeader title="Work items" description="Select the schedule items you completed - only these are marked as done. Add several for one workshop visit." action={<Button size="sm" variant="outline" onClick={() => append({ ...blankItem })}><Plus className="h-4 w-4" /> Add item</Button>} />
         <CardBody className="space-y-3">
-          {fields.length === 0 && <p className="text-sm text-muted-foreground">No items yet. Add the work you did — e.g. “Engine oil” and “Oil filter”. Items linked to a schedule update its last-done date and next due.</p>}
+          {fields.length === 0 && <p className="text-sm text-muted-foreground">No items yet. Add the work you did - e.g. “Engine oil” and “Oil filter”. Items linked to a schedule update its last-done date and next due.</p>}
           {fields.map((fld, idx) => (
             <div key={fld.id} className="rounded-lg border border-border p-3">
               <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">

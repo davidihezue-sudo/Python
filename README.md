@@ -1,106 +1,92 @@
-# AutoVault
+# Family Finance Hub
 
-A premium, database-backed **vehicle maintenance & ownership management platform** — a digital service book, maintenance planner, repair tracker, parts/warranty register, expense and fuel tracker, and ownership analytics platform. Built as a responsive, installable PWA.
+A household finance platform for families and shared households. Every member has their own login and records their own money. The household combines what is shared, automatically, without ever exposing what is private.
 
-* **Multi-vehicle & household aware** — per-vehicle permissions, hidden financials for members who aren't granted them.
-* **Honest maintenance engine** — mileage, time, either/both, inspection, condition, one-time and recurring schedules. Intervals are *suggestions* unless you mark them as manufacturer data; nothing is invented.
-* **Everything is derived from your records** — completing a service updates schedules, odometer, expenses and parts in one transaction.
-* **Optional integrations** (VIN decoding, OCR, AI assistant, OBD gateway, push) with working fallbacks when no credentials are supplied.
+Built for Canadian households (CAD, provinces, RRSP, TFSA, FHSA, RESP, CPP, EI, GST/HST, mortgages), but region, currency, tax rules and categories are configuration, not code.
 
-> See [USER_GUIDE.md](USER_GUIDE.md) for the product tour, [ARCHITECTURE.md](ARCHITECTURE.md), [DATABASE.md](DATABASE.md), [API.md](API.md), [SECURITY.md](SECURITY.md) and [DEPLOYMENT.md](DEPLOYMENT.md).
+## What it does
 
-## Features
+| Area | Features |
+| --- | --- |
+| Multi-user | Own login per member, invitations by email, roles (Administrator, Member, Read only), My Finances, Household Finances and Member Comparison views |
+| Privacy | Per-record visibility: Personal, Household or Selected members, enforced on the server. Administrators cannot read other members' personal records |
+| Ledger | Accounts (chequing, savings, cash, credit card, line of credit, mortgage, loan, investment, RRSP, TFSA, FHSA, RESP, joint), transactions, transfers, refunds, reimbursements, split and allocated expenses, audit trail |
+| Contributions | Arrangements: independent, shared equally, income based, fixed amounts, custom. Who paid, who owes, settlements, no double counting |
+| Budgets | Monthly, weekly or annual, personal or household, rollover, forecast, alerts, compare periods |
+| Income | Gross and net kept separate, pay frequency, changes over time, payment log |
+| Bills and recurring | Bills, subscriptions, insurance, recurring rules with auto posting, calendar |
+| Debt | Credit cards, lines of credit, loans, mortgages, amortisation, snowball, avalanche and custom payoff strategies |
+| Savings and wealth | Goals, emergency fund, investments, assets, net worth history |
+| Planning | Day by day cash flow forecast, what-if scenarios, mortgage and affordability planner (semi-annual compounding, stress test, CMHC bands, GDS and TDS), down payment planner |
+| Tax | Records per year and member, estimates from rules stored as data, household overrides |
+| Reports | 14 report types in PDF, Excel and CSV |
+| Data | CSV import with column mapping, duplicate detection and undo, exports, documents and receipts |
+| Assistant | Deterministic finance assistant that reads only what you are allowed to see. No external AI is required |
+| Alerts | In-app notifications and email for due bills, budgets, low balances, renewals, unusual spending |
 
-| Area | What you get |
-|---|---|
-| **Vehicles** | Any vehicle; full spec (engine, fuel, transmission, drivetrain, VIN…), ownership timeline, photo, insurance/registration dates, NHTSA VIN decoding (suggestions only, never overwrites confirmed values), 2015 BMW X3 28i (F25/N20) starter profile with **no fabricated history** |
-| **Odometer** | Monotonic validation, audited correction workflow, usage statistics, projections, CSV import, km⇄mi everywhere |
-| **Maintenance planner** | 8 trigger types, 68 suggested library rules across all requested categories, per-rule thresholds, status engine (Up to date / Upcoming / Due soon / Due now / Overdue / Inspection required / Unknown history), basis labels (your schedule / manufacturer / driving history / generic suggestion), audit history |
-| **Service records** | Multi-item visits, partial completion, DIY vs workshop, parts/labour/tax/discount, receipts, duplicate prevention, offline-safe idempotent creation |
-| **Repairs & issues** | 9-stage lifecycle, severity, photos, DTCs (generic meaning, never a diagnosis), convert to repair record, repair cost by component |
-| **Parts** | Inventory, OEM/aftermarket, warranty, installation periods, automatic replacement chains, component history |
-| **Money** | 14 expense categories, budgets (monthly/annual with projection), fuel with full-to-full economy, cost per km/mile (maintenance-only / repair-only / total, never inflated by missing mileage) |
-| **Reminders** | Staged, de-duplicated notifications generated by a background job; in-app, email, web push (with capability detection) |
-| **Documents** | PDF/JPG/PNG/WEBP, magic-byte validation, access-controlled download, optional OCR with mandatory human verification |
-| **Reports** | 11 reports as PDF / CSV / Excel / JSON with privacy controls (hide VIN, costs, providers) |
-| **AI assistant** | Read-only, permission-checked tools over your records; deterministic fallback when no AI key is configured |
-| **Admin & billing readiness** | Platform stats without private data, feature flags, plan/entitlement model (Stripe-ready, off by default) |
+The repository also contains the earlier vehicle maintenance module (vehicles, service history, reminders). It remains available from the navigation and shares accounts and households.
 
-## Technology
+## Stack
 
-Next.js 15 (App Router) · React 19 · TypeScript (strict) · Tailwind CSS · Recharts · TanStack Query · React Hook Form + Zod · Prisma 6 · PostgreSQL 16 · pdfkit / exceljs / pdfjs-dist · Vitest · Playwright.
+Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, TanStack Query, Recharts, Prisma 6, PostgreSQL 16, decimal.js for money, zod, Vitest, Playwright. IBM Plex Sans for text, Instrument Serif for display headings only, tabular numerals for every amount.
 
-## Quick start (local)
-
-Prerequisites: Node.js ≥ 20, PostgreSQL 16 (or Docker).
+## Quick start
 
 ```bash
-cp .env.example .env                  # then set AUTH_SECRET (openssl rand -base64 48) and DATABASE_URL
+cp .env.example .env            # set DATABASE_URL and AUTH_SECRET
 npm install
-npx prisma migrate deploy             # apply migrations   (use `npm run db:migrate` while developing schema changes)
-npm run db:seed                       # maintenance categories + suggested library (idempotent; required)
-npm run db:seed:demo                  # OPTIONAL development data (demo@autovault.local / DemoPass123!)
-npm run dev                           # http://localhost:3000
-npm run worker                        # (second terminal) background jobs: reminders, email flush, cleanup
+npx prisma migrate deploy       # applies all migrations
+npm run db:seed                 # reference data
+npm run db:seed:demo            # optional demo household (development only)
+npm run dev                     # http://localhost:3000
 ```
 
-Without SMTP configured, verification and reset emails are written to the `EmailOutbox` table and the server log. In development they are listed at **http://localhost:3000/dev/outbox**.
+With Docker: `docker compose up --build` starts PostgreSQL, the web app and the worker.
 
-### Docker
+### Demo accounts (development only, created by `npm run db:seed:demo`)
 
-```bash
-cp .env.example .env   # set AUTH_SECRET, POSTGRES_PASSWORD, CRON_SECRET
-docker compose up --build        # web :3000, worker, PostgreSQL
-docker compose --profile dev up  # + Mailpit (8025) and MinIO (9000/9001) for local SMTP / S3 testing
-```
+| Account | Password | Role |
+| --- | --- | --- |
+| david@familyfinance.local | DemoPass123! | Administrator of the "Demo household" |
+| sharon@familyfinance.local | DemoPass123! | Member with their own login and private records |
+| admin@familyfinance.local | DemoPass123! | Platform administrator |
 
-The web container runs `prisma migrate deploy` and the reference-data seed on start.
+Demo data is labelled "Demo" throughout the interface and is removed with Household, Data, Remove demo data. You can also load a demo household from the onboarding wizard on any account.
 
 ## Commands
 
 | Command | Purpose |
-|---|---|
-| `npm run dev` / `build` / `start` | Develop / production build / serve |
-| `npm run worker` | Background job scheduler (reminders, email, cleanup, schedule refresh) |
-| `npm run typecheck` · `npm run lint` | Static checks |
-| `npm test` (`test:unit`) | Pure engine tests (no database) |
-| `npm run test:integration` | Service-layer tests against PostgreSQL (`autovault_test`, see `.env.test`) |
-| `npm run test:e2e` | Playwright journeys A–E, security, mobile/PWA/offline (needs `npm run build` first) |
-| `npm run db:migrate` / `db:deploy` / `db:reset` | Migrations |
-| `npm run icons` | Regenerate PWA icons |
+| --- | --- |
+| `npm run typecheck` | TypeScript |
+| `npm run lint` | ESLint |
+| `npm run test:unit` | Pure calculation and utility tests (no database) |
+| `npm run test:integration` | Permissions, privacy, allocations, demo data against PostgreSQL |
+| `npm run test:e2e` | Browser tests |
+| `npm run build` / `npm start` | Production build and server |
+| `npm run worker` | Background jobs (alerts, recurring posting, cleanup, email) |
+| `npm run backup` | PostgreSQL dump to `./backups` (see DEPLOYMENT.md) |
 
-### Test databases
+## Environment
 
-Integration tests use `autovault_test`; e2e creates and drops `autovault_e2e` automatically. Create the first once:
-`createdb autovault_test` (user/password in `.env.test`). In CI both are created by the workflow.
+See `.env.example`. Required: `DATABASE_URL`, `AUTH_SECRET`. Everything else is optional.
 
-## Environment configuration
+External services that need credentials (none are required for core features):
 
-All configuration is via environment variables (see [`.env.example`](.env.example) — fully commented). Required: `DATABASE_URL`, `AUTH_SECRET`. Everything else has a safe default.
+- SMTP (`SMTP_*`) for invitation, verification and alert email. Without it, mail is stored in the `EmailOutbox` table and visible at `/dev/outbox` in development.
+- Google sign-in (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+- S3 compatible storage (`S3_*`) for documents. Local disk is the default.
+- Web push (`VAPID_*`).
+- Anthropic API key, only for the older vehicle assistant. The finance assistant is deterministic and needs no key.
+- Live exchange rates, bank feeds and market prices are not integrated. Exchange rates are entered by hand; accounts are updated by entry or CSV import.
 
-| Credential needed for | Variables |
-|---|---|
-| Email delivery | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `EMAIL_FROM` |
-| Google sign-in | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (redirect URI: `{APP_URL}/api/auth/google/callback`) |
-| S3 storage | `STORAGE_DRIVER=s3`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` (+ `S3_ENDPOINT` for R2/MinIO) |
-| Web push | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (`npx web-push generate-vapid-keys`) |
-| AI assistant / vision OCR | `ANTHROPIC_API_KEY` (optional; fallbacks work without it) |
-| HTTP cron | `CRON_SECRET` |
+## Documentation
 
-## Project layout
+[ARCHITECTURE.md](ARCHITECTURE.md), [DATABASE.md](DATABASE.md), [API.md](API.md), [SECURITY.md](SECURITY.md), [DEPLOYMENT.md](DEPLOYMENT.md), [USER_GUIDE.md](USER_GUIDE.md).
 
-```
-prisma/            schema, migrations, reference seed, demo seed
-src/lib/           env, db, auth, http wrapper, storage, email, validation (zod), units/dates/money
-src/server/engine  pure, unit-tested calculations (mileage, schedule, costs, fuel, alerts, insights)
-src/server/services domain services (authorisation → transaction → audit)
-src/server/integrations VIN, OCR, diagnostics providers
-src/server/jobs    scheduler + worker
-src/app/api        REST endpoints (thin wrappers around services)
-src/app            pages (App Router);  src/components  UI kit + feature panels
-tests/             unit · integration · e2e
-```
+## Known limitations
 
-## Honest status
-
-Everything above is implemented and covered by automated tests that run against a real database and a real browser. See the **Verification** and **Known limitations** sections of [DEPLOYMENT.md](DEPLOYMENT.md) and the final delivery notes for what could not be verified in this environment (Google OAuth against Google, S3 against a real bucket, SMTP delivery, web-push delivery, AI/OCR providers, Docker image build).
+- No bank connections. Data comes from manual entry and CSV import.
+- Tax estimates are planning aids built from seeded 2025 federal, Alberta, Ontario and British Columbia estimates plus whatever an administrator loads. They are not tax advice.
+- Multi-currency uses manually entered rates. Net worth converts to the household currency at the latest rate on or before each date.
+- Investment returns are as entered; there are no market data feeds.
+- Scenarios and forecasts are projections from recorded data and stated assumptions, not predictions.

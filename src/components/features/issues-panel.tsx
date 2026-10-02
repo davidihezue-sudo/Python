@@ -90,10 +90,10 @@ function IssueDetail({ id, onClose, canWrite }: { id: string; onClose: () => voi
           <div className="flex flex-wrap items-center gap-2"><SeverityBadge severity={i.severity} /><IssueStatusBadge status={i.status} />{i.status === "RESOLVED" && <span className="flex items-center gap-1 text-success"><CheckCircle2 className="h-4 w-4" /> Resolved {f.date(i.resolvedAt)}</span>}</div>
           {canWrite && <Field label="Lifecycle status">{(p) => <Select {...p} value={i.status} onChange={(e) => setStatus(e.target.value)}>{STATUSES.map((s) => <option key={s} value={s} disabled={i.status === "CLOSED" && s !== "NEW" && s !== "CLOSED"}>{label(s)}</option>)}</Select>}</Field>}
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div><dt className="text-xs text-muted-foreground">Odometer</dt><dd className="font-medium">{i.odometerKm != null ? f.distance(i.odometerKm) : "—"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Component</dt><dd className="font-medium">{i.componentKey ? titleCase(i.componentKey) : "—"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Estimated cost</dt><dd className="font-medium">{i.estimatedCost != null ? f.money(i.estimatedCost, i.currency) : "—"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Actual cost</dt><dd className="font-medium">{i.actualCost != null ? f.money(i.actualCost, i.currency) : "—"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Odometer</dt><dd className="font-medium">{i.odometerKm != null ? f.distance(i.odometerKm) : "n/a"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Component</dt><dd className="font-medium">{i.componentKey ? titleCase(i.componentKey) : "n/a"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Estimated cost</dt><dd className="font-medium">{i.estimatedCost != null ? f.money(i.estimatedCost, i.currency) : "n/a"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Actual cost</dt><dd className="font-medium">{i.actualCost != null ? f.money(i.actualCost, i.currency) : "n/a"}</dd></div>
           </dl>
           {i.description && <div><h3 className="font-semibold">Description</h3><p className="text-muted-foreground">{i.description}</p></div>}
           {i.symptoms && <div><h3 className="font-semibold">Symptoms</h3><p className="text-muted-foreground">{i.symptoms}</p></div>}
@@ -101,7 +101,7 @@ function IssueDetail({ id, onClose, canWrite }: { id: string; onClose: () => voi
           {i.resolution && <div><h3 className="font-semibold">Resolution</h3><p className="text-muted-foreground">{i.resolution}</p></div>}
           <div>
             <div className="mb-1 flex items-center justify-between"><h3 className="font-semibold">Diagnostic codes</h3>{canWrite && <Button size="sm" variant="outline" onClick={() => setDtc(true)}><Plus className="h-4 w-4" /> Add code</Button>}</div>
-            {i.codes.length === 0 ? <p className="text-muted-foreground">None recorded.</p> : <ul className="space-y-1.5">{i.codes.map((c: any) => <li key={c.id} className="rounded-md bg-muted p-2"><span className="font-mono font-semibold">{c.code}</span> <span className="text-muted-foreground">— {c.description ?? c.reference.description ?? "no description"}{!c.description && c.reference.known ? " (generic meaning, not a diagnosis)" : ""}</span></li>)}</ul>}
+            {i.codes.length === 0 ? <p className="text-muted-foreground">None recorded.</p> : <ul className="space-y-1.5">{i.codes.map((c: any) => <li key={c.id} className="rounded-md bg-muted p-2"><span className="font-mono font-semibold">{c.code}</span> <span className="text-muted-foreground">- {c.description ?? c.reference.description ?? "no description"}{!c.description && c.reference.known ? " (generic meaning, not a diagnosis)" : ""}</span></li>)}</ul>}
           </div>
           <div>
             <div className="mb-1 flex items-center justify-between"><h3 className="font-semibold">Photos & documents</h3>{canWrite && <Button size="sm" variant="outline" onClick={() => open("upload", { vehicleId: i.vehicleId, issueId: i.id, category: "ISSUE_PHOTO" })}><Camera className="h-4 w-4" /> Add</Button>}</div>
@@ -133,7 +133,7 @@ function EditIssue({ issue, onClose }: { issue: any; onClose: () => void }) {
           <Field label="Date discovered">{(p) => <Input type="date" {...p} {...form.register("discoveredAt")} />}</Field>
           <Field label="Odometer">{(p) => <Controller control={form.control} name="odometerKm" render={({ field }) => <DistanceInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
           <Field label="Severity">{(p) => <Select {...p} {...form.register("severity")}>{["LOW", "MODERATE", "HIGH", "CRITICAL"].map((s) => <option key={s} value={s}>{label(s)}</option>)}</Select>}</Field>
-          <Field label="Related system">{(p) => <Select {...p} {...form.register("categoryId")}><option value="">—</option>{cats?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</Field>
+          <Field label="Related system">{(p) => <Select {...p} {...form.register("categoryId")}><option value="">n/a</option>{cats?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</Field>
           <Field label="Component" hint="e.g. water_pump">{(p) => <Input {...p} {...form.register("componentKey")} />}</Field>
           <span />
           <Field label="Estimated cost">{(p) => <Controller control={form.control} name="estimatedCost" render={({ field }) => <MoneyInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>

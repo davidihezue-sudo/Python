@@ -103,7 +103,7 @@ export function humanizeDays(days: number): string {
 }
 
 export function formatDateInTz(iso: IsoDate | Date | string | null | undefined, tz = "UTC", locale = "en-CA"): string {
-  if (!iso) return "—";
+  if (!iso) return "n/a";
   if (typeof iso === "string" && ISO_RE.test(iso)) {
     return new Intl.DateTimeFormat(locale, { timeZone: "UTC", year: "numeric", month: "short", day: "numeric" }).format(isoToDate(iso));
   }

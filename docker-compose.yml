@@ -5,14 +5,14 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: autovault
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autovault}
-      POSTGRES_DB: autovault
+      POSTGRES_USER: familyfinance
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-familyfinance}
+      POSTGRES_DB: familyfinance
     # published on localhost so `npm run dev` / `npm start` on the host can reach it (set DB_PORT if 5432 is taken)
     ports: ["127.0.0.1:${DB_PORT:-5432}:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U autovault -d autovault"]
+      test: ["CMD-SHELL", "pg_isready -U familyfinance -d familyfinance"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -24,7 +24,7 @@ services:
       db: { condition: service_healthy }
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://autovault:${POSTGRES_PASSWORD:-autovault}@db:5432/autovault?schema=public
+      DATABASE_URL: postgresql://familyfinance:${POSTGRES_PASSWORD:-familyfinance}@db:5432/familyfinance?schema=public
       NODE_ENV: production
       APP_URL: ${APP_URL:-http://localhost:3000}
       STORAGE_LOCAL_DIR: /app/storage
@@ -40,7 +40,7 @@ services:
       web: { condition: service_started }
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://autovault:${POSTGRES_PASSWORD:-autovault}@db:5432/autovault?schema=public
+      DATABASE_URL: postgresql://familyfinance:${POSTGRES_PASSWORD:-familyfinance}@db:5432/familyfinance?schema=public
       NODE_ENV: production
       STORAGE_LOCAL_DIR: /app/storage
     volumes: [uploads:/app/storage]

@@ -41,7 +41,7 @@ export async function populateDemoData(ctx: FinCtx, partnerMemberId: string) {
   // ───── accounts
   const mk = async (name: string, type: string, owner: string | null, opening: string, extra: Record<string, unknown> = {}) => (await createAccount(ctx, accountSchema.parse({ name, type, openingBalance: opening, openingDate: start, institution: "Demo Credit Union", joint: owner === null, ownerMemberId: owner ?? undefined, ...extra }))).id;
   const A = {
-    meChq: await mk("Chequing (you)", "CHEQUING", me, "3200.00"), partnerChq: await mk("Chequing (partner)", "CHEQUING", partner, "2800.00"), joint: await mk("Joint chequing", "CHEQUING", null, "4200.00"),
+    meChq: await mk("Chequing (you)", "CHEQUING", me, "3200.00"), partnerChq: await mk("Chequing (partner)", "CHEQUING", partner, "6500.00"), joint: await mk("Joint chequing", "CHEQUING", null, "4200.00"),
     emergency: await mk("Emergency savings (joint)", "HIGH_INTEREST_SAVINGS", null, "11000.00"), house: await mk("House fund (joint)", "HIGH_INTEREST_SAVINGS", null, "9500.00"), private: await mk("Partner private savings", "SAVINGS", partner, "2400.00", { visibility: "PERSONAL" }),
     tfsa: await mk("TFSA (you)", "INVESTMENT", me, "14000.00", { investmentKind: "TFSA" }), rrsp: await mk("RRSP (partner)", "INVESTMENT", partner, "26000.00", { investmentKind: "RRSP" }),
   };

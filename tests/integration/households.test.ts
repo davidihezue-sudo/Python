@@ -52,7 +52,7 @@ describe("Journey E: household sharing", () => {
     expect(mine.map((v) => v.id)).toEqual([vehicleId]);
     expect(mine[0].canWrite).toBe(true);
     expect(mine[0].canViewFinancials).toBe(false);
-    // not authorised for the other vehicle — reported as not found, not forbidden (no existence leak)
+    // not authorised for the other vehicle - reported as not found, not forbidden (no existence leak)
     await expect(getVehicle(sp, second)).rejects.toMatchObject({ code: "NOT_FOUND" });
     // single-use
     await expect(acceptInvite(spouse, token)).rejects.toMatchObject({ code: "BAD_REQUEST" });

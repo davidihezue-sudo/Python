@@ -108,7 +108,7 @@ function PartFields({ form, err, prefix = "" }: { form: any; err: (k: string) =>
         <Field label="Manufacturer">{(p) => <Input {...p} {...form.register(n("manufacturer"))} />}</Field>
         <Field label="Part number">{(p) => <Input {...p} {...form.register(n("partNumber"))} />}</Field>
         <Field label="OEM / aftermarket">{(p) => <Select {...p} {...form.register(n("origin"))}><option value="UNKNOWN">Unknown</option><option value="OEM">OEM</option><option value="AFTERMARKET">Aftermarket</option></Select>}</Field>
-        <Field label="Category">{(p) => <Select {...p} {...form.register(n("categoryId"))}><option value="">—</option>{cats?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</Field>
+        <Field label="Category">{(p) => <Select {...p} {...form.register(n("categoryId"))}><option value="">n/a</option>{cats?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</Field>
         <Field label="Supplier">{(p) => <Input {...p} {...form.register(n("supplier"))} />}</Field>
         <Field label="Purchase date">{(p) => <Input type="date" {...p} {...form.register(n("purchaseDate"))} />}</Field>
         <Field label="Purchase price">{(p) => <Controller control={form.control} name={n("purchasePrice")} render={({ field }) => <MoneyInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
@@ -157,7 +157,7 @@ function ReplaceDialog({ vehicleId, onClose }: { vehicleId?: string; onClose: ()
   const { data: comps } = useQuery({ queryKey: ["components", vid], queryFn: () => api<any[]>(`/api/parts/components?vehicleId=${vid}`), enabled: !!vid });
   const [err, setErr] = React.useState("");
   React.useEffect(() => { if (!form.getValues("vehicleId") && def) form.setValue("vehicleId", def); }, [def, form]);
-  const submit = form.handleSubmit(async (v) => { try { await api("/api/parts/replace", { method: "POST", body: v }); toast({ title: "Component replaced — previous installation closed" }); void qc.invalidateQueries(); onClose(); } catch (e) { setErr(applyApiErrors(form, e)); } });
+  const submit = form.handleSubmit(async (v) => { try { await api("/api/parts/replace", { method: "POST", body: v }); toast({ title: "Component replaced - previous installation closed" }); void qc.invalidateQueries(); onClose(); } catch (e) { setErr(applyApiErrors(form, e)); } });
   const e = (k: string) => form.formState.errors[k]?.message as string | undefined;
   return (
     <Modal open onClose={onClose} size="lg" title="Replace a component" description="Closes the previous installation period at the new part's install date and odometer." footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button type="submit" form="replace-form" loading={form.formState.isSubmitting}>Record replacement</Button></>}>

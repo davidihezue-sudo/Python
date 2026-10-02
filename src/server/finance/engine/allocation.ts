@@ -29,7 +29,7 @@ export function apportion(total: DecLike, weights: DecLike[]): DecT[] {
   const sign = t.isNegative() ? -1 : 1;
   const exact = w.map((x) => cents.times(x).div(sw));
   const floors = exact.map((x) => x.floor());
-  let left = cents.minus(sum(floors)).toNumber();
+  const left = cents.minus(sum(floors)).toNumber();
   const order = exact.map((x, i) => ({ i, r: x.minus(floors[i]) })).sort((a, b) => b.r.comparedTo(a.r) || a.i - b.i);
   const out = floors.map((f) => f);
   for (let k = 0; k < left; k++) out[order[k].i] = out[order[k].i].plus(1);

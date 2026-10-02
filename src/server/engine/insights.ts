@@ -29,7 +29,7 @@ export interface InsightInput {
 
 const pretty = (k: string) => k.replace(/_/g, " ");
 
-/** Transparent, deterministic insights — every statement is derived from recorded data and labelled with its basis. */
+/** Transparent, deterministic insights - every statement is derived from recorded data and labelled with its basis. */
 export function generateInsights(i: InsightInput): Insight[] {
   const out: Insight[] = [];
   const mk = (x: Omit<Insight, "vehicleId" | "vehicleName">) => out.push({ ...x, vehicleId: i.vehicleId, vehicleName: i.vehicleName });
@@ -37,7 +37,7 @@ export function generateInsights(i: InsightInput): Insight[] {
   for (const s of active.filter((s) => s.status === "OVERDUE").slice(0, 4)) mk({ id: `overdue:${s.id}`, severity: "critical", title: `${s.name} is overdue`, detail: s.summary, basis: s.estimateBasis, action: { label: "Record service", href: `/service-history/new?assignmentId=${s.id}` } });
   for (const s of active.filter((s) => s.status === "DUE_NOW" || s.status === "DUE_SOON" || s.status === "INSPECTION_REQUIRED").slice(0, 4)) mk({ id: `due:${s.id}`, severity: "warning", title: `${s.name}: ${s.status === "INSPECTION_REQUIRED" ? "inspection required" : s.status === "DUE_NOW" ? "due now" : "due soon"}`, detail: s.summary, basis: s.estimateBasis, action: { label: "Record service", href: `/service-history/new?assignmentId=${s.id}` } });
   for (const s of active.filter((s) => s.status === "UPCOMING" && s.estimatedMonthsToKm !== null && s.estimatedMonthsToKm <= 3 && s.effectiveDueDate).slice(0, 3)) mk({ id: `proj:${s.id}`, severity: "info", title: `${s.name} expected around ${s.effectiveDueDate}`, detail: `${s.summary}. ${i.avgMonthlyKmText ? `Estimated from your average driving of ${i.avgMonthlyKmText} per month.` : ""}`.trim(), basis: s.estimateBasis });
-  for (const r of i.replacements.filter((r) => r.withinMonths24 >= 2 || r.count >= 3).slice(0, 3)) mk({ id: `repl:${r.componentKey}`, severity: "warning", title: `${pretty(r.componentKey)} replaced ${r.count} times`, detail: r.withinMonths24 >= 2 ? `${r.withinMonths24} replacements within the last 24 months — consider investigating the underlying cause.` : "Repeated replacements are recorded for this component.", basis: ["RECORDED_DATA"], action: { label: "View parts history", href: `/parts?vehicle=${i.vehicleId}&component=${r.componentKey}` } });
+  for (const r of i.replacements.filter((r) => r.withinMonths24 >= 2 || r.count >= 3).slice(0, 3)) mk({ id: `repl:${r.componentKey}`, severity: "warning", title: `${pretty(r.componentKey)} replaced ${r.count} times`, detail: r.withinMonths24 >= 2 ? `${r.withinMonths24} replacements within the last 24 months - consider investigating the underlying cause.` : "Repeated replacements are recorded for this component.", basis: ["RECORDED_DATA"], action: { label: "View parts history", href: `/parts?vehicle=${i.vehicleId}&component=${r.componentKey}` } });
   if (i.spendPrev12 !== null && i.spendLast12 !== null && i.spendPrev12 > 0 && i.spendLast12 > i.spendPrev12 * 1.25 && i.spendLast12 - i.spendPrev12 >= 200) {
     const pct = Math.round(((i.spendLast12 - i.spendPrev12) / i.spendPrev12) * 100);
     mk({ id: "spend-up", severity: "info", title: `Maintenance & repair spending up ${pct}%`, detail: `${i.fmtMoney(i.spendLast12)} in the last 12 months versus ${i.fmtMoney(i.spendPrev12)} in the 12 months before.`, basis: ["RECORDED_DATA"], action: { label: "See expenses", href: "/expenses" } });

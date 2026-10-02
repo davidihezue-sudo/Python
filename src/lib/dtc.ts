@@ -94,7 +94,7 @@ const SUBSYSTEM_P: Record<string, string> = {
 };
 
 export const DISCLAIMER =
-  "This is the generic industry meaning of the code only. It is not a diagnosis — the same code can have several causes and the correct fix is vehicle-specific. Confirm with a qualified technician.";
+  "This is the generic industry meaning of the code only. It is not a diagnosis - the same code can have several causes and the correct fix is vehicle-specific. Confirm with a qualified technician.";
 
 export function normalizeDtc(raw: string): string {
   return raw.trim().toUpperCase().replace(/\s+/g, "");
@@ -113,7 +113,7 @@ export function lookupDtc(rawCode: string): DtcInfo {
       known: false,
       description: undefined,
       disclaimer: manufacturerHex
-        ? "This looks like a manufacturer-specific fault-memory code (for example BMW's hexadecimal codes). It cannot be interpreted generically — use the manufacturer's diagnostic tooling or a specialist."
+        ? "This looks like a manufacturer-specific fault-memory code (for example BMW's hexadecimal codes). It cannot be interpreted generically - use the manufacturer's diagnostic tooling or a specialist."
         : "This does not look like a standard OBD-II code (expected a letter P/B/C/U followed by four characters, e.g. P0301). You can still store it with your own notes.",
     };
   }
@@ -135,6 +135,6 @@ export function lookupDtc(rawCode: string): DtcInfo {
         ? "This is a manufacturer-specific code: its meaning differs between makes. Look it up for your exact vehicle. " + DISCLAIMER
         : description
           ? DISCLAIMER
-          : "This is a standard-format code that is not in AutoVault's built-in reference. " + DISCLAIMER,
+          : "This is a standard-format code that is not in Family Finance Hub's built-in reference. " + DISCLAIMER,
   };
 }

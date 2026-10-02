@@ -87,7 +87,7 @@ function Preferences() {
   const [t, setT] = React.useState({ upcomingKm: th.upcomingKm, upcomingDays: th.upcomingDays, dueSoonKm: th.dueSoonKm, dueSoonDays: th.dueSoonDays, graceKm: th.graceKm, graceDays: th.graceDays });
   return (
     <div className="space-y-4">
-      <Card><CardHeader title="Units, currency & time zone" description="Odometer values are stored in kilometres and converted for display — never silently mixed." /><CardBody className="grid gap-3 sm:grid-cols-2">
+      <Card><CardHeader title="Units, currency & time zone" description="Odometer values are stored in kilometres and converted for display - never silently mixed." /><CardBody className="grid gap-3 sm:grid-cols-2">
         <Field label="Distance">{(x) => <Select {...x} value={p.distanceUnit} onChange={(e) => save({ distanceUnit: e.target.value })}><option value="KM">Kilometres</option><option value="MI">Miles</option></Select>}</Field>
         <Field label="Fuel volume">{(x) => <Select {...x} value={p.volumeUnit} onChange={(e) => save({ volumeUnit: e.target.value })}><option value="L">Litres</option><option value="GAL_US">US gallons</option><option value="GAL_UK">UK gallons</option></Select>}</Field>
         <Field label="Fuel economy">{(x) => <Select {...x} value={p.fuelEconomyUnit} onChange={(e) => save({ fuelEconomyUnit: e.target.value })}><option value="L_PER_100KM">L/100 km</option><option value="KM_PER_L">km/L</option><option value="MPG_US">MPG (US)</option><option value="MPG_UK">MPG (UK)</option></Select>}</Field>
@@ -99,7 +99,7 @@ function Preferences() {
         <div className="grid gap-3 sm:grid-cols-2">
           {([["upcomingKm", "Upcoming within (km)"], ["upcomingDays", "Upcoming within (days)"], ["dueSoonKm", "Due soon within (km)"], ["dueSoonDays", "Due soon within (days)"], ["graceKm", "Overdue only after (km grace)"], ["graceDays", "Overdue only after (days grace)"]] as const).map(([k, l]) => <Field key={k} label={l}>{(x) => <Input type="number" min={0} {...x} value={t[k]} onChange={(e) => setT({ ...t, [k]: Number(e.target.value) })} />}</Field>)}
         </div>
-        <Button onClick={() => save(t, "Thresholds saved — statuses recalculate")}>Save thresholds</Button>
+        <Button onClick={() => save(t, "Thresholds saved - statuses recalculate")}>Save thresholds</Button>
       </CardBody></Card>
     </div>
   );
@@ -117,7 +117,7 @@ function Notifications() {
   const { data: push } = useQuery({ queryKey: ["push-config"], queryFn: () => api<{ serverSupport: boolean; vapidPublicKey: string | null }>("/api/notifications/push-config") });
   const enablePush = async () => {
     try {
-      if (!caps.push || !caps.serviceWorker) throw new Error("This browser doesn't support web push. (On iPhone, install AutoVault to the Home Screen first — iOS 16.4 or later.)");
+      if (!caps.push || !caps.serviceWorker) throw new Error("This browser doesn't support web push. (On iPhone, install Family Finance Hub to the Home Screen first - iOS 16.4 or later.)");
       if (!push?.serverSupport || !push.vapidPublicKey) throw new Error("Web push isn't configured on this server (VAPID keys missing).");
       const perm = await Notification.requestPermission();
       if (perm !== "granted") throw new Error("Notification permission was not granted.");
@@ -149,7 +149,7 @@ function Notifications() {
         <Switch label="Notify when due" checked={p.alertOnDue} onChange={(v) => save({ alertOnDue: v })} />
         <Switch label="Notify when overdue" checked={p.alertOnOverdue} onChange={(v) => save({ alertOnOverdue: v })} />
         <Button onClick={() => save({ alertKmBefore: parse(km), alertDaysBefore: parse(days) }, "Reminder timing saved")}>Save timing</Button>
-        <p className="text-xs text-muted-foreground">Each stage notifies once per due cycle — you are never sent duplicates, and a completed service re-arms the next cycle. Also covered: warranty expiry, registration, insurance, inspections, outstanding repairs and budget thresholds.</p>
+        <p className="text-xs text-muted-foreground">Each stage notifies once per due cycle - you are never sent duplicates, and a completed service re-arms the next cycle. Also covered: warranty expiry, registration, insurance, inspections, outstanding repairs and budget thresholds.</p>
       </CardBody></Card>
     </div>
   );
@@ -236,7 +236,7 @@ function Integrations() {
   if (isLoading || !data) return <Skeleton className="h-48" />;
   return (
     <div className="space-y-4">
-      <Alert tone="info" title="Optional integrations">AutoVault works fully without any of these. Credentials are supplied as server environment variables — never entered in the browser or stored in the database.</Alert>
+      <Alert tone="info" title="Optional integrations">Family Finance Hub works fully without any of these. Credentials are supplied as server environment variables - never entered in the browser or stored in the database.</Alert>
       <Card><CardBody><ul className="divide-y divide-border">{data.capabilities.map((c: any) => (
         <li key={c.id} className="flex flex-wrap items-start justify-between gap-3 py-3"><div className="min-w-0 flex-1"><p className="font-medium">{c.label}</p><p className="text-sm text-muted-foreground">{c.detail}</p><p className="text-xs text-muted-foreground">Needs: {c.credentials}</p></div><Badge tone={c.enabled ? "success" : "neutral"}>{c.enabled ? "Active" : "Not configured"}</Badge></li>
       ))}</ul></CardBody></Card>
@@ -286,10 +286,10 @@ function AppTab() {
   const ios = typeof navigator !== "undefined" && /iphone|ipad|ipod/i.test(navigator.userAgent);
   return (
     <div className="space-y-4">
-      <Card><CardHeader title="Install AutoVault" description="Add it to your home screen for a full-screen, app-like experience." /><CardBody className="space-y-3">
-        {caps.standalone ? <Badge tone="success">Installed — running as an app</Badge> : installable ? <Button onClick={async () => { const e = (window as any).__avInstallPrompt; await e.prompt(); (window as any).__avInstallPrompt = null; setInstallable(false); }}>Install app</Button> : ios ? <p className="text-sm text-muted-foreground">On iPhone/iPad: tap the Share button, then <strong>Add to Home Screen</strong>.</p> : <p className="text-sm text-muted-foreground">Use your browser's menu → “Install app” / “Add to Home screen”. (The install prompt is only offered by some browsers.)</p>}
+      <Card><CardHeader title="Install Family Finance Hub" description="Add it to your home screen for a full-screen, app-like experience." /><CardBody className="space-y-3">
+        {caps.standalone ? <Badge tone="success">Installed - running as an app</Badge> : installable ? <Button onClick={async () => { const e = (window as any).__avInstallPrompt; await e.prompt(); (window as any).__avInstallPrompt = null; setInstallable(false); }}>Install app</Button> : ios ? <p className="text-sm text-muted-foreground">On iPhone/iPad: tap the Share button, then <strong>Add to Home Screen</strong>.</p> : <p className="text-sm text-muted-foreground">Use your browser's menu → “Install app” / “Add to Home screen”. (The install prompt is only offered by some browsers.)</p>}
       </CardBody></Card>
-      <Card><CardHeader title="Offline support on this device" description="Detected from your browser — features degrade gracefully when unsupported." /><CardBody>
+      <Card><CardHeader title="Offline support on this device" description="Detected from your browser - features degrade gracefully when unsupported." /><CardBody>
         <ul className="space-y-1.5 text-sm">{([["Service worker (offline pages & data)", caps.serviceWorker], ["IndexedDB (offline drafts)", caps.indexedDB], ["Background sync (auto-sync when back online)", caps.backgroundSync], ["Push notifications", caps.push]] as const).map(([k, v]) => <li key={k} className="flex items-center justify-between"><span>{k}</span><Badge tone={v ? "success" : "neutral"}>{v ? "Supported" : "Not supported"}</Badge></li>)}</ul>
         <p className="mt-3 text-xs text-muted-foreground">Previously loaded vehicles and records stay readable offline. Services, fuel, expenses and mileage entered offline are kept as drafts and synced safely (duplicate-proof) when you reconnect. Where background sync isn't available, syncing happens the next time you open the app online.</p>
         <div className="mt-3 flex items-center gap-3"><span className="text-sm">{queue} draft(s) waiting</span><Button size="sm" variant="outline" onClick={async () => { const r = await flushQueue(); setQueue((await listQueue()).length); toast({ title: r.synced ? `Synced ${r.synced}` : "Nothing to sync" }); }}>Sync now</Button></div>

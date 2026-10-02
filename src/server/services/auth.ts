@@ -49,7 +49,7 @@ export async function register(input: z.infer<typeof registerSchema>) {
   const existing = await db.user.findUnique({ where: { email } });
   const needVerify = env().REQUIRE_EMAIL_VERIFICATION;
   if (existing && !existing.deletedAt) {
-    await sendEmail(email, "Someone tried to register with your email", "Someone just tried to create an AutoVault account with this email address, but you already have one. If it was you, sign in or use 'Forgot password'. If not, you can ignore this message.");
+    await sendEmail(email, "Someone tried to register with your email", "Someone just tried to create an Family Finance Hub account with this email address, but you already have one. If it was you, sign in or use 'Forgot password'. If not, you can ignore this message.");
     return { requiresVerification: needVerify };
   }
   if (existing?.deletedAt) await db.user.delete({ where: { id: existing.id } });

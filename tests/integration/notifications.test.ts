@@ -96,16 +96,16 @@ describe("Journey D: upcoming maintenance", () => {
     const { a, vehicleId, today } = await oilSetup();
     await addReading(a, vehicleId, { date: today, valueKm: 169900, source: "MANUAL", confirmCorrection: false });
     await generateNotifications();
-    const before = await db.emailOutbox.count({ where: { toEmail: a.email, subject: { startsWith: "AutoVault:" } } });
+    const before = await db.emailOutbox.count({ where: { toEmail: a.email, subject: { startsWith: "Family Finance Hub:" } } });
     await deliverPending();
     await deliverPending();
-    const after = await db.emailOutbox.count({ where: { toEmail: a.email, subject: { startsWith: "AutoVault:" } } });
+    const after = await db.emailOutbox.count({ where: { toEmail: a.email, subject: { startsWith: "Family Finance Hub:" } } });
     expect(after).toBeGreaterThan(before);
     const n = await db.notification.findFirstOrThrow({ where: { userId: a.id } });
     expect(n.emailedAt).not.toBeNull();
     const countAfterFirst = after;
     await deliverPending();
-    expect(await db.emailOutbox.count({ where: { toEmail: a.email, subject: { startsWith: "AutoVault:" } } })).toBe(countAfterFirst);
+    expect(await db.emailOutbox.count({ where: { toEmail: a.email, subject: { startsWith: "Family Finance Hub:" } } })).toBe(countAfterFirst);
   });
 
   it("generates date-based alerts and surfaces them in the upcoming list", async () => {

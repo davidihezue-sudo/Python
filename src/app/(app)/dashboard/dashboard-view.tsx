@@ -39,7 +39,7 @@ export function DashboardView() {
   const d = q.data;
   const k = d?.kpis;
   const ex = d?.expense;
-  const money = (n: number | null | undefined) => (n === null || n === undefined ? "—" : f.money(n, k?.currency));
+  const money = (n: number | null | undefined) => (n === null || n === undefined ? "n/a" : f.money(n, k?.currency));
   const selected = vehicles.find((v) => v.id === vehicleId);
 
   return (
@@ -83,7 +83,7 @@ export function DashboardView() {
       <div className="grid gap-4 lg:grid-cols-3">
         {/* Vehicle health */}
         <Card className="lg:col-span-2">
-          <CardHeader title="Vehicle health overview" description={k?.health ? (k.health.score === null ? "Maintenance condition: insufficient recorded data to estimate" : `Household maintenance condition ${k.health.score}/100 — ${k.health.label} (based on ${k.health.known} schedules with recorded history)`) : undefined} action={<Link href="/vehicles"><Button variant="ghost" size="sm">All vehicles <ArrowRight className="h-4 w-4" /></Button></Link>} />
+          <CardHeader title="Vehicle health overview" description={k?.health ? (k.health.score === null ? "Maintenance condition: insufficient recorded data to estimate" : `Household maintenance condition ${k.health.score}/100 - ${k.health.label} (based on ${k.health.known} schedules with recorded history)`) : undefined} action={<Link href="/vehicles"><Button variant="ghost" size="sm">All vehicles <ArrowRight className="h-4 w-4" /></Button></Link>} />
           <CardBody>
             <ul className="grid gap-3 sm:grid-cols-2">
               {(d?.vehicles ?? vehicles.map((v) => ({ id: v.id, name: v.nickname, subtitle: `${v.year} ${v.make} ${v.model}`, currentKm: v.currentOdometerKm, photoUrl: v.photoUrl, health: { score: null }, nextService: null, overdue: 0 }))).map((v: any) => (
@@ -117,7 +117,7 @@ export function DashboardView() {
                   <Info className={`mt-0.5 h-4 w-4 shrink-0 ${i.severity === "critical" ? "text-danger" : i.severity === "warning" ? "text-warning" : "text-info"}`} aria-hidden />
                   <div className="min-w-0">
                     <p className="text-sm font-medium">{i.title}</p>
-                    <p className="text-xs text-muted-foreground">{i.vehicleName} — {i.detail}</p>
+                    <p className="text-xs text-muted-foreground">{i.vehicleName} - {i.detail}</p>
                     {i.basis?.length > 0 && <p className="mt-1 text-[11px] text-muted-foreground">Based on: {i.basis.map((b: string) => BASIS_LABEL[b] ?? b).join(" + ")}</p>}
                     {i.action && <Link href={i.action.href} className="mt-1 inline-block text-xs font-medium text-primary hover:underline">{i.action.label}</Link>}
                   </div>
@@ -191,7 +191,7 @@ export function DashboardView() {
                 {([["Total ownership", ex.costPerDistance.totalOwnership], ["Maintenance only", ex.costPerDistance.maintenanceOnly], ["Repairs only", ex.costPerDistance.repairOnly]] as const).map(([label, c]) => (
                   <div key={label} className="rounded-lg border border-border p-3">
                     <p className="text-xs text-muted-foreground">{label}</p>
-                    <p className="mt-1 text-lg font-semibold tabular">{c.costPerKm === null ? "—" : f.perDistance(c.costPerKm)}</p>
+                    <p className="mt-1 text-lg font-semibold tabular">{c.costPerKm === null ? "n/a" : f.perDistance(c.costPerKm)}</p>
                     <p className="text-[11px] text-muted-foreground">{c.distanceKm ? `${f.distance(c.distanceKm)} covered` : "needs odometer history"}</p>
                   </div>
                 ))}

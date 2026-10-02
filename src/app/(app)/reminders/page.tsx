@@ -22,7 +22,7 @@ export default function RemindersPage() {
   React.useEffect(() => { if (location.hash === "#notifications") setTab("notifications"); }, []);
   return (
     <>
-      <PageHeader title="Reminders" description="Everything due or coming due — maintenance, registration, insurance, warranties and your own reminders. Notifications are generated in the background, even when you're not using the app." actions={<Link href="/settings?tab=notifications"><Button variant="outline" size="sm">Notification settings</Button></Link>} />
+      <PageHeader title="Reminders" description="Everything due or coming due - maintenance, registration, insurance, warranties and your own reminders. Notifications are generated in the background, even when you're not using the app." actions={<Link href="/settings?tab=notifications"><Button variant="outline" size="sm">Notification settings</Button></Link>} />
       <Tabs label="Reminder views" value={tab} onChange={setTab} tabs={[{ key: "upcoming", label: "Upcoming & overdue" }, { key: "custom", label: "My reminders" }, { key: "notifications", label: "Notifications" }]} />
       <div className="pt-4">{tab === "upcoming" ? <Upcoming /> : tab === "custom" ? <Custom /> : <Inbox />}</div>
     </>
@@ -68,7 +68,7 @@ function Custom() {
   return (
     <div className="space-y-3">
       {canAdd && <div className="flex justify-end"><Button size="sm" onClick={() => setAdding(true)}><Plus className="h-4 w-4" /> New reminder</Button></div>}
-      {isLoading ? <Skeleton className="h-24" /> : !data?.length ? <EmptyState icon={<Bell className="h-6 w-6" />} title="No custom reminders" description="Create reminders by date or odometer — e.g. swap to winter tires, renew a permit, or check tire pressure at 150,000 km." action={canAdd ? <Button onClick={() => setAdding(true)}>Create a reminder</Button> : undefined} /> : (
+      {isLoading ? <Skeleton className="h-24" /> : !data?.length ? <EmptyState icon={<Bell className="h-6 w-6" />} title="No custom reminders" description="Create reminders by date or odometer - e.g. swap to winter tires, renew a permit, or check tire pressure at 150,000 km." action={canAdd ? <Button onClick={() => setAdding(true)}>Create a reminder</Button> : undefined} /> : (
         <ul className="space-y-2">{data.map((r) => (
           <li key={r.id}><Card><CardBody className="flex flex-wrap items-center justify-between gap-2 !py-3">
             <div><p className="font-medium">{r.title}</p><p className="text-xs text-muted-foreground">{r.vehicleName} · {[r.dueDate && `on ${f.date(r.dueDate)}`, r.dueKm != null && `at ${f.distance(r.dueKm)}`].filter(Boolean).join(" or ")}</p>{r.notes && <p className="text-xs text-muted-foreground">{r.notes}</p>}</div>

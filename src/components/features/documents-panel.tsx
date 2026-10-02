@@ -64,7 +64,7 @@ function DocDetail({ doc, onClose, canWrite }: { doc: any; onClose: () => void; 
   const ocr = doc.ocr && doc.ocrStatus === "EXTRACTED" ? doc.ocr : null;
   const extract = async () => {
     setBusy(true);
-    try { await api(`/api/documents/${doc.id}/ocr`, { method: "POST" }); toast({ title: "Details extracted — review them below" }); void qc.invalidateQueries(); } catch (e) { toast({ title: "Couldn't extract details", description: (e as Error).message, variant: "error" }); } finally { setBusy(false); }
+    try { await api(`/api/documents/${doc.id}/ocr`, { method: "POST" }); toast({ title: "Details extracted - review them below" }); void qc.invalidateQueries(); } catch (e) { toast({ title: "Couldn't extract details", description: (e as Error).message, variant: "error" }); } finally { setBusy(false); }
   };
   const close = () => { onClose(); if (location.search.includes("doc=")) router.replace(location.pathname); };
   return (

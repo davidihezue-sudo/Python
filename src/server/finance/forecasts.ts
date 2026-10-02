@@ -62,7 +62,7 @@ export async function buildBaseline(ctx: FinCtx, q: Pick<Q, "view" | "savingsInt
   const irrIds = new Set(income.filter((i) => i.frequency === "IRREGULAR").map((i) => i.id));
   const yFrom = addMonths(startOfMonth(asOf), -12);
   const yHist = irrIds.size ? await loadReportTxs(ctx, yFrom, to, view) : { txs: [] };
-  const irregular = yHist.txs.filter((t) => t.type === "INCOME" && t.base).reduce((a, t) => a.plus(t.base), ZERO);
+  const irregular = yHist.txs.filter((t) => t.type === "INCOME" && t.base && t.incomeSourceId && irrIds.has(t.incomeSourceId)).reduce((a, t) => a.plus(t.base), ZERO);
   const raw = db;
   void raw;
   return {

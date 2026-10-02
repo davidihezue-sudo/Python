@@ -1,4 +1,4 @@
-// Shared zod schemas — used by API route handlers (server-side validation) and by forms (client-side).
+// Shared zod schemas - used by API route handlers (server-side validation) and by forms (client-side).
 // Conventions: odometer values are KILOMETRES, volumes are litres unless a unit is supplied, money is in the record's currency.
 import { z } from "zod";
 import { isIsoDate, isValidTimezone } from "./dates";

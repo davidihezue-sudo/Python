@@ -2,16 +2,16 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "AutoVault — Vehicle Maintenance & Ownership",
-    short_name: "AutoVault",
-    description: "Your vehicles' complete service book, maintenance planner and expense tracker.",
+    name: "Family Finance Hub: household budgeting and net worth",
+    short_name: "Family Finance Hub",
+    description: "Budgets, ledger, debt, savings, net worth and forecasts for the whole household, with private and shared records.",
     id: "/",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
-    background_color: "#0b0f14",
-    theme_color: "#0f172a",
+    background_color: "#F6F4EE",
+    theme_color: "#185040",
     categories: ["productivity", "utilities", "finance"],
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
@@ -19,9 +19,9 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Log maintenance", url: "/service-history/new", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Update mileage", url: "/vehicles?quick=mileage", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "Reminders", url: "/reminders", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Add transaction", url: "/transactions?new=1", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Budgets", url: "/budgets", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Forecast", url: "/forecast", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
   };
 }

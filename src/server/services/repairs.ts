@@ -33,7 +33,7 @@ export function dtcView(c: Prisma.DiagnosticCodeGetPayload<object>) {
     notes: c.notes,
     resolution: c.resolution,
     resolvedAt: iso(c.resolvedAt),
-    // Generic interpretation only — never presented as a confirmed diagnosis.
+    // Generic interpretation only - never presented as a confirmed diagnosis.
     reference: lookupDtc(c.code),
   };
 }
@@ -171,7 +171,7 @@ export async function listIssues(actor: Actor, q: { vehicleId?: string; status?:
   return { items: rows.map((r) => issueView(r, fin.has(r.vehicleId))), page, pageSize, total };
 }
 
-/** Converts an issue into a completed repair record (and expense), resolving the issue — all in one transaction. */
+/** Converts an issue into a completed repair record (and expense), resolving the issue - all in one transaction. */
 export async function convertIssueToRepair(actor: Actor, issueId: string, input: z.infer<typeof convertIssueSchema>) {
   const issue = await db.repairIssue.findFirst({ where: { id: issueId, deletedAt: null } });
   if (!issue) throw notFound("Issue");

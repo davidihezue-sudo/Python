@@ -167,7 +167,7 @@ describe("Journey B: oil change", () => {
     await expect(createRecord(a, oilRecord(vehicleId, { oil: foreign.id, filter: foreign.id }) as any)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
     const oil = await find("Engine oil");
     await expect(createRecord(a, oilRecord(vehicleId, { oil: oil.id, filter: oil.id }, { odometerKm: 100 }) as any)).rejects.toMatchObject({ code: "ODOMETER_REGRESSION" });
-    // transaction rolled back — nothing persisted
+    // transaction rolled back - nothing persisted
     expect(await db.maintenanceRecord.count({ where: { vehicleId } })).toBe(0);
   });
 

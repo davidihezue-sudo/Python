@@ -165,7 +165,7 @@ export function evaluateRule(rule: RuleInput, ctx: EvalContext): Evaluation {
   if (rule.triggerType === "INSPECTION") {
     const insAt = [rule.lastInspectedAt, lastAt].filter(Boolean).sort().at(-1) ?? null;
     if (!insAt && lastKm === null) {
-      return { ...blank("Never inspected — an inspection is needed to establish this item's condition.", "INSPECTION_REQUIRED"), dueBasis: "INSPECTION", estimateBasis: basisFor(rule, false) };
+      return { ...blank("Never inspected - an inspection is needed to establish this item's condition.", "INSPECTION_REQUIRED"), dueBasis: "INSPECTION", estimateBasis: basisFor(rule, false) };
     }
     const ev = finish({ ...rule, lastCompletedAt: insAt, lastCompletedKm: lastKm }, ctx, th, {
       dueKm: hasKm(rule) && lastKm !== null ? lastKm + (rule.intervalKm as number) : null,
@@ -192,7 +192,7 @@ export function evaluateRule(rule: RuleInput, ctx: EvalContext): Evaluation {
   const dueDate = wantTime && hasTime(rule) && lastAt ? addInterval(lastAt, rule.intervalMonths, rule.intervalDays) : null;
   if (!hasKm(rule) && !hasTime(rule)) return blank("No interval configured.");
   if (dueKm === null && dueDate === null) {
-    return { ...blank("No completed service recorded yet — record one (or enter when it was last done) to start tracking."), estimateBasis: basisFor(rule, false) };
+    return { ...blank("No completed service recorded yet - record one (or enter when it was last done) to start tracking."), estimateBasis: basisFor(rule, false) };
   }
   const mode = rule.triggerType === "MILEAGE_AND_TIME" ? "AND" : "OR";
   const basis = rule.triggerType === "MILEAGE" ? "MILEAGE" : rule.triggerType === "TIME" ? "TIME" : "BOTH";
@@ -281,7 +281,7 @@ export function describeDue(ev: Evaluation, unit: DistanceUnit = "KM"): string {
     if (ev.overdueByKm !== null && ev.overdueByKm > 0) bits.push(`${fmt(ev.overdueByKm)} past due`);
     if (ev.overdueByDays !== null && ev.overdueByDays > 0) bits.push(`${humanizeDays(ev.overdueByDays)} past due`);
     if (!bits.length) bits.push("Due now");
-    return (ev.status === "OVERDUE" ? "Overdue by " : "Due now — ") + bits.join(" / ").replace(/ past due/g, "");
+    return (ev.status === "OVERDUE" ? "Overdue by " : "Due now - ") + bits.join(" / ").replace(/ past due/g, "");
   }
   if (ev.remainingKm !== null && ev.remainingKm >= 0) {
     let s = `${fmt(ev.remainingKm)}`;
@@ -311,7 +311,7 @@ export function worstStatus(statuses: ScheduleStatus[]): ScheduleStatus | null {
 
 /**
  * Transparent maintenance-condition score (0–100) from evaluated schedules with known history, weighted by priority.
- * Returns null when there is not enough recorded data — the UI must show "insufficient data" rather than a number.
+ * Returns null when there is not enough recorded data - the UI must show "insufficient data" rather than a number.
  */
 export function maintenanceHealth(items: { status: ScheduleStatus; priority: "LOW" | "NORMAL" | "HIGH" | "CRITICAL" }[]) {
   const weight = { LOW: 1, NORMAL: 2, HIGH: 3, CRITICAL: 4 } as const;

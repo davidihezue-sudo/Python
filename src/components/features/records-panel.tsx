@@ -97,7 +97,7 @@ export function RecordsPanel({ vehicleId, kind, openId, canWrite = true }: { veh
                             <p className="truncate text-xs text-muted-foreground">{!single && `${r.vehicleName} · `}{r.odometerKm !== null ? f.distance(r.odometerKm) : "odometer not recorded"}{r.providerName ? ` · ${r.providerName}` : r.workPerformedBy === "OWNER_DIY" ? " · DIY" : ""}{r.items.length ? ` · ${r.items.map((i: any) => i.name).slice(0, 3).join(", ")}${r.items.length > 3 ? "…" : ""}` : ""}</p>
                           </div>
                           {r.documents.length > 0 && <Paperclip className="h-4 w-4 text-muted-foreground" aria-label={`${r.documents.length} attachment(s)`} />}
-                          <div className="w-24 text-right text-sm font-medium tabular">{r.totalCost !== null ? (r.totalCost > 0 ? f.money(r.totalCost, r.currency) : "—") : <span className="text-xs text-muted-foreground">hidden</span>}</div>
+                          <div className="w-24 text-right text-sm font-medium tabular">{r.totalCost !== null ? (r.totalCost > 0 ? f.money(r.totalCost, r.currency) : "n/a") : <span className="text-xs text-muted-foreground">hidden</span>}</div>
                         </CardBody>
                       </Card>
                     </button>
@@ -141,9 +141,9 @@ export function RecordDetail({ id, onClose, canWrite }: { id: string; onClose: (
           <div className="flex flex-wrap items-center gap-2"><RecordStatusBadge status={r.status} />{r.kind === "REPAIR" && <Badge tone="warning">Repair</Badge>}<Badge>{r.workPerformedBy === "OWNER_DIY" ? "Owner / DIY" : label(r.workPerformedBy)}</Badge></div>
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <div><dt className="text-xs text-muted-foreground">Odometer</dt><dd className="font-medium">{r.odometerKm !== null ? f.distance(r.odometerKm) : "Not recorded"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Provider</dt><dd className="font-medium">{r.providerName ?? r.mechanicName ?? "—"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Location</dt><dd className="font-medium">{r.location ?? "—"}</dd></div>
-            <div><dt className="text-xs text-muted-foreground">Warranty</dt><dd className="font-medium">{r.warrantyInfo ?? "—"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Provider</dt><dd className="font-medium">{r.providerName ?? r.mechanicName ?? "n/a"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Location</dt><dd className="font-medium">{r.location ?? "n/a"}</dd></div>
+            <div><dt className="text-xs text-muted-foreground">Warranty</dt><dd className="font-medium">{r.warrantyInfo ?? "n/a"}</dd></div>
           </dl>
           {r.description && <p>{r.description}</p>}
           {r.items.length > 0 && (

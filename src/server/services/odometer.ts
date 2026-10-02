@@ -77,7 +77,7 @@ export async function updateReading(actor: Actor, entryId: string, input: z.infe
   const e = await db.odometerEntry.findFirst({ where: { id: entryId, deletedAt: null } });
   if (!e) throw notFound("Odometer entry");
   const { vehicle } = await requireVehicle(actor, e.vehicleId, "write");
-  if (e.maintenanceRecordId || e.fuelEntryId || e.inspectionId) throw conflict("This reading belongs to a service/fuel/inspection record — edit that record instead.");
+  if (e.maintenanceRecordId || e.fuelEntryId || e.inspectionId) throw conflict("This reading belongs to a service/fuel/inspection record - edit that record instead.");
   const date = input.date ?? (dateToIso(e.date) as string);
   const value = input.valueKm ?? Number(e.valueKm);
   return db.$transaction(async (tx) => {
@@ -96,7 +96,7 @@ export async function deleteReading(actor: Actor, entryId: string) {
   const e = await db.odometerEntry.findFirst({ where: { id: entryId, deletedAt: null } });
   if (!e) throw notFound("Odometer entry");
   const { vehicle } = await requireVehicle(actor, e.vehicleId, "write");
-  if (e.maintenanceRecordId || e.fuelEntryId || e.inspectionId) throw conflict("This reading belongs to a service/fuel/inspection record — edit that record instead.");
+  if (e.maintenanceRecordId || e.fuelEntryId || e.inspectionId) throw conflict("This reading belongs to a service/fuel/inspection record - edit that record instead.");
   await db.$transaction(async (tx) => {
     await tx.odometerEntry.update({ where: { id: e.id }, data: { deletedAt: new Date() } });
     await audit(tx, actor, { entity: "OdometerEntry", entityId: e.id, action: "delete", vehicleId: vehicle.id, householdId: vehicle.householdId, before: { date: dateToIso(e.date), valueKm: Number(e.valueKm) } });

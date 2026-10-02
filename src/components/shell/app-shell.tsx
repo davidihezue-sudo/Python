@@ -353,7 +353,7 @@ function OfflineBanner() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 sm:px-6">
           {!online ? <CloudOff className="h-4 w-4 text-warning" aria-hidden /> : <RefreshCw className="h-4 w-4 text-warning" aria-hidden />}
           <span>
-            {!online ? "You're offline — showing saved data; new entries are kept as drafts and will sync automatically." : `${pending} change(s) waiting to sync${failed ? `, ${failed} need attention` : ""}.`}
+            {!online ? "You're offline - showing saved data; new entries are kept as drafts and will sync automatically." : `${pending} change(s) waiting to sync${failed ? `, ${failed} need attention` : ""}.`}
           </span>
           {queue.length > 0 && <button className="font-medium text-primary underline-offset-2 hover:underline" onClick={() => setPanel(true)}>Review {queue.length} draft{queue.length === 1 ? "" : "s"}</button>}
         </div>

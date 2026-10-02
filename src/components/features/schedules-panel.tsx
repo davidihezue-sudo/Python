@@ -177,7 +177,7 @@ export function ScheduleEditor({ initial, vehicleId, onClose }: { initial?: any;
     try {
       if (editing) await api(`/api/maintenance/schedules/${initial.id}`, { method: "PATCH", body: v });
       else await api("/api/maintenance/schedules", { method: "POST", body: { ...v, vehicleId } });
-      toast({ title: editing ? "Schedule updated — due dates recalculated" : "Schedule added" });
+      toast({ title: editing ? "Schedule updated - due dates recalculated" : "Schedule added" });
       void qc.invalidateQueries();
       onClose();
     } catch (e) {
@@ -217,8 +217,8 @@ export function ScheduleEditor({ initial, vehicleId, onClose }: { initial?: any;
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <Field label="“Due soon” within (distance)" hint="Overrides your default threshold">{(p) => <Input type="number" {...p} {...form.register("dueSoonKm")} />}</Field>
             <Field label="“Due soon” within (days)">{(p) => <Input type="number" {...p} {...form.register("dueSoonDays")} />}</Field>
-            <Field label="Estimated cost — min">{(p) => <Controller control={form.control} name="estCostMin" render={({ field }) => <MoneyInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
-            <Field label="Estimated cost — max">{(p) => <Controller control={form.control} name="estCostMax" render={({ field }) => <MoneyInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
+            <Field label="Estimated cost - min">{(p) => <Controller control={form.control} name="estCostMin" render={({ field }) => <MoneyInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
+            <Field label="Estimated cost - max">{(p) => <Controller control={form.control} name="estCostMax" render={({ field }) => <MoneyInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
           </div>
           <Field label="Instructions / notes" className="mt-3">{(p) => <Textarea rows={2} {...p} {...form.register("instructions")} />}</Field>
         </details>
@@ -226,7 +226,7 @@ export function ScheduleEditor({ initial, vehicleId, onClose }: { initial?: any;
         {editing && detail.data?.changeHistory?.length > 0 && (
           <div>
             <p className="mb-1 flex items-center gap-1 text-sm font-medium"><HistoryIcon className="h-4 w-4" /> Change history</p>
-            <ul className="text-xs text-muted-foreground">{detail.data.changeHistory.map((h: any) => <li key={h.id}>{new Date(h.at).toLocaleString()} — {h.action}{h.by ? ` by ${h.by}` : ""}</li>)}</ul>
+            <ul className="text-xs text-muted-foreground">{detail.data.changeHistory.map((h: any) => <li key={h.id}>{new Date(h.at).toLocaleString()} - {h.action}{h.by ? ` by ${h.by}` : ""}</li>)}</ul>
           </div>
         )}
         <p className="flex items-start gap-1.5 text-xs text-muted-foreground"><Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />Statuses recalculate whenever your odometer, records or this schedule change. Thresholds for “upcoming” and “due soon” are in Settings.</p>

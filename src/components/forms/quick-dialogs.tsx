@@ -222,7 +222,7 @@ export function ExpenseDialog({ preset, onClose }: { preset: QuickPreset; onClos
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Vendor">{(p) => <Input {...p} {...form.register("vendor")} />}</Field>
-          <Field label="Payment method">{(p) => <Select {...p} {...form.register("paymentMethod")}><option value="">—</option>{PAYMENT_METHODS.map((c) => <option key={c} value={c}>{label(c)}</option>)}</Select>}</Field>
+          <Field label="Payment method">{(p) => <Select {...p} {...form.register("paymentMethod")}><option value="">n/a</option>{PAYMENT_METHODS.map((c) => <option key={c} value={c}>{label(c)}</option>)}</Select>}</Field>
         </div>
         <Field label="Description">{(p) => <Input {...p} {...form.register("description")} />}</Field>
         <Field label="Notes">{(p) => <Textarea {...p} {...form.register("notes")} rows={2} />}</Field>
@@ -282,7 +282,7 @@ export function IssueDialog({ preset, onClose }: { preset: QuickPreset; onClose:
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Severity">{(p) => <Select {...p} {...form.register("severity")}>{["LOW", "MODERATE", "HIGH", "CRITICAL"].map((x) => <option key={x} value={x}>{label(x)}</option>)}</Select>}</Field>
-          <Field label="Related system">{(p) => <Select {...p} {...form.register("categoryId")}><option value="">—</option>{cats?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</Field>
+          <Field label="Related system">{(p) => <Select {...p} {...form.register("categoryId")}><option value="">n/a</option>{cats?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</Field>
         </div>
         <Field label="Symptoms">{(p) => <Textarea {...p} {...form.register("symptoms")} rows={2} placeholder="When does it happen? Speed, temperature, noises…" />}</Field>
         <Field label="Estimated repair cost (optional)">{(p) => <Controller control={form.control} name="estimatedCost" render={({ field }) => <MoneyInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
@@ -377,9 +377,9 @@ function OcrVerify({ result, vehicleId, onClose }: { result: { document: any; oc
     }
   });
   return (
-    <Modal open onClose={onClose} title="Verify extracted details" description="Nothing is saved as an expense until you confirm these values." size="md" footer={<><Button variant="outline" onClick={onClose}>Skip — keep the document only</Button><Button type="submit" form="ocr-form" loading={form.formState.isSubmitting}>Create expense</Button></>}>
+    <Modal open onClose={onClose} title="Verify extracted details" description="Nothing is saved as an expense until you confirm these values." size="md" footer={<><Button variant="outline" onClick={onClose}>Skip - keep the document only</Button><Button type="submit" form="ocr-form" loading={form.formState.isSubmitting}>Create expense</Button></>}>
       <form id="ocr-form" onSubmit={submit} className="space-y-4" noValidate>
-        <Alert tone="warning" title="Automatically extracted — please check carefully">{o.notes?.join(" ")} Confidence: {o.confidence}.</Alert>
+        <Alert tone="warning" title="Automatically extracted - please check carefully">{o.notes?.join(" ")} Confidence: {o.confidence}.</Alert>
         {error && <Alert tone="danger">{error}</Alert>}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Vendor">{(p) => <Input {...p} {...form.register("vendor")} />}</Field>
@@ -392,7 +392,7 @@ function OcrVerify({ result, vehicleId, onClose }: { result: { document: any; oc
         {o.lineItems?.length > 0 && (
           <div>
             <p className="mb-1 text-sm font-medium">Detected line items (for reference)</p>
-            <ul className="space-y-0.5 text-sm text-muted-foreground">{o.lineItems.map((l: any, i: number) => <li key={i}>{l.description}{l.amount != null ? ` — ${l.amount}` : ""} <span className="text-xs">({l.kind})</span></li>)}</ul>
+            <ul className="space-y-0.5 text-sm text-muted-foreground">{o.lineItems.map((l: any, i: number) => <li key={i}>{l.description}{l.amount != null ? ` - ${l.amount}` : ""} <span className="text-xs">({l.kind})</span></li>)}</ul>
           </div>
         )}
       </form>

@@ -26,10 +26,10 @@ Dev email links: <http://localhost:3000/dev/outbox>.
 | Email | `SMTP_*`, `EMAIL_FROM`; keep `REQUIRE_EMAIL_VERIFICATION=true` |
 | Storage | `STORAGE_DRIVER=s3` + bucket credentials (enable bucket encryption, block public access) |
 | Jobs | run the `worker` service **or** set `ENABLE_INPROCESS_JOBS=true` (single instance) **or** schedule `POST /api/cron/run` every 5–15 min with `CRON_SECRET` |
-| Admin | `ADMIN_EMAILS=you@example.com` — verified accounts with these emails become platform admins |
+| Admin | `ADMIN_EMAILS=you@example.com` - verified accounts with these emails become platform admins |
 | Rate limiting | `RATE_LIMIT_STORE=postgres` when running more than one web instance |
 | Proxy | terminate TLS in front; the proxy must set `X-Forwarded-For`/`Host`; cookies are `Secure` in production |
-| Plans | `BILLING_MODE=disabled` (everything free) or `enforced` (Free = 1 vehicle) |
+| Plans | `BILLING_MODE=disabled` (everything free) or `enforced` (plan limits apply) |
 | Logging | structured JSON to stdout (`LOG_LEVEL`); wire an error reporter via `registerErrorReporter` in `src/lib/logger.ts` (Sentry etc.) |
 
 ### Provider notes
@@ -46,11 +46,11 @@ Dev email links: <http://localhost:3000/dev/outbox>.
 
 ```bash
 # backup (daily; keep 7 daily / 4 weekly / 6 monthly)
-pg_dump --format=custom --no-owner "$DATABASE_URL" > autovault-$(date +%F).dump
+pg_dump --format=custom --no-owner "$DATABASE_URL" > familyfinance-$(date +%F).dump
 # restore into an empty database
-createdb autovault_restore && pg_restore --no-owner -d autovault_restore autovault-2026-01-01.dump
+createdb familyfinance_restore && pg_restore --no-owner -d familyfinance_restore familyfinance-2026-01-01.dump
 ```
-Managed Postgres: enable point-in-time recovery. **Files** live outside the database — back up the uploads volume or enable S3 versioning/replication; the `Document` table references objects by `fileKey`. Rehearse restores quarterly.
+Managed Postgres: enable point-in-time recovery. **Files** live outside the database - back up the uploads volume or enable S3 versioning/replication; the `Document` table references objects by `fileKey`. Rehearse restores quarterly.
 
 ## Monitoring
 
@@ -62,8 +62,8 @@ Managed Postgres: enable point-in-time recovery. **Files** live outside the data
 ## Deployment procedure
 
 1. `npm ci && npm run typecheck && npm run lint && npm test && npm run test:integration`
-2. Build image: `docker build -t autovault .`
-3. Release step: `docker run --env-file .env autovault migrate`
+2. Build image: `docker build -t familyfinance .`
+3. Release step: `docker run --env-file .env familyfinance migrate`
 4. Roll out `web` then `worker` with the new image; verify `/api/health?deep=1`.
 5. Smoke test: sign in, open dashboard, run Admin → jobs.
 
@@ -73,9 +73,9 @@ PostgreSQL 16 (local), Node 22, Chromium via Playwright: migrations, seeds, type
 
 ## Known limitations
 
-* No payment processing (by design) — the entitlement model is ready for Stripe webhooks writing `Subscription`.
+* No payment processing (by design) - the entitlement model is ready for Stripe webhooks writing `Subscription`.
 * OCR for photos/scans needs an external provider; the built-in provider reads text-layer PDFs only.
 * BMW ConnectedDrive/CarData integration is an unimplemented provider slot (no documented public API is assumed).
 * Background Sync / push availability depends on the browser (iOS needs the installed PWA, 16.4+); fallbacks are in place.
 * Multi-currency amounts are never converted; analytics use the dominant/preferred currency and report excluded rows.
-* Intervals in the library are generic suggestions — **not** manufacturer data (the BMW X3 profile deliberately contains no authoritative BMW intervals).
+* Intervals in the library are generic suggestions - **not** manufacturer data (the BMW X3 profile deliberately contains no authoritative BMW intervals).

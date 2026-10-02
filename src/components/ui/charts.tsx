@@ -82,7 +82,7 @@ export function StackedBars({ data, xKey, series, fmt, xFmt }: { data: any[]; xK
     <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
       <CartesianGrid vertical={false} strokeDasharray="3 3" {...axis} />
       <XAxis dataKey={xKey} tick={tick} tickLine={false} axisLine={axis} tickFormatter={xFmt} interval="preserveStartEnd" minTickGap={12} />
-      <YAxis tick={tick} tickLine={false} axisLine={false} tickFormatter={(v) => (fmt ? fmt(v).replace(/\.00$/, "") : String(v))} width={56} />
+      <YAxis tick={tick} tickLine={false} axisLine={false} tickFormatter={(v) => (fmt ? fmt(v).replace(/\.00$/, "") : String(v))} width={64} />
       <Tooltip content={<TooltipBox fmt={fmt} labelFmt={xFmt} />} cursor={{ fill: "rgb(var(--muted) / 0.5)" }} />
       {series.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
       {series.map((s, i) => (
@@ -98,7 +98,7 @@ export function Lines({ data, xKey, series, fmt, xFmt, area }: { data: any[]; xK
     <Chart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
       <CartesianGrid vertical={false} strokeDasharray="3 3" {...axis} />
       <XAxis dataKey={xKey} tick={tick} tickLine={false} axisLine={axis} tickFormatter={xFmt} minTickGap={24} />
-      <YAxis tick={tick} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => (fmt ? fmt(v) : String(v))} domain={["auto", "auto"]} />
+      <YAxis tick={tick} tickLine={false} axisLine={false} width={76} tickFormatter={(v: number) => (fmt ? fmt(v).replace(/\.00$/, "") : String(v))} domain={["auto", "auto"]} />
       <Tooltip content={<TooltipBox fmt={fmt} labelFmt={xFmt} />} />
       {series.length > 1 && <Legend wrapperStyle={{ fontSize: 12 }} />}
       {series.map((s, i) =>

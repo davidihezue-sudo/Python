@@ -4,6 +4,10 @@ import { logger, captureError } from "@/lib/logger";
 import { storage } from "@/lib/storage";
 import { deliverPending, generateNotifications } from "../services/notifications";
 import { refreshVehicleSchedules } from "../services/schedules";
+import { actorFromUser } from "../context";
+import { finCtx } from "../finance/access";
+import { refreshAlertNotifications } from "../finance/alerts";
+import { postDueRecurring } from "../finance/bills";
 
 export interface JobDef {
   name: string;
@@ -30,6 +34,36 @@ export const JOBS: JobDef[] = [
       const vehicles = await db.vehicle.findMany({ where: { deletedAt: null }, select: { id: true, household: { select: { timezone: true } } } });
       for (const v of vehicles) await refreshVehicleSchedules(db, v.id, new Date().toISOString().slice(0, 10));
       return { vehicles: vehicles.length };
+    },
+  },
+  {
+    // Alerts are computed per member from the records that member can see, so one member's alerts never reveal another's private data.
+    name: "finance.alerts",
+    everyMs: 3600_000,
+    run: async () => {
+      const members = await db.householdMember.findMany({ where: { household: { deletedAt: null, isDemo: false }, user: { disabledAt: null, deletedAt: null } }, include: { user: { include: { preference: true } } } });
+      let created = 0, failed = 0;
+      for (const m of members) {
+        try { created += (await refreshAlertNotifications(actorFromUser(m.user as never), m.householdId)).created; } catch (e) { failed++; logger.warn({ err: (e as Error).message }, "finance alert refresh failed"); }
+      }
+      return { members: members.length, created, failed };
+    },
+  },
+  {
+    // Posts recurring items that are marked auto-post, as the member who created them.
+    name: "finance.recurring",
+    everyMs: 6 * 3600_000,
+    run: async () => {
+      const rules = await db.recurringRule.findMany({ where: { active: true, autoPost: true, deletedAt: null, household: { deletedAt: null } } });
+      let posted = 0, failed = 0;
+      for (const r of rules) {
+        if (!r.createdById) continue;
+        try {
+          const ctx = await finCtx(actorFromUser((await db.user.findUniqueOrThrow({ where: { id: r.createdById }, include: { preference: true } })) as never), r.householdId, "write");
+          posted += (await postDueRecurring(ctx, r.id)).posted;
+        } catch (e) { failed++; logger.warn({ err: (e as Error).message, rule: r.id }, "recurring post failed"); }
+      }
+      return { rules: rules.length, posted, failed };
     },
   },
   { name: "email.flush", everyMs: 5 * 60_000, run: async () => ({ ...(await flushOutbox()) }) },

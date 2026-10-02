@@ -1,79 +1,42 @@
 # API
 
-REST over JSON, same-origin, cookie-session authenticated. Base path `/api`. Every success response is `{ "data": … }`; every error is:
+Base path `/api/finance/{householdId}`. JSON in and out. Success returns `{ "data": ... }`. Errors return `{ "error": { "code", "message", "details" } }` with the usual status codes (400 validation, 401, 403, 404, 409, 429). Money values are strings with two decimals. Authentication is the session cookie; state changing requests must be same origin.
+
+Capabilities: **read** (any member), **write** (Administrator or Member), **admin** (Administrator only). Reads are always filtered by record visibility; a record you cannot see returns 404.
+
+Query parameter `view` is `my`, `household` (or `all` where noted). Dates are `YYYY-MM-DD`.
+
+| Group | Endpoints |
+| --- | --- |
+| Household | `GET /profile`, `PATCH /profile` (admin), `GET /members`, `PATCH /members/:id`, `PUT /sharing`, `DELETE /demo` (admin) |
+| Accounts | `GET,POST /accounts`, `GET,PATCH,DELETE /accounts/:id`, `POST /accounts/:id/balance`, `POST /accounts/:id/reconcile`, `GET /accounts/:id/verify` |
+| Categories | `GET,POST /categories`, `PATCH,DELETE /categories/:id`, `GET /merchants` |
+| Transactions | `GET,POST /transactions`, `POST /transactions/bulk`, `POST /transfers`, `GET,PATCH,DELETE /transactions/:id`, `POST /transactions/:id/duplicate` |
+| Income | `GET,POST /income`, `GET /income/summary`, `PATCH,DELETE /income/:id`, `POST /income/:id/changes`, `POST /income/:id/payments` |
+| Bills and recurring | `/bills`, `/subscriptions`, `/insurance`, `/recurring` (list, create, patch, delete), `POST /bills/:id/pay`, `POST /subscriptions/:id/charge`, `POST /recurring/:id/post` |
+| Debt | `GET,POST /debts`, `GET /debts/strategies`, `GET,PATCH,DELETE /debts/:id`, `GET /debts/:id/schedule`, `POST /debts/:id/payments` |
+| Savings and wealth | `/goals`, `GET /emergency`, `/investments`, `/assets`, `GET /networth` |
+| Budgets | `GET,POST /budgets`, `GET /budgets/compare`, `GET,PATCH,DELETE /budgets/:id`, `POST /budgets/:id/duplicate` |
+| Planning | `GET /forecast`, `POST /scenarios/run`, `/scenarios`, `POST /planner/mortgage`, `/planner/mortgage/compare`, `/planner/affordability`, `/planner/down-payment`, `/planner/saved` |
+| Contributions | `GET /contributions`, `POST /contributions/preview`, `/contributions/rules`, `/settlements`, `GET /comparison` |
+| Tax | `/tax/records`, `GET /tax/summary?year=`, `GET,PUT /tax/rules` (PUT admin) |
+| Insight | `GET /dashboard`, `GET /analytics`, `GET /calendar`, `/calendar/events`, `GET /alerts`, `POST /alerts/refresh`, `/alert-settings` |
+| Reports and data | `GET /reports`, `GET /reports/run?type=&format=pdf|xlsx|csv|json`, `GET /export/:entity`, `GET /export-all`, `/import/preview`, `/import/analyze`, `/import/commit`, `/import/batches`, `POST /import/batches/:id/undo` |
+| Documents | `GET,POST /documents` (multipart), `DELETE /documents/:id`; download through `/api/documents/:id/file` |
+| Assistant, history, FX | `POST /assistant`, `GET /assistant/examples`, `GET /history/:entity/:id`, `/fx` |
+
+Global (no household id): `GET /api/finance/context`, `POST /api/finance/households`, `POST /api/finance/demo`.
+
+Household membership and invitations use `/api/households`, `/api/households/:id/invites` and `/api/households/:id/members/:userId`. Notifications use `/api/notifications`.
+
+## Transaction body (create)
 
 ```json
-{ "error": { "code": "VALIDATION_ERROR", "message": "Some fields are invalid", "details": { "fieldErrors": { "email": ["Enter a valid email"] } }, "requestId": "…" } }
+{ "type": "EXPENSE", "accountId": "...", "amount": "86.40", "date": "2026-10-01",
+  "description": "Groceries", "categoryId": "...",
+  "payer": "<memberId or HOUSEHOLD>",
+  "allocation": { "mode": "SPLIT", "splits": [ { "memberId": "...", "percent": 60 }, { "memberId": null, "percent": 40 } ] },
+  "visibility": "HOUSEHOLD" }
 ```
 
-| Code | HTTP | Meaning |
-|---|---|---|
-| `VALIDATION_ERROR` / `BAD_REQUEST` | 400 | Invalid input (`details.fieldErrors`) |
-| `UNAUTHENTICATED` | 401 | No/invalid session (login failures use this too) |
-| `PLAN_LIMIT` | 402 | Plan limit/feature (only when `BILLING_MODE=enforced`) |
-| `FORBIDDEN` | 403 | Authenticated but lacking the capability / cross-origin write blocked |
-| `NOT_FOUND` | 404 | Missing **or not accessible** (existence is not leaked) |
-| `CONFLICT`, `DUPLICATE_RECORD`, `ODOMETER_REGRESSION` | 409 | State conflicts; `details` carries the conflicting item / `requiresConfirmation` |
-| `PAYLOAD_TOO_LARGE` / `UNSUPPORTED_MEDIA_TYPE` | 413 / 415 | Upload limits |
-| `RATE_LIMITED` | 429 | `Retry-After` header set |
-| `INTERNAL` | 500 | Generic; correlate via `requestId` |
-
-**Conventions** — odometer values are **kilometres** on the wire; money is a JSON number in the record's currency; dates are `YYYY-MM-DD`; list endpoints accept `page`, `pageSize`, `sort`, filters and return `{ items, page, pageSize, total }`. State-changing requests must be same-origin (Origin / Sec-Fetch-Site checked). Machine endpoints use `Authorization: Bearer`.
-
-Example:
-
-```http
-POST /api/maintenance/records
-{ "vehicleId":"…","title":"Oil change","serviceDate":"2026-01-15","odometerKm":160500,
-  "workPerformedBy":"INDEPENDENT_MECHANIC","providerName":"Calgary Lube","partsCost":65.5,"laborCost":40,"tax":5.28,
-  "items":[{"assignmentId":"…","name":"Engine oil","completed":true,"quantity":1,"unitCost":0,"laborCost":0,"trackAsPart":false}],
-  "idempotencyKey":"7b0c…" }
-→ 201 { "data": { "id":"…", "idempotentReplay": false } }
-```
-
-## Endpoints
-
-Legend: 🔒 session required · 🛡️ vehicle capability checked server-side (view/write/editVehicle/manageAccess/viewFinancials/delete).
-
-### Auth & account
-| Method & path | Notes |
-|---|---|
-| `POST /auth/register` | `{name,email,password,acceptTerms,timezone?}` → 202 (identical response whether or not the email exists) |
-| `POST /auth/verify-email` · `/auth/resend-verification` | token / email |
-| `POST /auth/login` · `/auth/logout` | sets/clears `av_session` |
-| `POST /auth/forgot-password` · `/auth/reset-password` · 🔒 `/auth/change-password` | |
-| `GET /auth/providers` · `GET /auth/google` · `GET /auth/google/callback` | Google enabled flag / OAuth flow |
-| 🔒 `GET,PATCH,DELETE /users/me` | profile; DELETE requires password (or email for OAuth accounts) |
-| 🔒 `PATCH /users/me/preferences` | units, currency, timezone, theme, notification + threshold settings |
-| 🔒 `POST /users/me/photo` · `GET /users/me/export` | multipart image; JSON data export |
-
-### Households
-`GET,POST /households` · `PATCH /households/:id` · `POST /households/:id/invites` · `PATCH,DELETE /households/:id/members/:userId` · `GET,DELETE /invites/:token-or-id` (public preview by token / admin revoke) · `POST /invites/:token/accept` · `GET /billing/entitlements?householdId=`
-
-### Vehicles 🛡️
-`GET,POST /vehicles` · `GET /vehicles/templates` · `POST /vehicles/decode-vin` · `GET,PATCH,DELETE /vehicles/:id` · `GET /vehicles/:id/timeline` · `POST /vehicles/:id/ownership` · `POST /vehicles/:id/access` · `DELETE /vehicles/:id/access/:userId` · `POST /vehicles/:id/decode-vin` (suggestions + diff) · `POST /vehicles/:id/apply-decoded` (only user-selected fields) · `GET,POST /vehicles/:id/odometer` · `PATCH,DELETE /vehicles/:id/odometer/:entryId` · `POST /vehicles/:id/odometer/import` · `GET,POST /vehicles/:id/schedules` · `POST /vehicles/:id/schedules/apply-library` · `GET,POST /vehicles/:id/integrations`
-
-Odometer `POST` body: `{date,valueKm,source?,note?,confirmCorrection?}`. A reading lower than an earlier one → `409 ODOMETER_REGRESSION` with `details.conflict`; resend with `confirmCorrection:true` (audited).
-
-### Maintenance 🛡️
-`GET /maintenance/categories` · `GET,POST /maintenance/schedules` · `GET /maintenance/schedules/library` · `POST /maintenance/schedules/templates` · `GET,PATCH,DELETE /maintenance/schedules/:id` (GET includes change history) · `GET,POST /maintenance/records` (filters: `vehicleId, kind, status, q, category, from, to, minKm, maxKm, minCost, maxCost, providerId, workPerformedBy, sort`) · `GET /maintenance/records/prefill?assignmentId=` · `GET,PATCH,DELETE /maintenance/records/:id`
-
-### Repairs, diagnostics, parts, warranties, inspections, providers 🛡️
-`GET,POST /repairs` · `GET,PATCH,DELETE /repairs/:id` · `POST /repairs/:id/convert` · `GET,POST /diagnostics` · `PATCH,DELETE /diagnostics/:id` · `GET /diagnostics/lookup?code=` · `GET /diagnostics/providers` · `GET,POST /parts` · `GET,PATCH,DELETE /parts/:id` · `POST /parts/replace` · `GET /parts/components?vehicleId=&component=` · `GET,POST /warranties` · `PATCH,DELETE /warranties/:id` · `GET,POST /inspections` · `DELETE /inspections/:id` · `GET,POST /providers` · `PATCH,DELETE /providers/:id`
-
-### Money 🛡️ (`viewFinancials` required)
-`GET,POST /expenses` · `GET,PATCH,DELETE /expenses/:id` (service/fuel-generated expenses are read-only here) · `GET,POST /expenses/budgets` · `PATCH,DELETE /expenses/budgets/:id` · `GET,POST /fuel` · `PATCH,DELETE /fuel/:id` · `GET /fuel/stats?vehicleId=`
-
-### Reminders & notifications 🔒
-`GET,POST /reminders` · `PATCH,DELETE /reminders/:id` · `GET /reminders/upcoming` · `GET,PATCH /notifications` (`PATCH {ids|all, action: read|dismiss|actioned}`) · `DELETE /notifications/:id` · `GET /notifications/push-config` · `POST,DELETE /notifications/push-subscription`
-
-### Documents 🛡️
-`GET,POST /documents` (multipart: `file` + `vehicleId, category, title?, expiresOn?, maintenanceRecordId?, repairIssueId?, expenseId?, partId?, runOcr?`) · `GET,PATCH,DELETE /documents/:id` · `GET /documents/:id/file[?download=1]` · `POST /documents/:id/ocr` · `POST /documents/:id/ocr/confirm` (creates an expense from **user-verified** values)
-
-### Analytics, reports, search, AI 🔒
-`GET /analytics/dashboard` · `GET /analytics/expenses` · `GET /analytics/components` (query `vehicleId, range=30d|90d|ytd|12m|all|custom, from, to, exclude=FUEL,INSURANCE`) · `GET /reports` · `GET /reports/:type?format=pdf|csv|xlsx|json&vehicleId&year&from&to&hideVin&hideCosts&hideProviders` (types: `service-history, annual-summary, repair-history, expense-statement, costs-by-category, cost-per-distance, parts-history, upcoming-forecast, warranty, fuel-consumption, household-expenses`) · `GET /search?q=` · `POST /ai/chat` · `GET /ai/conversations[/:id]` · `GET /ai/status`
-
-### Integrations, admin, ops
-`GET /integrations/status` · `POST /integrations/obd/ingest` (bearer ingest token) · `DELETE /integrations/:id` · 🔒(platform admin) `GET /admin/stats, /admin/users, /admin/flags` · `PATCH /admin/users/:id, /admin/flags` · `GET /health[?deep=1]` · `POST /cron/run[?job=]` (bearer `CRON_SECRET`)
-
-Rate limits: default 240 req/min per user; login 10/15 min per IP+email; register 8/10 min per IP; forgot/resend 3–5/hour; uploads 30/10 min; report export 30/10 min; AI 30/10 min.
+`memberId: null` in a split means the household. Modes are OWNER, MEMBER (with `memberId`), HOUSEHOLD and SPLIT. Percentages must sum to 100 and fixed amounts must sum to the transaction total, otherwise the API returns 400.

@@ -5,7 +5,7 @@ import type { Column, ReportData } from "./reports";
 
 const latin1 = (s: string) =>
   s
-    .replace(/[–—]/g, "-")
+    .replace(/[–-]/g, "-")
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
     .replace(/→/g, "->")

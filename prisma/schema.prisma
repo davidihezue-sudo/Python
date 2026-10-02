@@ -806,7 +806,7 @@ model MaintenanceScheduleAssignment {
   // History baseline entered manually ("I last did this at…"); no expense is created.
   baselineDate    DateTime?            @db.Date
   baselineKm      Decimal?             @db.Decimal(10, 1)
-  // Derived from records/baseline — maintained by the engine
+  // Derived from records/baseline - maintained by the engine
   lastCompletedAt DateTime?            @db.Date
   lastCompletedKm Decimal?             @db.Decimal(10, 1)
   lastRecordId    String?
@@ -1306,7 +1306,7 @@ model Integration {
   @@index([householdId, provider])
 }
 
-// Credentials are NEVER stored in the database — only a reference (env var name or secret-manager path).
+// Credentials are NEVER stored in the database - only a reference (env var name or secret-manager path).
 model IntegrationCredentialReference {
   id            String      @id @default(cuid())
   integrationId String

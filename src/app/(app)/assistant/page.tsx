@@ -6,11 +6,13 @@ import { api } from "@/lib/client/api";
 import { Alert, Badge, Button, Card, Input, PageHeader, Spinner } from "@/components/ui/primitives";
 import { useSelectedVehicle } from "@/components/shell/providers";
 import { cn } from "@/lib/client/utils";
+import { Tabs } from "@/components/ui/tabs";
+import { FinAssistant } from "@/components/finance/assistant";
 
 const SUGGESTIONS = ["What maintenance did I perform last year?", "When were my brake pads last replaced?", "What was the cost of my last oil change?", "What services are coming up?", "Show me all repairs involving the cooling system", "How much have I spent on suspension repairs?", "Summarize my vehicle's maintenance history", "What maintenance records are missing?"];
 
 function Md({ text }: { text: string }) {
-  // minimal, safe rendering: **bold**, _italic_, and "• " bullets — never HTML
+  // minimal, safe rendering: **bold**, _italic_, and "• " bullets - never HTML
   return (
     <div className="space-y-1 whitespace-pre-wrap text-sm leading-relaxed">
       {text.split("\n").map((l, i) => (
@@ -22,7 +24,7 @@ function Md({ text }: { text: string }) {
   );
 }
 
-export default function AssistantPage() {
+function VehicleAssistant() {
   const qc = useQueryClient();
   const { vehicleId } = useSelectedVehicle();
   const { data: status } = useQuery({ queryKey: ["ai-status"], queryFn: () => api<any>("/api/ai/status") });
@@ -92,5 +94,15 @@ export default function AssistantPage() {
       </div>
       <p className="mt-3 text-xs text-muted-foreground">Recommendations are advisory and general; they are not manufacturer requirements. Always check your owner's manual.</p>
     </>
+  );
+}
+
+export default function AssistantPage() {
+  const [tab, setTab] = React.useState("finance");
+  return (
+    <div>
+      <div className="mb-5"><Tabs label="Assistant" value={tab} onChange={setTab} tabs={[{ key: "finance", label: "Finance assistant" }, { key: "vehicle", label: "Vehicle assistant" }]} /></div>
+      {tab === "finance" ? <FinAssistant /> : <VehicleAssistant />}
+    </div>
   );
 }

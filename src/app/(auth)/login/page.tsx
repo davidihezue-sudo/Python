@@ -21,7 +21,7 @@ export default function LoginPage() {
   const [unverified, setUnverified] = React.useState(false);
   const [resent, setResent] = React.useState(false);
   const { data: providers } = useQuery({ queryKey: ["providers"], queryFn: () => api<{ google: boolean }>("/api/auth/providers") });
-  const notice = params.get("verified") ? "Email verified — you can sign in now." : params.get("reset") ? "Password updated — sign in with your new password." : params.get("deleted") ? "Your account has been deleted." : "";
+  const notice = params.get("verified") ? "Email verified - you can sign in now." : params.get("reset") ? "Password updated - sign in with your new password." : params.get("deleted") ? "Your account has been deleted." : "";
 
   const submit = form.handleSubmit(async (v) => {
     setError("");
@@ -39,7 +39,7 @@ export default function LoginPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Welcome back</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Sign in to your AutoVault account.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Sign in to your Family Finance Hub account.</p>
       <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
         {notice && <Alert tone="success">{notice}</Alert>}
         {error && (
@@ -65,7 +65,7 @@ export default function LoginPage() {
           <a href="/api/auth/google" className="flex h-11 w-full items-center justify-center gap-2 rounded-md border border-input bg-card text-sm font-medium hover:bg-muted">Continue with Google</a>
         </>
       )}
-      <p className="mt-6 text-center text-sm text-muted-foreground">New to AutoVault? <Link href="/register" className="font-medium text-primary hover:underline">Create an account</Link></p>
+      <p className="mt-6 text-center text-sm text-muted-foreground">New to Family Finance Hub? <Link href="/register" className="font-medium text-primary hover:underline">Create an account</Link></p>
     </div>
   );
 }

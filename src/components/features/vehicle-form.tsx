@@ -81,7 +81,7 @@ export function VehicleForm({ mode, vehicleId, defaults = {}, onSaved, onCancel,
   });
   const err = (k: string) => form.formState.errors[k]?.message as string | undefined;
   const reg = (k: string) => form.register(k);
-  const conf = (k: string) => (confirmedFields.includes(k) ? "You've confirmed this value — decoding won't overwrite it." : undefined);
+  const conf = (k: string) => (confirmedFields.includes(k) ? "You've confirmed this value - decoding won't overwrite it." : undefined);
 
   return (
     <form id={formId} onSubmit={submit} className="space-y-6" noValidate>
@@ -99,7 +99,7 @@ export function VehicleForm({ mode, vehicleId, defaults = {}, onSaved, onCancel,
         </div>
         <div>
           <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-            <Field label="VIN" error={err("vin")} hint={vinCheck ? vinCheck.message : "17 characters. Optional — you can enter everything manually."}>{(p) => <Input {...p} {...reg("vin")} className="font-mono uppercase" maxLength={20} />}</Field>
+            <Field label="VIN" error={err("vin")} hint={vinCheck ? vinCheck.message : "17 characters. Optional - you can enter everything manually."}>{(p) => <Input {...p} {...reg("vin")} className="font-mono uppercase" maxLength={20} />}</Field>
             <Button variant="outline" onClick={runDecode} loading={decoding} disabled={!vin || !vinCheck?.formatOk}><Search className="h-4 w-4" /> Decode VIN</Button>
           </div>
           {decode && (
@@ -110,7 +110,7 @@ export function VehicleForm({ mode, vehicleId, defaults = {}, onSaved, onCancel,
                 <p>The decoder returned no usable details. {decode.warnings?.join(" ")}</p>
               ) : (
                 <>
-                  <p className="mb-2 font-medium">Suggested details from the VIN — choose what to apply</p>
+                  <p className="mb-2 font-medium">Suggested details from the VIN - choose what to apply</p>
                   <ul className="space-y-1.5">
                     {decode.diff.map((d: any) => (
                       <li key={d.field}>
@@ -168,7 +168,7 @@ export function VehicleForm({ mode, vehicleId, defaults = {}, onSaved, onCancel,
         </div>
         <Field label="Notes">{(p) => <Textarea rows={3} {...p} {...reg("notes")} />}</Field>
       </fieldset>
-      {mode === "create" && !defaults.templateKey && <Checkbox label="Add the suggested maintenance checklist (generic starting intervals — you can edit, disable or add your own)" {...form.register("applySuggestedSchedules")} />}
+      {mode === "create" && !defaults.templateKey && <Checkbox label="Add the suggested maintenance checklist (generic starting intervals - you can edit, disable or add your own)" {...form.register("applySuggestedSchedules")} />}
       {onCancel && <div className="hidden"><Button onClick={onCancel}>Cancel</Button></div>}
     </form>
   );

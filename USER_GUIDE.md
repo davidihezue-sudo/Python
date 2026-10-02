@@ -1,51 +1,39 @@
-# AutoVault user guide
+# User guide
 
-## 1. Account setup
-1. **Register** with name, email and a strong password (≥10 characters). Tick the privacy statement.
-2. Open the **verification email** and click the link, then sign in. (Self-hosting without SMTP? Links appear at `/dev/outbox` in development.)
-3. A personal **household** is created for you automatically — rename it in *Settings → Household & sharing*.
-4. In *Settings → Units & display* choose kilometres or miles, litres/gallons, fuel-economy unit, currency and time zone. Odometer data is stored in km and converted, so you can switch any time.
+## 1. Getting started
+1. Register, verify your email (in development, links appear at `/dev/outbox`), sign in.
+2. The setup wizard asks for the household name, region, currency and goals. Or load the labelled demo household to explore first.
+3. Add accounts (Accounts), your income (Income), then record transactions or import a CSV.
 
-## 2. Adding vehicles
-*My Vehicles → Add vehicle.* Start blank or from the **2015 BMW X3 28i (F25, N20)** starter profile. Enter the VIN and press **Decode VIN** (where available) to get *suggestions* — tick the fields you want; values you typed yourself are never overwritten. Choose the drivetrain so AWD/RWD-only items (transfer case, differentials) are included correctly. Enter the current odometer (or add it later).
+## 2. Your finances and the household
+The switch at the top of each page chooses **My Finances** (only what you own) or **Household Finances** (what members have shared). **Household, Comparison** shows members side by side using only shared figures.
 
-The starter profile creates an **uncompleted checklist** — no fictional history. Its intervals are generic suggestions, **not BMW specifications**; BMW uses Condition Based Service, so follow your service indicator and owner's manual, and edit any interval.
+Every record has a sharing setting: **Personal** (only you, not even administrators), **Household** (everyone, in the totals) or **Selected members**. Your defaults per record type are in Household, My sharing.
 
-## 3. Mileage
-*Quick add → Update mileage* (or the vehicle's Odometer tab). Entries that go backwards are blocked; if the cluster was replaced or an old entry was a typo, tick **legitimate correction** (it is audited). You can also correct/delete manual readings and import a list. The tab shows average distance per month/year, projections and charts.
+## 3. Inviting members
+Household, Members, Invite by email. Choose Administrator (manages the household), Member (records and edits) or Read only. The invited person registers or signs in and accepts the link, then has their own private space.
 
-## 4. Maintenance schedules
-*Maintenance* (all vehicles) or the vehicle's *Maintenance* tab. Statuses: **Up to date · Upcoming · Due soon · Due now · Overdue · Inspection required · Unknown history**. For items with *Unknown history*, click ✏ and enter when it was last done (no expense is created) — or just record a service. Each line says what the estimate is based on (your schedule / manufacturer data / your driving history / generic suggestion). Edit triggers (mileage, time, either, both, inspection, condition, one-time, recurring), thresholds, priority, enable/disable, or add custom schedules. Thresholds for “upcoming/due soon/overdue” are in Settings.
+## 4. Recording money
+- **Income**: record gross and net separately. Reports about cash use net.
+- **Expenses**: choose the account, who paid, and whose expense it is: yours, a member's, the household's, or split by percent or amounts. It is counted once.
+- **Transfers** between accounts and **credit card payments** are not expenses.
+- **Refunds** and **reimbursements** reduce the category they refund. **Settlements** between members only move who owes whom.
+- Joint accounts belong to the household. Spending from them is household spending paid by nobody in particular.
 
-## 5. Recording maintenance
-*Quick add → Log maintenance*, or press **Record** on any schedule to pre-fill the form (oil + filter are pre-selected together; untick what you didn't do). Add date, odometer, who did the work, parts and costs, then **upload the receipt**. Only items marked *completed* update their schedules; unrelated items are untouched. Drafts, scheduled and in-progress records don't affect schedules or expenses. Saving creates the expense and odometer reading and recalculates next due date and mileage. Duplicate submissions are detected.
+## 5. Contributions and settling up
+Household, Contributions. Pick an arrangement (independent, shared equally, income based, fixed amounts, custom), see what each member paid, their share and the net position, then record a settlement when someone pays someone back.
 
-## 6. Repairs & issues
-*Quick add → Report a vehicle issue* the moment you notice a problem (photo, severity, symptoms). Move it through *Investigating → Diagnosed → Awaiting parts → Scheduled → In repair → Resolved/Monitoring/Closed*. Add **diagnostic trouble codes** — AutoVault explains what a generic code usually means but never treats it as a diagnosis. When fixed, **Convert to completed repair** to record cost, create the expense and resolve the issue. *Repairs & Issues* also shows cost history by component.
+## 6. Planning
+Budgets, Debts (payoff strategies), Goals, Net worth, Forecast (daily cash flow with listed assumptions), Simulator (what-if scenarios that never change your real data), Planner (mortgage, affordability, down payment).
 
-## 7. Parts & warranties
-Tick **Track this part** when recording a service, or add parts manually. Replacing a component closes the old installation (with odometer) and starts a new one; *Component history* shows every battery, pad set or pump ever installed. Add vehicle/part warranties for expiry alerts.
+## 7. Tax
+Tax records per year, an estimate from the rules loaded for your region, and a clear split between tax actually deducted and estimated liability. It is an estimate only.
 
-## 8. Expenses, fuel & budgets
-Everything that costs money lives under *Expenses*. Services and fuel create their expenses automatically; add insurance, registration, parking, tolls etc. manually. *Fuel* computes economy between full-tank fill-ups (tick “partial” when you didn't fill up; tick “missed a fill-up” to skip a gap). *Budgets* track monthly/annual maintenance spend with projection and notifications at 80 % / 100 %. *Reports & Analytics* shows cost per km/mile for maintenance-only, repair-only and total ownership, with the option to exclude financing, insurance or fuel — it only uses periods covered by odometer readings and tells you what it left out.
+## 8. Reports, import and export
+Reports: choose a report, scope and dates, then download PDF, Excel or CSV. Import: upload CSV, confirm the column mapping, review each row (duplicates are skipped), import, and undo whole batches if needed. Export any list from Import and export. Household, Data lets you download everything you own as JSON.
 
-## 9. Reminders
-*Reminders* lists everything due or coming due plus your own date/odometer reminders. A background job creates notifications at the offsets you choose (e.g. 1,000 km and 500 km before, on the due date, when overdue) — each stage once, never duplicated — whether or not you open the app. Choose in-app, email and push in *Settings → Notifications* (push works only where your browser supports it; on iPhone install the app first).
+## 9. Alerts and documents
+Alerts for due bills, budgets, low balances, renewals and unusual spending appear under Notifications and can be tuned in Household, Alerts. Attach receipts and statements to records; a file is only as visible as its record.
 
-## 10. Documents & receipts
-*Documents* stores PDFs and images (≤10 MB) with category, expiry date and links to services/expenses/repairs/parts. For receipts you can **Extract details**: the values are shown for you to check and edit — **nothing is saved as an expense until you confirm**.
-
-## 11. Reports & exports
-*Reports & Analytics → Reports & exports*: choose a report, vehicle and period, set the **privacy options** (hide VIN/plate, costs, provider names) and download PDF, CSV, Excel or JSON. The PDF service history is formatted for mechanics, dealers, insurers and buyers.
-
-## 12. Sharing with family
-*Settings → Household & sharing → Invite a family member.* Pick the vehicles and a level per vehicle — Owner, Co-owner, Maintenance manager (can add records, can't see costs unless allowed), Viewer. They accept the invitation after signing in with the invited email. Household administrators see everything; others only what you share. Remove access any time.
-
-## 13. AI assistant
-Ask “What was the cost of my last oil change?”, “How much have I spent on suspension repairs?”, “What records are missing?”. It answers only from your recorded data and says when something isn't recorded. Advice is advisory — check your manual.
-
-## 14. Install & offline
-Install from your browser menu (iPhone: Share → Add to Home Screen). Pages and records you've opened remain readable offline; mileage, fuel, expenses and services entered offline are kept as drafts and sync automatically (with duplicate protection). Review them from the banner.
-
-## 15. Your data
-*Settings → Privacy & data*: set sharing defaults, **download all your data (JSON)**, or **delete your account**.
+## 10. Demo data
+Demo records are labelled and can be removed in Household, Data, Remove demo data. This deletes only the demo household.

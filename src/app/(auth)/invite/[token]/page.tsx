@@ -29,7 +29,7 @@ export default function InvitePage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">You're invited</h1>
-      <p className="mt-2 text-muted-foreground"><strong>{data.invitedBy}</strong> invited <strong>{data.email}</strong> to join the household <strong>{data.householdName}</strong> on AutoVault.</p>
+      <p className="mt-2 text-muted-foreground"><strong>{data.invitedBy}</strong> invited <strong>{data.email}</strong> to join the household <strong>{data.householdName}</strong> on Family Finance Hub.</p>
       {state === "done" ? (
         <div className="mt-6"><Alert tone="success" title="You've joined the household" /><Link href="/dashboard" className="mt-4 inline-block"><Button>Open dashboard</Button></Link></div>
       ) : state === "needLogin" ? (

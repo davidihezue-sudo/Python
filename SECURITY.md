@@ -1,44 +1,36 @@
-# Security
+# Security and privacy
 
-## Architecture
+## Privacy model
 
-* **Authorisation is server-side and centralised.** Every vehicle-scoped service call goes through `requireVehicle()`/`accessibleVehicles()`; the frontend merely hides controls. Missing access returns `404` (no existence leak); insufficient permission returns `403`. An automated **IDOR battery** (`tests/integration/households.test.ts`) exercises ~50 read/write/cross-link operations as an unrelated user and the e2e suite repeats the key ones over HTTP.
-* **Financial privacy.** `viewFinancials` is a separate capability: costs are redacted from records, issues, parts, fuel, vehicle stats, dashboards, analytics, reports, search results, documents (invoices/receipts) and the data export for members without it.
-* **Platform administrators** get aggregate counts, user management (enable/disable) and feature flags only; they have no implicit access to vehicles, costs or documents (tested).
+Each record (account, transaction, income source, bill, goal, asset, tax record, and so on) has a visibility:
 
-## Authentication
+- **Personal**: only its owner. Household administrators have no automatic access.
+- **Household**: every member, and included in household totals.
+- **Selected members**: the owner plus the members listed.
 
-bcrypt (cost 12), password policy (≥10 chars, common-password check, letters + number/symbol), constant-time-ish handling of unknown accounts (dummy hash), enumeration-safe responses for register/forgot/resend, single-use hashed tokens (verify 24 h, reset 1 h), reset revokes all sessions, password change revokes other sessions. Sessions: 256-bit random token, SHA-256 hash stored, `HttpOnly; SameSite=Lax; Secure` (production), sliding 30-day expiry, destroyed on logout/disable. Google OAuth uses authorization-code + PKCE + HMAC-signed state with a matching cookie; only verified Google emails are linked.
+Rules, all enforced on the server in `src/server/finance/access.ts`:
 
-## Request protection
+1. Joint accounts have no owner and are always Household.
+2. A transaction can never be more visible than its account.
+3. Documents inherit the visibility of the record they are attached to.
+4. Roles (Administrator, Member, Read only) govern writing and household settings, not reading.
+5. List endpoints filter in the database query (`visWhere`); single-record endpoints check `canSee` and return not found, not forbidden, so existence is not revealed.
+6. The Household view contains only shared records. Aggregates, dashboards, reports, exports, the forecast, scenarios and the assistant all read through the same visibility filter, so a total never includes a figure the viewer could not open.
+7. Scenarios and saved plans are private to their creator.
+8. Changes are written to an audit trail with who and when. History is filtered by the same rules.
 
-* **CSRF**: SameSite=Lax cookies **plus** Origin/Sec-Fetch-Site validation on every state-changing request (`lib/http.ts`). Machine endpoints (`/api/cron/run`, `/api/integrations/obd/ingest`) accept only bearer tokens (constant-time compare; OBD tokens stored hashed).
-* **Rate limiting**: per-user/IP on every route (default 240/min), strict limits on login (10 / 15 min per IP+email), register, forgot/resend, upload, report export, AI. Memory store by default; `RATE_LIMIT_STORE=postgres` shares counters across instances.
-* **Input validation**: zod on every body/query (shared with the forms); bodies capped at 1 MB; unknown fields stripped.
-* **SQL injection**: Prisma parameterised queries; the only raw SQL (rate limiter) uses tagged templates.
-* **XSS**: React escaping; no `dangerouslySetInnerHTML`; assistant output rendered by a minimal safe renderer; strict **CSP with per-request nonce** (`script-src 'self' 'nonce-…' 'strict-dynamic'`), `frame-ancestors 'none'`, `object-src 'none'`, HSTS, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`.
-* **Errors**: centralised mapping; 500s return a generic message + request id (no stack/SQL); details are logged with secrets redacted (`pino` redaction of passwords/tokens/cookies).
+## Accounts and sessions
 
-## File upload security
+Passwords hashed with bcrypt, common passwords rejected, sessions are random tokens stored hashed in an HttpOnly, SameSite cookie, login and sensitive endpoints are rate limited, unverified emails cannot sign in when verification is required. Invitation tokens are single use, expire, and are stored hashed.
 
-Magic-byte sniffing (client MIME type and extension are ignored; extension must match content), allow-list PDF/JPEG/PNG/WEBP (no SVG/HTML), size limit (`MAX_UPLOAD_MB`, default 10), random storage keys, SHA-256 recorded, downloads only via an authorised route (`private` cache, `nosniff`, CSP `sandbox` for images), financial categories gated by `viewFinancials`, soft-delete then purge job. Spreadsheet exports neutralise formula injection (`= + - @` prefixed with `'`).
+## Request safety
 
-## Secrets
+Same-origin enforcement on state-changing requests, zod validation on every body and query, body size limits, parameterised queries through Prisma only, output escaping by React, uploads limited by type and size and served through an authorised route, security headers in `next.config.mjs`.
 
-Only environment variables; `.env` is git-ignored; `.env.example` has placeholders. Production refuses to boot with the template `AUTH_SECRET`. Integration credentials are **never stored in the database** — `IntegrationCredentialReference` holds only a name/reference. API keys never reach the browser. No BMW (or other OEM) credentials are ever requested.
+## Data
 
-## Audit logging
+Export your own data as JSON at any time. Demo data is flagged and removable. Back up PostgreSQL and the storage directory (see DEPLOYMENT.md).
 
-`AuditLog` records who/what/when with before/after for: schedule changes, odometer corrections, records, expenses, issues (incl. status transitions), parts, access grants/revocations, invites, household changes, preference changes, report exports, account events, admin actions. Passwords/tokens are stripped from payloads.
+## Reporting issues
 
-## Privacy (Canada)
-
-Data minimisation (no tracking, no third-party scripts, system fonts), explicit consent text at registration, one-click **JSON data export** (`/api/users/me/export`), **account deletion** (cascade-deletes sole-member households and stored files; shared households are handed to another admin), sharing defaults that strip VIN/plate/costs/provider names from exported reports at source, retention clean-up job (expired sessions/tokens, dismissed notifications, purged documents). Not legal advice — review against PIPEDA / provincial rules (e.g. Alberta PIPA) and your own policies before launch.
-
-## Known limitations / hardening to consider
-
-* In-memory rate limiting is per instance (use the Postgres store behind multiple instances; add an edge WAF for volumetric abuse).
-* `X-Forwarded-For` is trusted for IPs; deploy behind a proxy that overwrites it.
-* No MFA yet (architecture permits adding TOTP/WebAuthn at `auth.ts`).
-* Local-disk storage is unencrypted at rest; use S3 SSE/KMS or disk encryption in production.
-* Dependency audit: run `npm audit` in CI and keep Next/Prisma patched.
+Do not open a public issue for a vulnerability. Contact the maintainer privately.

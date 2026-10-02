@@ -1,8 +1,8 @@
 {
-  "name": "autovault",
+  "name": "family-finance-hub",
   "version": "1.0.0",
   "private": true,
-  "description": "AutoVault - vehicle maintenance & ownership management platform",
+  "description": "Family Finance Hub - household finance platform",
   "engines": {
     "node": ">=20"
   },
@@ -20,6 +20,7 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
     "icons": "tsx scripts/generate-icons.ts",
+    "backup": "bash scripts/backup.sh",
     "test": "vitest run --project unit",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",

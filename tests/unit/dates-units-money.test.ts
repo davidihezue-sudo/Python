@@ -40,7 +40,7 @@ describe("units", () => {
   it("formats distance with unit label", () => {
     expect(formatDistance(1000, "KM")).toMatch(/1,000 km|1 000 km/);
     expect(formatDistance(1609.344, "MI")).toMatch(/1,000 mi|1 000 mi/);
-    expect(formatDistance(null, "KM")).toBe("—");
+    expect(formatDistance(null, "KM")).toBe("n/a");
   });
   it("converts volumes", () => {
     expect(unitToLitres(1, "GAL_US")).toBeCloseTo(3.785411784, 6);

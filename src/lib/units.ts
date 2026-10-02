@@ -15,13 +15,13 @@ export function unitToKm(value: number, unit: DistanceUnit): number {
 }
 export const distanceLabel = (unit: DistanceUnit) => (unit === "MI" ? "mi" : "km");
 
-/** Round to one decimal — the precision used for stored odometer values. */
+/** Round to one decimal - the precision used for stored odometer values. */
 export function roundOdo(n: number): number {
   return Math.round(n * 10) / 10;
 }
 
 export function formatDistance(km: number | null | undefined, unit: DistanceUnit, opts: { decimals?: number; locale?: string } = {}): string {
-  if (km === null || km === undefined || Number.isNaN(km)) return "—";
+  if (km === null || km === undefined || Number.isNaN(km)) return "n/a";
   const v = kmToUnit(km, unit);
   return `${new Intl.NumberFormat(opts.locale ?? "en-CA", { maximumFractionDigits: opts.decimals ?? 0 }).format(v)} ${distanceLabel(unit)}`;
 }

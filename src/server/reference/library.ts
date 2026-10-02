@@ -21,7 +21,7 @@ export const CATEGORIES = [
 
 export type CategoryKey = (typeof CATEGORIES)[number]["key"];
 
-export const GENERIC_SOURCE_NOTE = "Generic suggested interval — not a manufacturer requirement. Check your owner's manual and adjust.";
+export const GENERIC_SOURCE_NOTE = "Generic suggested interval - not a manufacturer requirement. Check your owner's manual and adjust.";
 
 interface LibItem {
   key: string;
@@ -135,7 +135,7 @@ export const TEMPLATES: VehicleTemplate[] = [
   {
     key: "bmw-x3-28i-f25",
     label: "2015 BMW X3 28i (F25, N20 2.0L turbo)",
-    note: "Starter profile. Every detail is editable. No service history is pre-filled and the intervals below are generic suggestions, NOT BMW specifications — BMW uses Condition Based Service (CBS), so follow your vehicle's service indicator, owner's manual and BMW guidance.",
+    note: "Starter profile. Every detail is editable. No service history is pre-filled and the intervals below are generic suggestions, NOT BMW specifications - BMW uses Condition Based Service (CBS), so follow your vehicle's service indicator, owner's manual and BMW guidance.",
     vehicle: {
       make: "BMW",
       model: "X3",
@@ -159,7 +159,7 @@ export const TEMPLATES: VehicleTemplate[] = [
       "front_suspension", "rear_suspension", "coil_springs", "shocks_front", "shocks_rear", "control_arms", "ball_joints", "wheel_bearings",
       "driveshaft", "center_support_bearing", "cv_joints", "tire_replacement", "wheel_alignment", "wipers", "ac_inspection", "general_inspection",
     ],
-    sourceNote: "Generic starting point — NOT a BMW specification. BMW uses Condition Based Service; confirm with your owner's manual / dealer.",
+    sourceNote: "Generic starting point - NOT a BMW specification. BMW uses Condition Based Service; confirm with your owner's manual / dealer.",
   },
 ];
 

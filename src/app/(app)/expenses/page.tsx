@@ -14,7 +14,7 @@ export default function ExpensesPage() {
   const canWrite = v ? v.canWrite : (data ?? []).some((x) => x.canWrite);
   return (
     <>
-      <PageHeader title="Expenses" description="Every cost of ownership — maintenance, repairs, fuel, insurance and more. Services and fuel create their expenses automatically." />
+      <PageHeader title="Expenses" description="Every cost of ownership - maintenance, repairs, fuel, insurance and more. Services and fuel create their expenses automatically." />
       <Tabs label="Expense views" value={tab} onChange={setTab} tabs={[{ key: "expenses", label: "Expenses" }, { key: "fuel", label: "Fuel" }, { key: "budgets", label: "Budgets" }]} />
       <div className="pt-4">
         {tab === "expenses" && <ExpensesPanel vehicleId={vehicleId} canWrite={canWrite} />}

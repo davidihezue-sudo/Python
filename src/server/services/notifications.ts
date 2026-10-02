@@ -45,7 +45,7 @@ export interface GenerationResult {
 
 /**
  * Evaluates every vehicle and creates any notifications that are newly warranted. Idempotent: the unique
- * (userId, dedupeKey) constraint means re-running never duplicates. Runs from the scheduler — it does not depend on
+ * (userId, dedupeKey) constraint means re-running never duplicates. Runs from the scheduler - it does not depend on
  * anyone opening the app.
  */
 export async function generateNotifications(now: Date = new Date()): Promise<GenerationResult> {

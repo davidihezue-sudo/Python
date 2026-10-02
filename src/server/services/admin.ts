@@ -7,7 +7,7 @@ import { requirePlatformAdmin } from "./access";
 import { audit } from "./audit";
 import { getOcrProvider } from "../integrations/ocr";
 
-/** Aggregate platform statistics. Deliberately exposes counts only — never vehicle, financial or document contents. */
+/** Aggregate platform statistics. Deliberately exposes counts only - never vehicle, financial or document contents. */
 export async function platformStats(actor: Actor) {
   requirePlatformAdmin(actor);
   const since30 = new Date(Date.now() - 30 * 86400_000);

@@ -17,7 +17,7 @@ const schema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
   SMTP_SECURE: bool(false),
-  EMAIL_FROM: z.string().default("AutoVault <no-reply@localhost>"),
+  EMAIL_FROM: z.string().default("Family Finance Hub <no-reply@localhost>"),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
   STORAGE_DRIVER: z.enum(["local", "s3"]).default("local"),

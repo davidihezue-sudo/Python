@@ -22,7 +22,7 @@ export const ALLOWED_TYPES: Record<string, { ext: string[]; sniff: (b: Buffer) =
   "image/webp": { ext: ["webp"], sniff: (b) => b.subarray(0, 4).toString("latin1") === "RIFF" && b.subarray(8, 12).toString("latin1") === "WEBP" },
 };
 
-/** Determine the real type from file contents — the client-supplied MIME type and extension are never trusted. */
+/** Determine the real type from file contents - the client-supplied MIME type and extension are never trusted. */
 export function sniffMime(buf: Buffer): string | null {
   for (const [mime, t] of Object.entries(ALLOWED_TYPES)) if (t.sniff(buf)) return mime;
   return null;
@@ -230,7 +230,7 @@ export async function deleteDocument(actor: Actor, id: string) {
   return { ok: true };
 }
 
-// ───────── OCR (optional) — extraction is advisory; records are only created by confirmOcr()
+// ───────── OCR (optional) - extraction is advisory; records are only created by confirmOcr()
 
 export async function extractOcr(actor: Actor, id: string) {
   const d = await getDocumentForActor(actor, id, { requireWrite: true });

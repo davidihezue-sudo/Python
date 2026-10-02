@@ -120,7 +120,7 @@ test("Journey B + C + D: oil change with receipt, repair lifecycle, mileage-trig
   await page.getByLabel("Odometer").fill("169700");
   await page.getByRole("button", { name: "Save reading" }).click();
   await expect(page.getByText("Mileage updated")).toBeVisible();
-  // the scheduled job (HTTP cron endpoint, bearer-protected) generates the notification — no user session involved
+  // the scheduled job (HTTP cron endpoint, bearer-protected) generates the notification - no user session involved
   const bad = await page.request.post("/api/cron/run?job=notifications.generate", { headers: { authorization: "Bearer wrong" } });
   expect(bad.status()).toBe(401);
   const cron = await page.request.post("/api/cron/run?job=notifications.generate", { headers: { authorization: `Bearer ${CRON}` } });
@@ -241,7 +241,7 @@ test("Journey E: household invite, scoped access, and blocked unauthorized acces
   await expect(spouse.getByRole("tab", { name: "Expenses" })).toHaveCount(0); // costs hidden
   await expect(spouse.getByRole("tab", { name: "Sharing & access" })).toHaveCount(0);
 
-  // blocked: direct API/URL access to the private vehicle and its data (404, not 403 — existence isn't leaked)
+  // blocked: direct API/URL access to the private vehicle and its data (404, not 403 - existence isn't leaked)
   expect((await apiJson(spouseCtx, `/api/vehicles/${privateId}`)).status).toBe(404);
   expect((await apiJson(spouseCtx, `/api/vehicles/${privateId}/odometer`)).status).toBe(404);
   expect((await apiJson(spouseCtx, `/api/maintenance/records?vehicleId=${privateId}`)).status).toBe(404);

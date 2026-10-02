@@ -65,7 +65,7 @@ export interface UpcomingItem {
 const stateOf = (days: number): UpcomingItem["state"] => (days < 0 ? "overdue" : days <= 7 ? "due" : days <= 30 ? "soon" : "upcoming");
 const urgencyOf = (s: UpcomingItem["state"]) => ({ overdue: 100, due: 80, soon: 60, upcoming: 40 })[s];
 
-/** Everything due or coming due across the actor's vehicles — derived live, so it is always consistent with the data. */
+/** Everything due or coming due across the actor's vehicles - derived live, so it is always consistent with the data. */
 export async function upcoming(actor: Actor, opts: { vehicleId?: string; horizonDays?: number } = {}): Promise<UpcomingItem[]> {
   const horizon = opts.horizonDays ?? 90;
   const scope = await accessibleVehicles(actor, "view", opts.vehicleId && opts.vehicleId !== "all" ? { vehicleId: opts.vehicleId } : {});
@@ -113,7 +113,7 @@ export async function upcoming(actor: Actor, opts: { vehicleId?: string; horizon
         }
       }
     }
-    for (const i of issues) out.push({ key: `issue:${i.id}`, kind: "repair", vehicleId: v.id, vehicleName: name, title: `Open ${i.severity.toLowerCase()} issue: ${i.title}`, summary: `Reported ${iso(i.discoveredAt)} — ${i.status.toLowerCase().replace("_", " ")}`, dueDate: null, dueKm: null, state: i.severity === "CRITICAL" ? "overdue" : "due", urgency: i.severity === "CRITICAL" ? 95 : 75, actionUrl: `/repairs?issue=${i.id}` });
+    for (const i of issues) out.push({ key: `issue:${i.id}`, kind: "repair", vehicleId: v.id, vehicleName: name, title: `Open ${i.severity.toLowerCase()} issue: ${i.title}`, summary: `Reported ${iso(i.discoveredAt)} - ${i.status.toLowerCase().replace("_", " ")}`, dueDate: null, dueKm: null, state: i.severity === "CRITICAL" ? "overdue" : "due", urgency: i.severity === "CRITICAL" ? 95 : 75, actionUrl: `/repairs?issue=${i.id}` });
   }
   return out.sort((a, b) => b.urgency - a.urgency || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999"));
 }

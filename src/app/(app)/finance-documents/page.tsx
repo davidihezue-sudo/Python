@@ -52,7 +52,7 @@ function Inner() {
           <ul className="divide-y divide-border/60">{data!.items.map((d) => (
             <li key={d.id} className="flex items-center gap-3 px-5 py-3">
               <FileText className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
-              <div className="min-w-0 flex-1"><a className="block truncate font-medium text-accent hover:underline" href={`/api/documents/${d.id}/download`} target="_blank" rel="noreferrer">{d.title || d.fileName}</a><p className="text-xs text-muted-foreground">{humanize(d.entity)} · {fmt.date(d.createdAt)} · {(d.sizeBytes / 1024).toFixed(0)} KB{d.uploadedBy ? ` · ${d.uploadedBy.name ?? d.uploadedBy}` : ""}</p></div>
+              <div className="min-w-0 flex-1"><a className="block truncate font-medium text-accent hover:underline" href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer">{d.title || d.fileName}</a><p className="text-xs text-muted-foreground">{humanize(d.entity)} · {fmt.date(d.createdAt)} · {(d.sizeBytes / 1024).toFixed(0)} KB{d.uploadedBy ? ` · ${d.uploadedBy.name ?? d.uploadedBy}` : ""}</p></div>
               {canWrite && <Button variant="ghost" size="icon" aria-label={`Remove ${d.title || d.fileName}`} onClick={async () => { if (await confirm({ title: "Remove this document?", confirmLabel: "Remove" })) del.mutate(d); }}><Trash2 className="h-4 w-4" /></Button>}
             </li>))}</ul>
         )}

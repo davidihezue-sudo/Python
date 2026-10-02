@@ -20,7 +20,7 @@ export interface AlertCandidate {
   body: string;
   vehicleId: string;
   actionUrl: string;
-  /** Stable key — one notification per (user, dedupeKey). */
+  /** Stable key - one notification per (user, dedupeKey). */
   dedupeKey: string;
 }
 

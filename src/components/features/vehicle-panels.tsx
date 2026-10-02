@@ -36,7 +36,7 @@ export function OverviewPanel({ v }: { v: any }) {
           ))}
         </section>
         <Card>
-          <CardHeader title="Maintenance health" description={v.health.score === null ? "Insufficient recorded data to estimate a condition score — record when items were last done." : `${v.health.score}/100 — ${v.health.label}. Calculated from ${v.health.known} schedules with recorded history, weighted by priority (${v.health.unknown} have no history).`} />
+          <CardHeader title="Maintenance health" description={v.health.score === null ? "Insufficient recorded data to estimate a condition score - record when items were last done." : `${v.health.score}/100 - ${v.health.label}. Calculated from ${v.health.known} schedules with recorded history, weighted by priority (${v.health.unknown} have no history).`} />
           <CardBody>
             {next.length === 0 ? <p className="text-sm text-muted-foreground">{sched ? "No schedules need attention right now." : "Loading…"}</p> : (
               <ul className="divide-y divide-border">{next.map((i: any) => <li key={i.id} className="flex items-center justify-between gap-2 py-2"><div><p className="text-sm font-medium">{i.name}</p><p className="text-xs text-muted-foreground">{i.summary}</p></div><ScheduleStatusBadge status={i.status} /></li>)}</ul>
@@ -86,7 +86,7 @@ export function OdometerPanel({ vehicleId, canWrite }: { vehicleId: string; canW
   return (
     <div className="space-y-4">
       <div className="grid gap-3 sm:grid-cols-4">
-        {[["Current odometer", o.currentKm !== null ? f.distance(o.currentKm) : "Not recorded", o.currentAt ? `as of ${f.date(o.currentAt)}` : "Add your first reading"], ["Average / month", u.avgMonthlyKm ? f.distance(u.avgMonthlyKm) : "—", u.note], ["Average / year", u.avgYearlyKm ? f.distance(u.avgYearlyKm) : "—", u.avgDailyKm ? `${f.distance(u.avgDailyKm, 1)} per day` : ""], ["Projected in 90 days", o.projections.in90Days ? f.distance(o.projections.in90Days.km) : "—", o.projections.in90Days ? `≈ ${f.date(o.projections.in90Days.date)}` : "Needs more readings"]].map(([k, v, h]) => <Card key={k} className="p-3"><p className="text-xs text-muted-foreground">{k}</p><p className="mt-1 text-lg font-semibold tabular">{v}</p><p className="text-[11px] text-muted-foreground">{h}</p></Card>)}
+        {[["Current odometer", o.currentKm !== null ? f.distance(o.currentKm) : "Not recorded", o.currentAt ? `as of ${f.date(o.currentAt)}` : "Add your first reading"], ["Average / month", u.avgMonthlyKm ? f.distance(u.avgMonthlyKm) : "n/a", u.note], ["Average / year", u.avgYearlyKm ? f.distance(u.avgYearlyKm) : "n/a", u.avgDailyKm ? `${f.distance(u.avgDailyKm, 1)} per day` : ""], ["Projected in 90 days", o.projections.in90Days ? f.distance(o.projections.in90Days.km) : "n/a", o.projections.in90Days ? `≈ ${f.date(o.projections.in90Days.date)}` : "Needs more readings"]].map(([k, v, h]) => <Card key={k} className="p-3"><p className="text-xs text-muted-foreground">{k}</p><p className="mt-1 text-lg font-semibold tabular">{v}</p><p className="text-[11px] text-muted-foreground">{h}</p></Card>)}
       </div>
       {u.confidence === "low" && <Alert tone="info">Estimates use less than 30 days of readings and may be rough.</Alert>}
       <div className="grid gap-4 lg:grid-cols-2">
@@ -235,7 +235,7 @@ export function DiagnosticsPanel({ vehicleId, canWrite, canEdit }: { vehicleId: 
   const [token, setToken] = React.useState<string | null>(null);
   return (
     <div className="space-y-4">
-      <Alert tone="info" title="Generic code meanings are not diagnoses">Trouble-code descriptions below are the generic industry meaning only. The real cause is vehicle-specific — confirm with a qualified technician.</Alert>
+      <Alert tone="info" title="Generic code meanings are not diagnoses">Trouble-code descriptions below are the generic industry meaning only. The real cause is vehicle-specific - confirm with a qualified technician.</Alert>
       <Card>
         <CardHeader title="Diagnostic trouble codes" action={canWrite && <Button size="sm" onClick={() => setAdding(true)}><Plus className="h-4 w-4" /> Add code</Button>} />
         <CardBody>
@@ -253,7 +253,7 @@ export function DiagnosticsPanel({ vehicleId, canWrite, canEdit }: { vehicleId: 
         </CardBody>
       </Card>
       <Card>
-        <CardHeader title="Diagnostics integrations" description="Optional. AutoVault works fully without any adapter or connected-car service." />
+        <CardHeader title="Diagnostics integrations" description="Optional. Family Finance Hub works fully without any adapter or connected-car service." />
         <CardBody className="space-y-3">
           {providers?.map((p) => (
             <div key={p.id} className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border p-3">
@@ -265,7 +265,7 @@ export function DiagnosticsPanel({ vehicleId, canWrite, canEdit }: { vehicleId: 
         </CardBody>
       </Card>
       {token && (
-        <Modal open onClose={() => setToken(null)} title="Your ingest token" description="Shown once — store it in your adapter bridge. Only a hash is kept on the server." footer={<Button onClick={() => setToken(null)}>I've saved it</Button>}>
+        <Modal open onClose={() => setToken(null)} title="Your ingest token" description="Shown once - store it in your adapter bridge. Only a hash is kept on the server." footer={<Button onClick={() => setToken(null)}>I've saved it</Button>}>
           <div className="flex items-center gap-2"><code className="block flex-1 break-all rounded-md bg-muted p-3 text-xs">{token}</code><Button size="icon" variant="outline" aria-label="Copy token" onClick={() => navigator.clipboard?.writeText(token)}><Copy className="h-4 w-4" /></Button></div>
           <p className="mt-3 text-xs text-muted-foreground">POST JSON to <code>/api/integrations/obd/ingest</code> with header <code>Authorization: Bearer …</code>. Body: <code>{"{ dtcs: [{code}], odometerKm, readings: {rpm, coolantTempC, batteryVolts} }"}</code>.</p>
         </Modal>
@@ -292,7 +292,7 @@ function DtcDialog({ vehicleId, onClose, issueId }: { vehicleId: string; onClose
       <form id="dtc-form" onSubmit={submit} className="space-y-3" noValidate>
         {err && <Alert tone="danger">{err}</Alert>}
         <Field label="Code" error={form.formState.errors.code?.message as string} required>{(p) => <Input {...p} {...form.register("code")} className="font-mono uppercase" placeholder="P0301" />}</Field>
-        {ref && <Alert tone={ref.known ? "info" : "warning"} title={ref.known ? `${ref.code}: ${ref.description}` : `${ref.code}${ref.scope === "UNKNOWN_FORMAT" ? " — unrecognised format" : ""}`}>{ref.disclaimer}</Alert>}
+        {ref && <Alert tone={ref.known ? "info" : "warning"} title={ref.known ? `${ref.code}: ${ref.description}` : `${ref.code}${ref.scope === "UNKNOWN_FORMAT" ? " - unrecognised format" : ""}`}>{ref.disclaimer}</Alert>}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Date detected" required>{(p) => <Input type="date" {...p} {...form.register("detectedAt")} />}</Field>
           <Field label="Odometer">{(p) => <Controller control={form.control} name="odometerKm" render={({ field }) => <DistanceInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
@@ -339,7 +339,7 @@ function InspectionDialog({ vehicleId, onClose }: { vehicleId: string; onClose: 
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" });
   const [err, setErr] = React.useState("");
   const submit = form.handleSubmit(async (v) => {
-    try { await api("/api/inspections", { method: "POST", body: { ...v, items: v.items.map((i: any) => ({ ...i, assignmentId: i.assignmentId || null })) } }); toast({ title: "Inspection recorded — schedules recalculated" }); void qc.invalidateQueries(); onClose(); } catch (e: any) { setErr(e.code === "ODOMETER_REGRESSION" ? `${e.message} Fix the odometer or correct earlier readings.` : applyApiErrors(form, e)); }
+    try { await api("/api/inspections", { method: "POST", body: { ...v, items: v.items.map((i: any) => ({ ...i, assignmentId: i.assignmentId || null })) } }); toast({ title: "Inspection recorded - schedules recalculated" }); void qc.invalidateQueries(); onClose(); } catch (e: any) { setErr(e.code === "ODOMETER_REGRESSION" ? `${e.message} Fix the odometer or correct earlier readings.` : applyApiErrors(form, e)); }
   });
   return (
     <Modal open onClose={onClose} size="lg" title="Record inspection" footer={<><Button variant="outline" onClick={onClose}>Cancel</Button><Button type="submit" form="insp-form" loading={form.formState.isSubmitting}>Save inspection</Button></>}>

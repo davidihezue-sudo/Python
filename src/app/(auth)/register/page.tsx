@@ -28,7 +28,7 @@ export default function RegisterPage() {
       <div>
         <h1 className="text-2xl font-semibold">{done.requiresVerification ? "Check your email" : "Account created"}</h1>
         <p className="mt-2 text-muted-foreground">
-          {done.requiresVerification ? <>If <strong>{done.email}</strong> is new to AutoVault, we've sent a verification link. It expires in 24 hours.</> : "You can now sign in."}
+          {done.requiresVerification ? <>If <strong>{done.email}</strong> is new to Family Finance Hub, we've sent a verification link. It expires in 24 hours.</> : "You can now sign in."}
         </p>
         <Link href="/login" className="mt-6 inline-block"><Button>Go to sign in</Button></Link>
       </div>
@@ -36,14 +36,14 @@ export default function RegisterPage() {
   return (
     <div>
       <h1 className="text-2xl font-semibold">Create your account</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Start tracking your vehicles' maintenance in minutes.</p>
+      <p className="mt-1 text-sm text-muted-foreground">Set up your household finances in minutes.</p>
       <form onSubmit={submit} className="mt-6 space-y-4" noValidate>
         {error && <Alert tone="danger">{error}</Alert>}
         <Field label="Full name" error={form.formState.errors.name?.message as string} required>{(p) => <Input autoComplete="name" autoFocus {...p} {...form.register("name")} />}</Field>
         <Field label="Email" error={form.formState.errors.email?.message as string} required>{(p) => <Input type="email" autoComplete="email" {...p} {...form.register("email")} />}</Field>
         <Field label="Password" error={form.formState.errors.password?.message as string} hint="At least 10 characters, with letters and a number or symbol." required>{(p) => <Input type="password" autoComplete="new-password" {...p} {...form.register("password")} />}</Field>
         <div>
-          <Checkbox label={<>I agree to the privacy policy. My vehicle and financial records are stored privately and I can export or delete them at any time.</>} {...form.register("acceptTerms")} />
+          <Checkbox label={<>I agree to the privacy policy. My financial records are stored privately and I can export or delete them at any time.</>} {...form.register("acceptTerms")} />
           {form.formState.errors.acceptTerms && <p role="alert" className="mt-1 text-xs text-danger">{form.formState.errors.acceptTerms.message as string}</p>}
         </div>
         <Button type="submit" className="w-full" size="lg" loading={form.formState.isSubmitting}>Create account</Button>

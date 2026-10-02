@@ -22,9 +22,10 @@ export const categoryParents = (cats: { id: string; parentId: string | null }[])
 
 const TX_SELECT = { id: true, accountId: true, type: true, status: true, amount: true, currency: true, date: true, categoryId: true, ownerMemberId: true, payerMemberId: true, allocationMode: true, allocatedMemberId: true, transferGroupId: true, description: true, merchantId: true, billId: true, subscriptionId: true, insurancePolicyId: true, debtPaymentId: true, recurringRuleId: true, incomeSourceId: true, visibility: true, sharedWithMemberIds: true, allocations: { select: { memberId: true, amount: true } } } as const;
 type TxRow = Awaited<ReturnType<typeof db.finTransaction.findFirstOrThrow<{ select: typeof TX_SELECT }>>>;
-export type LoadedTx = LedgerTx & { billId: string | null; description?: string; merchantId?: string | null; scheduled: boolean; payerId: string | null; ownerId: string | null; allocationMode: string; allocatedMemberId: string | null; allocations: { memberId: string | null; amount: string }[]; visibility: string; sharedWith: string[] };
+export type LoadedTx = LedgerTx & { billId: string | null; description?: string; merchantId?: string | null; scheduled: boolean; incomeSourceId: string | null; payerId: string | null; ownerId: string | null; allocationMode: string; allocatedMemberId: string | null; allocations: { memberId: string | null; amount: string }[]; visibility: string; sharedWith: string[] };
 export const toLedgerTx = (t: TxRow): LoadedTx => ({
   id: t.id, accountId: t.accountId, type: t.type as TxType, status: t.status, amount: t.amount.toString(), currency: t.currency, date: iso(t.date), categoryId: t.categoryId, memberId: t.ownerMemberId, transferGroupId: t.transferGroupId, description: t.description, merchantId: t.merchantId,
+  incomeSourceId: t.incomeSourceId,
   scheduled: !!(t.billId || t.subscriptionId || t.insurancePolicyId || t.debtPaymentId || t.recurringRuleId),
   billId: t.billId, payerId: t.payerMemberId, ownerId: t.ownerMemberId, allocationMode: t.allocationMode, allocatedMemberId: t.allocatedMemberId, allocations: t.allocations.map((a) => ({ memberId: a.memberId, amount: a.amount.toString() })), visibility: t.visibility, sharedWith: t.sharedWithMemberIds,
 });

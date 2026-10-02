@@ -64,7 +64,7 @@ export async function updateExpense(actor: Actor, id: string, input: z.infer<typ
   if (!e) throw notFound("Expense");
   const { vehicle } = await requireVehicle(actor, e.vehicleId, "viewFinancials");
   await requireVehicle(actor, e.vehicleId, "write");
-  if (e.maintenanceRecordId || e.fuelEntryId) throw conflict("This expense was created from a service or fuel record — edit that record instead.");
+  if (e.maintenanceRecordId || e.fuelEntryId) throw conflict("This expense was created from a service or fuel record - edit that record instead.");
   const data: Prisma.ExpenseUpdateInput = {};
   for (const [k, v] of Object.entries(input)) {
     if (v === undefined || k === "providerId") continue;
@@ -83,7 +83,7 @@ export async function deleteExpense(actor: Actor, id: string) {
   if (!e) throw notFound("Expense");
   const { vehicle } = await requireVehicle(actor, e.vehicleId, "viewFinancials");
   await requireVehicle(actor, e.vehicleId, "write");
-  if (e.maintenanceRecordId || e.fuelEntryId) throw conflict("This expense belongs to a service or fuel record — delete or edit that record instead.");
+  if (e.maintenanceRecordId || e.fuelEntryId) throw conflict("This expense belongs to a service or fuel record - delete or edit that record instead.");
   await db.expense.update({ where: { id }, data: { deletedAt: new Date() } });
   await audit(null, actor, { entity: "Expense", entityId: id, action: "delete", vehicleId: vehicle.id, householdId: vehicle.householdId, before: { amount: Number(e.amount) } });
   return { ok: true };

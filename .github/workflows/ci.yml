@@ -9,12 +9,12 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        env: { POSTGRES_USER: autovault, POSTGRES_PASSWORD: autovault, POSTGRES_DB: autovault_test }
+        env: { POSTGRES_USER: familyfinance, POSTGRES_PASSWORD: familyfinance, POSTGRES_DB: familyfinance_test }
         ports: ["5432:5432"]
         options: >-
-          --health-cmd "pg_isready -U autovault" --health-interval 5s --health-timeout 5s --health-retries 10
+          --health-cmd "pg_isready -U familyfinance" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://autovault:autovault@localhost:5432/autovault_test?schema=public
+      DATABASE_URL: postgresql://familyfinance:familyfinance@localhost:5432/familyfinance_test?schema=public
       AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-0123
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
       - run: npm run test:unit
       - name: Create test databases
         run: |
-          PGPASSWORD=autovault psql -h localhost -U autovault -d postgres -c "CREATE DATABASE autovault_e2e"
+          PGPASSWORD=familyfinance psql -h localhost -U familyfinance -d postgres -c "CREATE DATABASE familyfinance_e2e"
       - run: npm run test:integration
       - run: npm run build
         env: { AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-0123 }

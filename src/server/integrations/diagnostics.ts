@@ -19,19 +19,19 @@ export interface DiagnosticProvider {
 }
 
 export const PROVIDERS: DiagnosticProvider[] = [
-  { id: "manual", label: "Manual entry", kind: "manual", status: () => ({ available: true, reason: "Always available — enter trouble codes and mileage by hand." }), capabilities: ["dtc", "odometer"] },
+  { id: "manual", label: "Manual entry", kind: "manual", status: () => ({ available: true, reason: "Always available - enter trouble codes and mileage by hand." }), capabilities: ["dtc", "odometer"] },
   {
     id: "obd-gateway",
     label: "OBD-II gateway (Bluetooth / Wi-Fi adapter bridge)",
     kind: "obd_adapter",
-    status: () => ({ available: true, reason: "Create an ingest token below, then have your adapter bridge (phone app, ESP32, Raspberry Pi…) POST readings to /api/integrations/obd/ingest. AutoVault does not talk to the adapter directly." }),
+    status: () => ({ available: true, reason: "Create an ingest token below, then have your adapter bridge (phone app, ESP32, Raspberry Pi…) POST readings to /api/integrations/obd/ingest. Family Finance Hub does not talk to the adapter directly." }),
     capabilities: ["dtc", "odometer", "live-data"],
   },
   {
     id: "bmw-connected-drive",
     label: "BMW ConnectedDrive / BMW CarData",
     kind: "oem_api",
-    status: () => ({ available: false, reason: "Not implemented. BMW offers vehicle-data access only through its own official programmes (availability depends on the vehicle, market and account). AutoVault will never ask for your BMW credentials or use unofficial/undocumented APIs. The provider interface is ready for an official integration." }),
+    status: () => ({ available: false, reason: "Not implemented. BMW offers vehicle-data access only through its own official programmes (availability depends on the vehicle, market and account). Family Finance Hub will never ask for your BMW credentials or use unofficial/undocumented APIs. The provider interface is ready for an official integration." }),
     capabilities: [],
   },
 ];

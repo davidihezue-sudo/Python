@@ -8,7 +8,7 @@ const dark = args.includes("--dark");
 const paths = args.filter((a) => a.startsWith("/"));
 const base = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.env.SHOT_DIR ?? "/tmp/shots";
-const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find(existsSync);
+const exe = ["/opt/pw-browsers/chromium"].find(existsSync);
 
 (async () => {
   const browser = await chromium.launch({ executablePath: exe, args: ["--no-sandbox"] });
@@ -19,7 +19,7 @@ const exe = ["/opt/pw-browsers/chromium-1194/chrome-linux/chrome"].find(existsSy
   page.on("pageerror", (e) => errors.push(`[pageerror] ${e.message.slice(0, 300)}`));
   page.on("response", (r) => r.status() >= 400 && !r.url().includes("favicon") && errors.push(`[http ${r.status()}] ${r.url().replace(base, "")}`));
   await page.goto(`${base}/login`);
-  await page.fill('input[type="email"]', "demo@autovault.local");
+  await page.fill('input[type="email"]', "david@familyfinance.local");
   await page.fill('input[type="password"]', "DemoPass123!");
   await page.click('button[type="submit"]');
   await page.waitForURL("**/dashboard");

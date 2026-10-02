@@ -58,7 +58,7 @@ export function parseReceiptText(text: string): OcrResult {
   }
   const found = [r.vendor, r.date, r.total].filter((x) => x !== null).length;
   r.confidence = found === 3 ? "medium" : "low";
-  r.notes.push("Extracted by simple text heuristics — verify every field before saving.");
+  r.notes.push("Extracted by simple text heuristics - verify every field before saving.");
   return r;
 }
 
@@ -147,7 +147,7 @@ const anthropicProvider: OcrProvider = {
     r.invoiceNumber = parsed.invoice_number ?? null;
     r.lineItems = (parsed.line_items ?? []).map((l) => ({ description: l.description, amount: l.amount ?? null, kind: l.kind ?? "other" }));
     r.confidence = "medium";
-    r.notes.push("Extracted by an AI vision model — it can misread values. Verify every field before saving.");
+    r.notes.push("Extracted by an AI vision model - it can misread values. Verify every field before saving.");
     return r;
   },
 };

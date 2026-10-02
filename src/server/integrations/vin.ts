@@ -26,7 +26,7 @@ export interface VinDecodeResult {
   disclaimer: string;
 }
 
-const DISCLAIMER = "Decoded data is a suggestion. Public VIN decoders are best for North American-market vehicles and can be incomplete or wrong for other markets — review each field; values you've confirmed are never overwritten automatically.";
+const DISCLAIMER = "Decoded data is a suggestion. Public VIN decoders are best for North American-market vehicles and can be incomplete or wrong for other markets - review each field; values you've confirmed are never overwritten automatically.";
 
 const clean = (s: unknown) => (typeof s === "string" && s.trim() && !/^not applicable$/i.test(s.trim()) ? s.trim() : undefined);
 const title = (s: string) => (s === s.toUpperCase() && s.length > 3 ? s.charAt(0) + s.slice(1).toLowerCase() : s);
@@ -81,7 +81,7 @@ export async function decodeVin(rawVin: string): Promise<VinDecodeResult> {
     if (!row) return { ...base, available: false, reason: "The decoder returned no data for this VIN." };
     const { spec, warnings } = mapNhtsa(row);
     if (!check.checkDigitOk) warnings.push(check.message);
-    if (!spec.make && !spec.model) warnings.push("The decoder did not recognise this VIN — it may be a non-North-American vehicle.");
+    if (!spec.make && !spec.model) warnings.push("The decoder did not recognise this VIN - it may be a non-North-American vehicle.");
     return { ...base, available: true, spec, warnings };
   } catch (e) {
     return { ...base, available: false, reason: `VIN decoding is currently unavailable (${(e as Error).name === "TimeoutError" ? "timed out" : "network error"}). You can enter the details manually.` };

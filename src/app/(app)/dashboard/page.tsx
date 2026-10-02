@@ -50,7 +50,7 @@ function Dashboard() {
                 <p className="display mt-1 text-5xl leading-none sm:text-6xl money">{fmt.money(d.overview.netWorth)}</p>
                 <p className="mt-2 text-sm text-white/65">
                   {d.position.monthOverMonth ? <>{fmt.money(d.position.monthOverMonth.change, { sign: true })} since last month</> : "History builds as months pass"}
-                  {d.position.yearOverYear ? <> · {fmt.money(d.position.yearOverYear.change, { sign: true })} over twelve months</> : null}
+                  {d.position.yearOverYear ? <> · {Number(d.position.yearOverYear.change) < 0 ? `down ${fmt.money(String(Math.abs(Number(d.position.yearOverYear.change))))}` : `up ${fmt.money(d.position.yearOverYear.change)}`} over twelve months</> : null}
                 </p>
               </div>
               <div className="h-20 w-full max-w-xs sm:w-72" aria-hidden>
@@ -174,7 +174,7 @@ function Dashboard() {
               <ul className="divide-y divide-border">
                 {d.recent.map((t: any) => (
                   <li key={t.id}><button className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-x-3 px-5 py-3 text-left hover:bg-muted/60" onClick={() => setOpen(t.id)}>
-                    <span className="w-14 text-xs text-muted-foreground">{fmt.date(t.date)}</span>
+                    <span className="whitespace-nowrap text-xs text-muted-foreground">{fmt.date(t.date)}</span>
                     <span className="min-w-0"><span className="block truncate text-sm font-medium">{t.description}</span><span className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground"><span>{t.categoryName ?? humanize(t.type)}</span><span>{t.accountName}</span><MemberChip member={t.owner} /></span></span>
                     <Money value={t.amount} delta={t.type !== "TRANSFER"} className="text-sm" />
                   </button></li>

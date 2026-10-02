@@ -46,7 +46,7 @@ export function validateReading(existing: Reading[], candidate: Reading, opts: {
   if (prevLatest) {
     const days = Math.max(1, diffDays(candidate.date, prevLatest.date));
     const perDay = (candidate.valueKm - prevLatest.valueKm) / days;
-    if (perDay > maxKmPerDay) warnings.push(`That implies ${Math.round(perDay)} km/day since ${prevLatest.date}, which is unusually high — please double-check the reading.`);
+    if (perDay > maxKmPerDay) warnings.push(`That implies ${Math.round(perDay)} km/day since ${prevLatest.date}, which is unusually high - please double-check the reading.`);
   }
   return { ok: true, warnings };
 }
@@ -109,7 +109,7 @@ export function computeUsage(readingsIn: Reading[], opts: { windowDays?: number 
     readingsUsed: set.length,
     totalKm: end.valueKm - first.valueKm,
     confidence: span < 30 ? "low" : "ok",
-    note: span < 30 ? "Based on less than 30 days of readings — treat estimates as rough." : `Based on ${span} days of readings.`,
+    note: span < 30 ? "Based on less than 30 days of readings - treat estimates as rough." : `Based on ${span} days of readings.`,
   };
 }
 

@@ -17,18 +17,18 @@ RUN DATABASE_URL=postgresql://build:build@localhost:5432/build AUTH_SECRET=build
 FROM node:22-bookworm-slim AS runtime
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates tini && rm -rf /var/lib/apt/lists/* \
-  && useradd --system --uid 10001 --home /app autovault && mkdir -p /app/storage && chown -R autovault /app
+  && useradd --system --uid 10001 --home /app familyfinance && mkdir -p /app/storage && chown -R familyfinance /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 # Full node_modules are kept so `prisma migrate deploy`, the seed script and the worker (tsx) work from the same image.
-COPY --from=build --chown=autovault /app/node_modules ./node_modules
-COPY --from=build --chown=autovault /app/.next ./.next
-COPY --from=build --chown=autovault /app/public ./public
-COPY --from=build --chown=autovault /app/prisma ./prisma
-COPY --from=build --chown=autovault /app/src ./src
-COPY --from=build --chown=autovault /app/package.json /app/next.config.mjs /app/tsconfig.json ./
-COPY --chown=autovault docker/entrypoint.sh /app/entrypoint.sh
+COPY --from=build --chown=familyfinance /app/node_modules ./node_modules
+COPY --from=build --chown=familyfinance /app/.next ./.next
+COPY --from=build --chown=familyfinance /app/public ./public
+COPY --from=build --chown=familyfinance /app/prisma ./prisma
+COPY --from=build --chown=familyfinance /app/src ./src
+COPY --from=build --chown=familyfinance /app/package.json /app/next.config.mjs /app/tsconfig.json ./
+COPY --chown=familyfinance docker/entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
-USER autovault
+USER familyfinance
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 ENTRYPOINT ["/usr/bin/tini", "--", "/app/entrypoint.sh"]
