@@ -5,7 +5,7 @@ coverage
 .env
 .env.local
 .env.*.local
-storage/
+/storage/
 test-results/
 playwright-report/
 *.tsbuildinfo
