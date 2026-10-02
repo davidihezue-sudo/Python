@@ -87,7 +87,7 @@ export function DashboardView() {
           <CardBody>
             <ul className="grid gap-3 sm:grid-cols-2">
               {(d?.vehicles ?? vehicles.map((v) => ({ id: v.id, name: v.nickname, subtitle: `${v.year} ${v.make} ${v.model}`, currentKm: v.currentOdometerKm, photoUrl: v.photoUrl, health: { score: null }, nextService: null, overdue: 0 }))).map((v: any) => (
-                <li key={v.id}>
+                <li key={v.id} className="min-w-0">
                   <Link href={`/vehicles/${v.id}`} className="group flex gap-3 rounded-xl border border-border p-3 transition-colors hover:border-primary/50">
                     <div className="flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted">
                       {v.photoUrl ? <img src={v.photoUrl} alt="" className="h-full w-full object-cover" /> : <Car className="h-7 w-7 text-muted-foreground" aria-hidden />}

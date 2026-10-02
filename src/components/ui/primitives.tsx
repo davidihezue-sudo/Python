@@ -121,7 +121,7 @@ export function Badge({ className, tone, ...p }: React.HTMLAttributes<HTMLSpanEl
 }
 
 export function Card({ className, ...p }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-xl border border-border bg-card text-card-foreground shadow-card", className)} {...p} />;
+  return <div className={cn("min-w-0 rounded-xl border border-border bg-card text-card-foreground shadow-card", className)} {...p} />;
 }
 export function CardHeader({ className, title, description, action, ...p }: Omit<React.HTMLAttributes<HTMLDivElement>, "title"> & { title?: React.ReactNode; description?: React.ReactNode; action?: React.ReactNode }) {
   return (

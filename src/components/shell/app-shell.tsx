@@ -127,12 +127,12 @@ function Shell({ children }: { children: React.ReactNode }) {
           <BottomLink href="/dashboard" label="Home" icon={LayoutDashboard} active={isActive(path, "/dashboard")} />
           <BottomLink href="/vehicles" label="Vehicles" icon={Car} active={isActive(path, "/vehicles")} />
           <li className="flex justify-center">
-            <Dropdown label="Quick add" align="left" trigger={(p) => (
+            <Dropdown label="Quick add" sheet trigger={(p) => (
               <button {...p} aria-label="Quick add" className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
                 <Plus className="h-7 w-7" />
               </button>
             )}>
-              {(close) => <QuickMenu onPick={close} up />}
+              {(close) => <QuickMenu onPick={close} />}
             </Dropdown>
           </li>
           <BottomLink href="/maintenance" label="Maintenance" icon={Wrench} active={isActive(path, "/maintenance")} />
@@ -180,11 +180,11 @@ function BottomLink({ href, label, icon: Icon, active }: { href: string; label: 
   );
 }
 
-function QuickMenu({ onPick, up }: { onPick: () => void; up?: boolean }) {
+function QuickMenu({ onPick }: { onPick: () => void }) {
   const { open } = useQuickAdd();
   const router = useRouter();
   return (
-    <div className={cn(up && "max-sm:fixed max-sm:inset-x-3 max-sm:bottom-24 max-sm:rounded-lg")}>
+    <div>
       {QUICK_ACTIONS.map((a) => (
         <MenuItem
           key={a.key}
@@ -232,7 +232,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
             )}
           </Dropdown>
         </div>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex min-w-0 items-center gap-1">
           <div className="lg:hidden">
             <VehicleSwitcherMobile />
           </div>
@@ -247,7 +247,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
             </Dropdown>
           </div>
           <NotificationsBell />
-          <ThemeToggle />
+          <div className="max-sm:hidden"><ThemeToggle /></div>
           <Dropdown label="Account" trigger={(p) => (
             <Button {...p} variant="ghost" size="icon" aria-label="Account menu">
               {me.imageUrl ? <img src={me.imageUrl} alt="" className="h-8 w-8 rounded-full object-cover" /> : <UserCircle className="h-6 w-6" />}
@@ -277,7 +277,7 @@ function VehicleSwitcherMobile() {
   const { data: vehicles } = useVehicles();
   if (!vehicles || vehicles.length < 2) return null;
   return (
-    <select aria-label="Selected vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} className="h-10 max-w-[7.5rem] truncate rounded-md border border-input bg-card px-2 text-sm">
+    <select aria-label="Selected vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} className="h-10 max-w-[5.5rem] truncate rounded-md border border-input bg-card px-2 text-sm">
       <option value="all">All vehicles</option>
       {vehicles.map((v) => (
         <option key={v.id} value={v.id}>{v.nickname}</option>
