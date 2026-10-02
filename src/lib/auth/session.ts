@@ -40,7 +40,8 @@ export async function destroySession(token: string | undefined | null) {
 export const cookieOptions = (expires?: Date) => ({
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  // Secure cookies are dropped by browsers on plain-http origins other than localhost, so a deliberately http APP_URL (LAN/phone testing) opts out.
+  secure: process.env.NODE_ENV === "production" && !/^http:\/\//i.test(process.env.APP_URL ?? ""),
   path: "/",
   ...(expires ? { expires } : {}),
 });
