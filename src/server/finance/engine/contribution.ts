@@ -75,11 +75,11 @@ export function analyseContributions(i: ContribInput): ContributionAnalysis {
   const ids = i.members.map((m) => m.id);
   const parts = (i.arrangement.participants.length ? i.arrangement.participants : ids).filter((p) => ids.includes(p));
   const z = () => new Map<string, DecT>(ids.map((m) => [m, ZERO]));
-  const paidTotal = z(), paidShared = z(), paidOthers = z(), personal = z(), sPaid = z(), sRecv = z();
+  const paidTotal = z(), paidShared = z(), paidOthers = z(), personal = z(), personalPaid = z(), sPaid = z(), sRecv = z();
   const add = (m: Map<string, DecT>, id: string | null, v: DecT) => {
     if (id && m.has(id)) m.set(id, (m.get(id) as DecT).plus(v));
   };
-  let pool = ZERO, personalTotal = ZERO, joint = ZERO;
+  let pool = ZERO, poolPaid = ZERO, personalTotal = ZERO, joint = ZERO;
   for (const e of i.expenses) {
     const amt = D(e.amount);
     if (e.payerId) add(paidTotal, e.payerId, amt);
@@ -87,10 +87,14 @@ export function analyseContributions(i: ContribInput): ContributionAnalysis {
     for (const a of e.allocations) {
       if (a.memberId === null) {
         pool = pool.plus(a.amount);
-        if (e.payerId) add(paidShared, e.payerId, a.amount);
+        if (e.payerId) {
+          add(paidShared, e.payerId, a.amount);
+          poolPaid = poolPaid.plus(a.amount);
+        }
       } else {
         personalTotal = personalTotal.plus(a.amount);
         add(personal, a.memberId, a.amount);
+        if (e.payerId) add(personalPaid, a.memberId, a.amount);
         if (e.payerId && e.payerId !== a.memberId) add(paidOthers, e.payerId, a.amount);
       }
     }
@@ -100,47 +104,54 @@ export function analyseContributions(i: ContribInput): ContributionAnalysis {
     add(sRecv, s.toMemberId, D(s.amount));
   }
 
-  // Share of the shared pool borne by each member under the arrangement.
-  const share = new Map<string, DecT>(ids.map((m) => [m, ZERO]));
-  const setShares = (weights: Record<string, DecLike>) => {
-    const keys = Object.keys(weights).filter((k) => ids.includes(k));
-    if (!keys.length || sum(keys.map((k) => weights[k])).lte(0)) return false;
-    apportion(pool, keys.map((k) => weights[k])).forEach((v, n) => share.set(keys[n], v));
-    return true;
-  };
-  switch (i.arrangement.kind) {
-    case "INDEPENDENT":
-      for (const m of ids) share.set(m, paidShared.get(m) as DecT);
-      notes.push("Under an independent arrangement each member bears the shared costs they paid, so no settlement is suggested for them.");
-      break;
-    case "SHARED_EQUAL":
-      setShares(Object.fromEntries(parts.map((p) => [p, 1])));
-      break;
-    case "INCOME_BASED": {
-      const nets = Object.fromEntries(parts.map((p) => [p, i.netMonthly?.[p] ?? null]));
-      if (parts.every((p) => nets[p] !== null && D(nets[p]).gt(0))) setShares(Object.fromEntries(parts.map((p) => [p, D(nets[p])])));
-      else {
-        setShares(Object.fromEntries(parts.map((p) => [p, 1])));
-        notes.push("Net income is not available for every participant (it may not be shared), so shared costs are split equally instead.");
+  // Share of a shared pool borne by each member under the arrangement. Computed for the whole pool (shown to the household) and for
+  // the part members actually paid (used for positions: costs paid from joint accounts have no individual payer to settle with).
+  const sharesFor = (amount: DecT): Map<string, DecT> => {
+    const out = new Map<string, DecT>(ids.map((m) => [m, ZERO]));
+    const set = (weights: Record<string, DecLike>) => {
+      const keys = Object.keys(weights).filter((k) => ids.includes(k));
+      if (!keys.length || sum(keys.map((k) => weights[k])).lte(0)) return false;
+      apportion(amount, keys.map((k) => weights[k])).forEach((v, n) => out.set(keys[n], v));
+      return true;
+    };
+    const equal = () => set(Object.fromEntries(parts.map((p) => [p, 1])));
+    switch (i.arrangement.kind) {
+      case "INDEPENDENT":
+        for (const m of ids) out.set(m, paidShared.get(m) as DecT);
+        break;
+      case "SHARED_EQUAL":
+        equal();
+        break;
+      case "INCOME_BASED": {
+        const nets = Object.fromEntries(parts.map((p) => [p, i.netMonthly?.[p] ?? null]));
+        if (parts.every((p) => nets[p] !== null && D(nets[p]).gt(0))) set(Object.fromEntries(parts.map((p) => [p, D(nets[p])])));
+        else equal();
+        break;
       }
-      break;
+      case "FIXED": {
+        const fx = i.arrangement.fixedMonthly ?? {};
+        if (!set(Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, D(v)])))) equal();
+        break;
+      }
+      case "CUSTOM": {
+        const cs = i.arrangement.customShares ?? {};
+        if (!set(cs)) equal();
+        break;
+      }
     }
-    case "FIXED": {
-      const fx = i.arrangement.fixedMonthly ?? {};
-      if (!setShares(Object.fromEntries(Object.entries(fx).map(([k, v]) => [k, D(v)])))) setShares(Object.fromEntries(parts.map((p) => [p, 1])));
-      break;
-    }
-    case "CUSTOM": {
-      const cs = i.arrangement.customShares ?? {};
-      if (!sum(Object.values(cs)).eq(100)) notes.push("Custom shares do not add up to 100 percent, so they were scaled proportionally.");
-      if (!setShares(cs)) setShares(Object.fromEntries(parts.map((p) => [p, 1])));
-      break;
-    }
-  }
+    return out;
+  };
+  const share = sharesFor(pool);
+  const positionShare = sharesFor(poolPaid);
+  if (i.arrangement.kind === "INDEPENDENT") notes.push("Under an independent arrangement each member bears the shared costs they paid, so no settlement is suggested for them.");
+  if (i.arrangement.kind === "INCOME_BASED" && !parts.every((p) => i.netMonthly?.[p] !== null && i.netMonthly?.[p] !== undefined && D(i.netMonthly[p]).gt(0))) notes.push("Net income is not available for every participant (it may not be shared), so shared costs are split equally instead.");
+  if (i.arrangement.kind === "CUSTOM" && !sum(Object.values(i.arrangement.customShares ?? {})).eq(100)) notes.push("Custom shares do not add up to 100 percent, so they were scaled proportionally.");
 
   const members: MemberContribution[] = i.members.map((m) => {
     const owed = (personal.get(m.id) as DecT).plus(share.get(m.id) as DecT);
-    const net = (paidTotal.get(m.id) as DecT).minus(owed).plus(sPaid.get(m.id) as DecT).minus(sRecv.get(m.id) as DecT);
+    // positions only consider expenses a member actually paid
+    const owedForPosition = (personalPaid.get(m.id) as DecT).plus(positionShare.get(m.id) as DecT);
+    const net = (paidTotal.get(m.id) as DecT).minus(owedForPosition).plus(sPaid.get(m.id) as DecT).minus(sRecv.get(m.id) as DecT);
     const toShared = D(i.transfersToShared?.[m.id]);
     const actual = (paidShared.get(m.id) as DecT).plus(toShared);
     let target: DecT | null = null;

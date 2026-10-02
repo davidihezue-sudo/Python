@@ -172,3 +172,31 @@ export function requireInHousehold<T extends { householdId: string; deletedAt?: 
 export const requireWriter = (ctx: FinCtx) => {
   if (!ctx.canWrite) throw forbidden("Your access to this household is read-only");
 };
+
+// ───── helpers shared by every record type that carries ownership and visibility
+export interface MetaInput extends VisInput {
+  assignToMemberId?: string | null;
+}
+/** Ownership and visibility columns for a new record. The owner is the signed-in member unless explicitly assigned. */
+export function newRecordMeta(ctx: FinCtx, input: MetaInput, kind: SharingKind, opts: { joint?: boolean } = {}) {
+  const owner = opts.joint ? null : ownerFor(ctx, input.assignToMemberId);
+  return { ownerMemberId: owner, ...resolveVisibility(ctx, input, kind, { joint: opts.joint }), createdById: ctx.actor.id, updatedById: ctx.actor.id };
+}
+/** Column changes for an update. Only the owner may change visibility or ownership; any writer who can see a record may edit its content. */
+export function updateRecordMeta(ctx: FinCtx, row: Shareable, patch: MetaInput, kind: SharingKind) {
+  const touchesVis = patch.visibility !== undefined || patch.sharedWithMemberIds !== undefined || (patch.assignToMemberId !== undefined && patch.assignToMemberId !== row.ownerMemberId);
+  if (touchesVis && row.ownerMemberId !== ctx.me.id) throw forbidden("Only the owner can change who can see this record or who it belongs to");
+  const data: Record<string, unknown> = { updatedById: ctx.actor.id };
+  if (patch.visibility !== undefined || patch.sharedWithMemberIds !== undefined) Object.assign(data, resolveVisibility(ctx, patch, kind, { current: row }));
+  if (patch.assignToMemberId) data.ownerMemberId = ownerFor(ctx, patch.assignToMemberId);
+  return data;
+}
+/** The ownership block of an API response. Share lists are only revealed to the owner. */
+export function metaView(ctx: FinCtx, row: Shareable & { createdById?: string | null; updatedById?: string | null; createdAt?: Date; updatedAt?: Date }) {
+  const byUser = (uid?: string | null) => (uid ? memberRef(ctx, ctx.members.find((m) => m.userId === uid)?.id) : null);
+  return { owner: memberRef(ctx, row.ownerMemberId), ownerMemberId: row.ownerMemberId, mine: row.ownerMemberId === ctx.me.id, visibility: row.visibility, sharedWithMemberIds: row.ownerMemberId === ctx.me.id ? row.sharedWithMemberIds : undefined, canEdit: canEdit(ctx, row), enteredBy: byUser(row.createdById), lastModifiedBy: byUser(row.updatedById) };
+}
+
+export const requireAdminOnly = (ctx: FinCtx) => {
+  if (!ctx.isAdmin) throw forbidden("Only household administrators can do that");
+};

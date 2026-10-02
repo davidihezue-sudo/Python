@@ -273,3 +273,70 @@ describe("what-if scenarios", () => {
     expect(b.variableMods).toBeUndefined();
   });
 });
+
+import { analyseContributions } from "@/server/finance/engine/contribution";
+import { apportion, resolveAllocations, splitByPercent, splitByAmount, AllocationError } from "@/server/finance/engine/allocation";
+import { D as Dd } from "@/server/finance/engine/decimal";
+
+describe("allocation engine", () => {
+  it("apportions cents exactly (largest remainder) so nothing is lost or invented", () => {
+    const parts = apportion("100.00", [1, 1, 1]);
+    expect(parts.map((p) => p.toFixed(2))).toEqual(["33.34", "33.33", "33.33"]);
+    expect(parts.reduce((a, b) => a.plus(b), Dd(0)).toFixed(2)).toBe("100.00");
+    expect(apportion("0.01", [1, 1]).reduce((a, b) => a.plus(b), Dd(0)).toFixed(2)).toBe("0.01");
+    expect(apportion("-50.00", [3, 1]).map((p) => p.toFixed(2))).toEqual(["-37.50", "-12.50"]);
+  });
+  it("percent splits must total 100 and amount splits must total the expense", () => {
+    expect(() => splitByPercent(500, [{ memberId: "a", percent: 60 }, { memberId: "b", percent: 30 }])).toThrow(AllocationError);
+    expect(splitByPercent(500, [{ memberId: "a", percent: "62.5" }, { memberId: "b", percent: "37.5" }]).map((x) => x.amount.toFixed(2))).toEqual(["312.50", "187.50"]);
+    expect(() => splitByAmount(500, [{ memberId: "a", amount: 300 }, { memberId: "b", amount: 100 }])).toThrow(AllocationError);
+    expect(splitByAmount(500, [{ memberId: "a", amount: 300 }, { memberId: null, amount: 200 }]).length).toBe(2);
+  });
+  it("resolves owner, member, household and split modes", () => {
+    expect(resolveAllocations({ amount: 90, mode: "OWNER", ownerId: "a" })).toMatchObject([{ memberId: "a" }]);
+    expect(resolveAllocations({ amount: 90, mode: "HOUSEHOLD", ownerId: "a" })[0].memberId).toBeNull();
+    expect(resolveAllocations({ amount: 90, mode: "MEMBER", ownerId: "a", allocatedMemberId: "b" })[0].memberId).toBe("b");
+    expect(() => resolveAllocations({ amount: 90, mode: "SPLIT", ownerId: "a", splits: [{ memberId: "a" }] })).toThrow();
+    expect(() => resolveAllocations({ amount: 90, mode: "SPLIT", ownerId: "a", splits: [{ memberId: "a", percent: 50 }, { memberId: "b", amount: 45 }] })).toThrow();
+  });
+});
+
+describe("contribution analysis", () => {
+  const members = [{ id: "d", name: "David" }, { id: "s", name: "Sharon" }];
+  const exp = (id: string, amount: number, payerId: string | null, alloc: { memberId: string | null; amount: number }[]) => ({ id, amount, payerId, allocations: alloc.map((a) => ({ memberId: a.memberId, amount: Dd(a.amount) })) });
+  it("separates who paid from who it is allocated to; positions net to zero", () => {
+    const r = analyseContributions({ members, months: 1, settlements: [], arrangement: { kind: "SHARED_EQUAL", participants: ["d", "s"] }, expenses: [exp("1", 2000, "d", [{ memberId: null, amount: 2000 }]), exp("2", 120, "s", [{ memberId: "s", amount: 120 }]), exp("3", 500, "s", [{ memberId: null, amount: 500 }])] });
+    expect(r.pool.toFixed(2)).toBe("2500.00");
+    expect(r.members.reduce((a, m) => a.plus(m.netPosition), Dd(0)).toFixed(2)).toBe("0.00");
+    const d = r.members[0], s = r.members[1];
+    expect(d.netPosition.toFixed(2)).toBe("750.00"); // paid 2000, owes 1250
+    expect(s.netPosition.toFixed(2)).toBe("-750.00"); // paid 620, owes 1250 + 120 personal = 1370
+    expect(r.suggestedSettlements[0].amount.toFixed(2)).toBe("750.00");
+  });
+  it("costs paid from joint accounts do not create positions between members", () => {
+    const r = analyseContributions({ members, months: 1, settlements: [], arrangement: { kind: "SHARED_EQUAL", participants: ["d", "s"] }, expenses: [exp("1", 1000, null, [{ memberId: null, amount: 1000 }])] });
+    expect(r.paidFromJointAccounts.toFixed(2)).toBe("1000.00");
+    expect(r.members.every((m) => m.netPosition.isZero())).toBe(true);
+    expect(r.notes.join(" ")).toMatch(/joint accounts/);
+  });
+  it("settlements clear positions and are not expenses", () => {
+    const r = analyseContributions({ members, months: 1, settlements: [{ fromMemberId: "s", toMemberId: "d", amount: 250 }], arrangement: { kind: "SHARED_EQUAL", participants: ["d", "s"] }, expenses: [exp("1", 500, "d", [{ memberId: null, amount: 500 }])] });
+    expect(r.members.every((m) => m.netPosition.isZero())).toBe(true);
+    expect(r.total.toFixed(2)).toBe("500.00");
+  });
+  it("income based, fixed and custom arrangements", () => {
+    const base = { members, months: 1, settlements: [], expenses: [exp("1", 1000, "d", [{ memberId: null, amount: 1000 }])] };
+    const inc = analyseContributions({ ...base, netMonthly: { d: 6000, s: 4000 }, arrangement: { kind: "INCOME_BASED", participants: ["d", "s"], percentOfNet: 40 } });
+    expect(inc.members.map((m) => m.shareOfPool.toFixed(2))).toEqual(["600.00", "400.00"]);
+    expect(inc.members[0].target!.toFixed(2)).toBe("2400.00");
+    const fixed = analyseContributions({ ...base, arrangement: { kind: "FIXED", participants: ["d", "s"], fixedMonthly: { d: 700, s: 300 } } });
+    expect(fixed.members[0].target!.toFixed(2)).toBe("700.00");
+    const custom = analyseContributions({ ...base, arrangement: { kind: "CUSTOM", participants: ["d", "s"], customShares: { d: 25, s: 75 } } });
+    expect(custom.members.map((m) => m.shareOfPool.toFixed(2))).toEqual(["250.00", "750.00"]);
+    const indep = analyseContributions({ ...base, arrangement: { kind: "INDEPENDENT", participants: ["d", "s"] } });
+    expect(indep.members.every((m) => m.netPosition.isZero())).toBe(true);
+    const missing = analyseContributions({ ...base, netMonthly: { d: 6000, s: null }, arrangement: { kind: "INCOME_BASED", participants: ["d", "s"] } });
+    expect(missing.members.map((m) => m.shareOfPool.toFixed(2))).toEqual(["500.00", "500.00"]);
+    expect(missing.notes.join(" ")).toMatch(/split equally/);
+  });
+});

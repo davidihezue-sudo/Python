@@ -22,7 +22,7 @@ export interface Column {
   width?: number;
 }
 export interface ReportData {
-  type: ReportType;
+  type: ReportType | string;
   title: string;
   subtitle?: string;
   generatedAt: string;

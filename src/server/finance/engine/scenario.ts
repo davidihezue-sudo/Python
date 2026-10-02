@@ -16,6 +16,7 @@ export type Assumption =
   | { type: "SAVINGS_CHANGE"; goalId?: string | null; extraMonthly: number | string; startMonth?: number }
   | { type: "EXTRA_DEBT_PAYMENT"; debtId?: string | null; extraMonthly: number | string; startMonth?: number }
   | { type: "DEBT_PAYOFF"; debtId: string; month?: number; fundFromSavingsFirst?: boolean }
+  | { type: "CONTRIBUTION_CHANGE"; monthlyDelta: number | string; startMonth?: number }
   | { type: "HOME_PURCHASE"; price: number | string; downPayment: number | string; aprPercent: number | string; amortisationYears: number; closingCostsPct?: number | string; propertyTaxAnnual?: number | string; insuranceAnnual?: number | string; heatingMonthly?: number | string; condoFeesMonthly?: number | string; rentRemovedMonthly?: number | string; month?: number };
 
 export const SCENARIO_TYPES: Record<Assumption["type"], string> = {
@@ -30,6 +31,7 @@ export const SCENARIO_TYPES: Record<Assumption["type"], string> = {
   SAVINGS_CHANGE: "Change monthly savings",
   EXTRA_DEBT_PAYMENT: "Extra debt payments",
   DEBT_PAYOFF: "Pay off a debt in full",
+  CONTRIBUTION_CHANGE: "Change a member contribution to shared costs",
   HOME_PURCHASE: "Buy a home",
 };
 
@@ -135,6 +137,15 @@ export function applyAssumptions(base: Baseline, assumptions: Assumption[]): { b
         const d = b.debts.find((x) => x.id === a.debtId);
         if (d) b.oneOffs.push({ id: addId(n), date: at(a.month ?? 1), amount: D(d.balance).negated(), label: `Pay off ${d.name}`, kind: "DEBT_LUMP", debtId: d.id, fundFromSavingsFirst: a.fundFromSavingsFirst ?? true });
         notes.push(`Pay off ${d?.name ?? "debt"} in full in month ${(a.month ?? 1) + 1}.`);
+        break;
+      }
+      case "CONTRIBUTION_CHANGE": {
+        const from = startOf(a.startMonth ?? 0);
+        const delta = D(a.monthlyDelta);
+        // a higher contribution is a personal outflow; a lower one frees cash. Between members it is neutral for the household.
+        if (delta.gt(0)) b.outflows.push({ id: addId(n), name: "Higher contribution to shared costs", kind: "RECURRING", amount: delta, frequency: "MONTHLY", anchor: from });
+        else if (delta.lt(0)) b.incomes.push({ id: addId(n), name: "Lower contribution to shared costs", net: delta.negated(), frequency: "MONTHLY", anchor: from });
+        notes.push(`Contribution to shared costs changes by ${delta.toFixed(2)} per month. This is a transfer between members, so it changes an individual forecast but not the household total.`);
         break;
       }
       case "HOME_PURCHASE": {

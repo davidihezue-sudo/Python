@@ -30,7 +30,8 @@ export const rateIn = z.union([z.string(), z.number()]).transform((v, ctx) => {
   return String(Math.round(n * 10000) / 10000);
 });
 export const text = (max = 200) => z.string().trim().min(1).max(max);
-export const optText = (max = 2000) => z.string().trim().max(max).nullish().transform((v) => (v ? v : null));
+/** Optional text. Omitted stays undefined (so partial updates leave it alone); an empty string or null clears it to null. */
+export const optText = (max = 2000) => z.string().trim().max(max).nullish().transform((v) => (v === undefined ? undefined : v ? v : null));
 
 export const FREQUENCIES = ["WEEKLY", "BIWEEKLY", "SEMI_MONTHLY", "MONTHLY", "QUARTERLY", "SEMI_ANNUALLY", "ANNUALLY", "IRREGULAR", "ONE_TIME"] as const;
 export const frequency = z.enum(FREQUENCIES);

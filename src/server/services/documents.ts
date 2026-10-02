@@ -160,6 +160,11 @@ export async function getDocumentForActor(actor: Actor, id: string, opts: { requ
     if (FINANCIAL.has(d.category) && !fin) throw notFound("Document");
   } else {
     await requireHouseholdMember(actor, d.householdId);
+    // A document attached to a finance record is exactly as visible as that record (private receipts stay private).
+    if (d.finEntity) {
+      const { finCtx } = await import("../finance/access");
+      await (await import("../finance/docaccess")).assertFinanceDocAccess(await finCtx(actor, d.householdId, opts.requireWrite ? "write" : "read"), d, !!opts.requireWrite);
+    }
   }
   return d;
 }
@@ -178,7 +183,7 @@ export async function listDocuments(actor: Actor, q: { vehicleId?: string; categ
   const memberships = q.vehicleId && q.vehicleId !== "all" ? [] : (await db.householdMember.findMany({ where: { userId: actor.id } })).map((m) => m.householdId);
   const where: Prisma.DocumentWhereInput = {
     deletedAt: null,
-    OR: [{ vehicleId: { in: allowedVehicle } }, ...(memberships.length ? [{ vehicleId: null, householdId: { in: memberships } }] : [])],
+    OR: [{ vehicleId: { in: allowedVehicle } }, ...(memberships.length ? [{ vehicleId: null, finEntity: null, householdId: { in: memberships } }] : [])],
     AND: [
       ...(noFin.length ? [{ NOT: { vehicleId: { in: noFin }, category: { in: [...FINANCIAL] as any } } }] : []),
       ...(q.category ? [{ category: q.category as any }] : []),

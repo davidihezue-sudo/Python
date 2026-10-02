@@ -145,6 +145,19 @@ export async function listTransactions(ctx: FinCtx, q: z.infer<typeof txQuerySch
   return { items: rows.map((r) => txView(ctx, r)), total, page: q.page, pageSize: q.pageSize, summary: { income: money(income), expenses: money(spend), net: money(income.minus(spend)), note: "Transfers, adjustments and settlements are not income or expenses." } };
 }
 
+/** Every transaction matching a query (pages through the results). Used by exports so they are never truncated. */
+export async function allTransactions(ctx: FinCtx, q: Partial<z.infer<typeof txQuerySchema>>, cap = 50_000) {
+  const items: ReturnType<typeof txView>[] = [];
+  let page = 1, total = 0;
+  for (;;) {
+    const r = await listTransactions(ctx, txQuerySchema.parse({ ...q, page, pageSize: 200 }));
+    total = r.total;
+    items.push(...r.items);
+    if (items.length >= total || items.length >= cap || !r.items.length) return { items, total, summary: r.summary, truncated: items.length < total };
+    page++;
+  }
+}
+
 export async function getTransaction(ctx: FinCtx, txId: string) {
   const t = requireVisible(ctx, await db.finTransaction.findUnique({ where: { id: txId }, include: TX_INCLUDE }), "Transaction");
   const [docs, history, peer] = await Promise.all([

@@ -45,7 +45,7 @@ export function renderJson(r: ReportData): Buffer {
 
 export async function renderXlsx(r: ReportData): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "AutoVault";
+  wb.creator = "Family Finance Hub";
   wb.created = new Date(r.generatedAt);
   const ws = wb.addWorksheet(r.title.slice(0, 31).replace(/[\\/*?:[\]]/g, " "));
   ws.addRow([r.title]).font = { bold: true, size: 14 };
@@ -55,7 +55,7 @@ export async function renderXlsx(r: ReportData): Promise<Buffer> {
   ws.addRow([]);
   const header = ws.addRow(r.columns.map((c) => c.label));
   header.font = { bold: true, color: { argb: "FFFFFFFF" } };
-  header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F2937" } };
+  header.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF131B18" } };
   for (const row of r.rows) {
     const cells = r.columns.map((c) => {
       const v = row[c.key];
@@ -83,17 +83,17 @@ export async function renderXlsx(r: ReportData): Promise<Buffer> {
 
 export async function renderPdf(r: ReportData): Promise<Buffer> {
   const landscape = r.columns.length > 6;
-  const doc = new PDFDocument({ size: "LETTER", layout: landscape ? "landscape" : "portrait", margin: 36, bufferPages: true, info: { Title: r.title, Author: "AutoVault", Subject: "Vehicle report" } });
+  const doc = new PDFDocument({ size: "LETTER", layout: landscape ? "landscape" : "portrait", margin: 36, bufferPages: true, info: { Title: r.title, Author: "Family Finance Hub", Subject: r.title } });
   const chunks: Buffer[] = [];
   doc.on("data", (c: Buffer) => chunks.push(c));
   const done = new Promise<Buffer>((res) => doc.on("end", () => res(Buffer.concat(chunks))));
   const W = doc.page.width - 72;
   const ink = "#111827";
   const muted = "#6B7280";
-  const accent = "#2563EB";
+  const accent = "#185040";
 
-  doc.rect(0, 0, doc.page.width, 64).fill("#0F172A");
-  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(18).text("AutoVault", 36, 20, { continued: true }).font("Helvetica").fontSize(11).fillColor("#93C5FD").text("   Vehicle report");
+  doc.rect(0, 0, doc.page.width, 64).fill("#131B18");
+  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(18).text("Family Finance Hub", 36, 20, { continued: true }).font("Helvetica").fontSize(11).fillColor("#D8C9A3").text(`   ${r.vehicles.length ? "Vehicle report" : "Financial report"}`);
   doc.fillColor(ink).font("Helvetica-Bold").fontSize(16).text(latin1(r.title), 36, 80);
   if (r.subtitle) doc.font("Helvetica").fontSize(10).fillColor(muted).text(latin1(r.subtitle));
   doc.moveDown(0.5);
@@ -157,7 +157,7 @@ export async function renderPdf(r: ReportData): Promise<Buffer> {
   for (let i = range.start; i < range.start + range.count; i++) {
     doc.switchToPage(i);
     doc.font("Helvetica").fontSize(8).fillColor(muted).text(`Page ${i + 1} of ${range.count}`, 36, doc.page.height - 30, { width: W, align: "right", lineBreak: false });
-    doc.text("AutoVault - owner-recorded data", 36, doc.page.height - 30, { width: W / 2, align: "left", lineBreak: false });
+    doc.text("Family Finance Hub - figures are based on records entered by household members", 36, doc.page.height - 30, { width: W / 2, align: "left", lineBreak: false });
   }
   doc.end();
   return done;
