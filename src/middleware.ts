@@ -16,6 +16,8 @@ export function middleware(req: NextRequest) {
   }
   const nonce = btoa(crypto.randomUUID());
   const dev = process.env.NODE_ENV !== "production";
+  // upgrade-insecure-requests would make browsers fetch assets over https on a deliberately plain-http origin (LAN/phone testing) and break the page
+  const plainHttp = /^http:\/\//i.test(process.env.APP_URL ?? "");
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
@@ -30,7 +32,7 @@ export function middleware(req: NextRequest) {
     "form-action 'self'",
     "frame-ancestors 'none'",
     "frame-src 'self'",
-    ...(dev ? [] : ["upgrade-insecure-requests"]),
+    ...(dev || plainHttp ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
   const headers = new Headers(req.headers);
   headers.set("x-nonce", nonce);
