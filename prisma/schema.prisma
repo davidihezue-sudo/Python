@@ -1,0 +1,1373 @@
+// AutoVault database schema.
+// Conventions:
+//  * All odometer values are stored in KILOMETRES (Decimal(10,1)); conversion to miles happens at the UI/report boundary.
+//  * All money is Decimal(12,2) with an explicit currency column.
+//  * Calendar dates (service date, due date…) use @db.Date; instants use timestamptz.
+//  * Soft deletion (deletedAt) is used on user-authored records so history/audit survives.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── Enums ─────────────────────────
+
+enum PlatformRole {
+  USER
+  PLATFORM_ADMIN
+}
+
+enum HouseholdRole {
+  ADMIN
+  MEMBER
+}
+
+enum VehicleAccessLevel {
+  OWNER
+  CO_OWNER
+  MAINTENANCE_MANAGER
+  VIEWER
+}
+
+enum TokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+}
+
+enum DistanceUnit {
+  KM
+  MI
+}
+
+enum VolumeUnit {
+  L
+  GAL_US
+  GAL_UK
+}
+
+enum FuelEconomyUnit {
+  L_PER_100KM
+  KM_PER_L
+  MPG_US
+  MPG_UK
+}
+
+enum FuelType {
+  PETROL
+  DIESEL
+  HYBRID
+  PLUGIN_HYBRID
+  ELECTRIC
+  OTHER
+}
+
+enum Transmission {
+  MANUAL
+  AUTOMATIC
+  CVT
+  DUAL_CLUTCH
+  OTHER
+}
+
+enum Drivetrain {
+  FWD
+  RWD
+  AWD
+  FOUR_WD
+}
+
+enum OwnershipStatus {
+  OWNED
+  FINANCED
+  LEASED
+  SOLD
+  OTHER
+}
+
+enum OdometerSource {
+  MANUAL
+  MAINTENANCE
+  FUEL
+  INSPECTION
+  REPAIR
+  IMPORT
+  INTEGRATION
+  PURCHASE
+}
+
+enum TriggerType {
+  MILEAGE
+  TIME
+  MILEAGE_OR_TIME
+  MILEAGE_AND_TIME
+  CONDITION
+  INSPECTION
+  ONE_TIME
+  RECURRING
+}
+
+enum RecommendationSource {
+  MANUFACTURER
+  SUGGESTED
+  USER_DEFINED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum ScheduleStatus {
+  UP_TO_DATE
+  UPCOMING
+  DUE_SOON
+  DUE_NOW
+  OVERDUE
+  INSPECTION_REQUIRED
+  UNKNOWN_HISTORY
+}
+
+enum RecordKind {
+  MAINTENANCE
+  REPAIR
+}
+
+enum RecordStatus {
+  DRAFT
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum WorkPerformedBy {
+  OWNER_DIY
+  INDEPENDENT_MECHANIC
+  DEALERSHIP
+  SPECIALIST_WORKSHOP
+  OTHER
+}
+
+enum ProviderType {
+  DEALERSHIP
+  INDEPENDENT
+  SPECIALIST
+  TIRE_SHOP
+  BODY_SHOP
+  PARTS_SUPPLIER
+  OTHER
+}
+
+enum IssueSeverity {
+  LOW
+  MODERATE
+  HIGH
+  CRITICAL
+}
+
+enum IssueStatus {
+  NEW
+  INVESTIGATING
+  DIAGNOSED
+  AWAITING_PARTS
+  SCHEDULED
+  IN_REPAIR
+  RESOLVED
+  MONITORING
+  CLOSED
+}
+
+enum PartOrigin {
+  OEM
+  AFTERMARKET
+  UNKNOWN
+}
+
+enum PartStatus {
+  INSTALLED
+  IN_STORAGE
+  REMOVED
+  REPLACED
+  RETURNED
+  UNDER_WARRANTY
+}
+
+enum ExpenseCategory {
+  MAINTENANCE
+  REPAIRS
+  FUEL
+  INSURANCE
+  REGISTRATION
+  TAXES
+  PARKING
+  CAR_WASH
+  TOWING
+  ROADSIDE_ASSISTANCE
+  TIRES
+  ACCESSORIES
+  FINANCING
+  OTHER
+}
+
+enum PaymentMethod {
+  CASH
+  DEBIT
+  CREDIT
+  E_TRANSFER
+  CHEQUE
+  OTHER
+}
+
+enum ReminderType {
+  CUSTOM
+  REGISTRATION
+  INSURANCE
+  INSPECTION
+  WARRANTY
+}
+
+enum ReminderStatus {
+  ACTIVE
+  DONE
+  DISMISSED
+}
+
+enum NotificationType {
+  MAINTENANCE_UPCOMING
+  MAINTENANCE_DUE
+  MAINTENANCE_OVERDUE
+  WARRANTY_EXPIRING
+  REGISTRATION_EXPIRING
+  INSURANCE_RENEWAL
+  INSPECTION_DUE
+  REPAIR_OUTSTANDING
+  BUDGET_THRESHOLD
+  CUSTOM_REMINDER
+  DOCUMENT_EXPIRING
+  SYSTEM
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum DocumentCategory {
+  MAINTENANCE_INVOICE
+  REPAIR_RECEIPT
+  PURCHASE
+  INSURANCE
+  WARRANTY
+  REGISTRATION
+  INSPECTION_REPORT
+  DIAGNOSTIC_REPORT
+  PARTS_RECEIPT
+  VEHICLE_PHOTO
+  PART_PHOTO
+  ISSUE_PHOTO
+  INSPECTION_PHOTO
+  OTHER
+}
+
+enum OcrStatus {
+  NONE
+  PENDING
+  EXTRACTED
+  CONFIRMED
+  FAILED
+}
+
+enum WarrantyType {
+  MANUFACTURER
+  POWERTRAIN
+  EXTENDED
+  PART
+  OTHER
+}
+
+enum InspectionType {
+  GENERAL
+  PRE_PURCHASE
+  SAFETY
+  EMISSIONS
+  SEASONAL
+  OTHER
+}
+
+enum BudgetPeriod {
+  MONTHLY
+  ANNUAL
+}
+
+enum DtcSource {
+  MANUAL
+  OBD_ADAPTER
+  PROVIDER
+}
+
+enum DtcStatus {
+  ACTIVE
+  CLEARED
+  RESOLVED
+}
+
+enum IntegrationProvider {
+  NHTSA_VIN
+  OBD_GATEWAY
+  BMW_CONNECTED_DRIVE
+  OCR
+  AI
+  EMAIL
+  WEB_PUSH
+}
+
+enum IntegrationStatus {
+  NOT_CONFIGURED
+  ACTIVE
+  ERROR
+  DISABLED
+}
+
+enum AiRole {
+  USER
+  ASSISTANT
+  TOOL
+}
+
+enum Plan {
+  FREE
+  PLUS
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+  LOGGED
+}
+
+enum JobStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+// ───────────────────────── Identity ─────────────────────────
+
+model User {
+  id              String       @id @default(cuid())
+  email           String       @unique
+  name            String
+  passwordHash    String?
+  emailVerifiedAt DateTime?    @db.Timestamptz
+  platformRole    PlatformRole @default(USER)
+  imageDocumentId String?
+  locale          String       @default("en-CA")
+  disabledAt      DateTime?    @db.Timestamptz
+  deletedAt       DateTime?    @db.Timestamptz
+  lastLoginAt     DateTime?    @db.Timestamptz
+  createdAt       DateTime     @default(now()) @db.Timestamptz
+  updatedAt       DateTime     @updatedAt @db.Timestamptz
+
+  accounts        Account[]
+  sessions        Session[]
+  tokens          VerificationToken[]
+  preference      UserPreference?
+  memberships     HouseholdMember[]
+  vehicleAccess   VehicleAccess[]
+  notifications   Notification[]
+  pushSubs        PushSubscription[]
+  aiConversations AIConversation[]
+  auditLogs       AuditLog[]
+  documentsUploaded Document[]  @relation("DocumentUploader")
+  invitesSent     HouseholdInvite[]
+
+  @@index([deletedAt])
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now()) @db.Timestamptz
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime @db.Timestamptz
+  userAgent  String?
+  ip         String?
+  createdAt  DateTime @default(now()) @db.Timestamptz
+  lastUsedAt DateTime @default(now()) @db.Timestamptz
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model VerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  type      TokenType
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz
+  usedAt    DateTime? @db.Timestamptz
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+}
+
+model UserPreference {
+  id                  String          @id @default(cuid())
+  userId              String          @unique
+  currency            String          @default("CAD")
+  distanceUnit        DistanceUnit    @default(KM)
+  volumeUnit          VolumeUnit      @default(L)
+  fuelEconomyUnit     FuelEconomyUnit @default(L_PER_100KM)
+  timezone            String          @default("America/Edmonton")
+  theme               String          @default("system")
+  notifyInApp         Boolean         @default(true)
+  notifyEmail         Boolean         @default(true)
+  notifyPush          Boolean         @default(false)
+  // Reminder offsets: notify when remaining distance (km) / days reach these values.
+  alertKmBefore       Int[]           @default([1000, 500])
+  alertDaysBefore     Int[]           @default([30, 7])
+  alertOnDue          Boolean         @default(true)
+  alertOnOverdue      Boolean         @default(true)
+  // Status thresholds (maintenance engine)
+  upcomingKm          Int             @default(3000)
+  upcomingDays        Int             @default(90)
+  dueSoonKm           Int             @default(1000)
+  dueSoonDays         Int             @default(30)
+  graceKm             Int             @default(500)
+  graceDays           Int             @default(7)
+  // Privacy
+  shareHideVin        Boolean         @default(true)
+  shareHideCosts      Boolean         @default(false)
+  shareHideProviders  Boolean         @default(false)
+  createdAt           DateTime        @default(now()) @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @db.Timestamptz
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now()) @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ───────────────────────── Households ─────────────────────────
+
+model Household {
+  id        String   @id @default(cuid())
+  name      String
+  timezone  String   @default("America/Edmonton")
+  currency  String   @default("CAD")
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  deletedAt DateTime? @db.Timestamptz
+
+  members      HouseholdMember[]
+  invites      HouseholdInvite[]
+  vehicles     Vehicle[]
+  providers    ServiceProvider[]
+  schedules    MaintenanceSchedule[]
+  budgets      Budget[]
+  integrations Integration[]
+  subscription Subscription?
+  auditLogs    AuditLog[]
+}
+
+model HouseholdMember {
+  id          String        @id @default(cuid())
+  householdId String
+  userId      String
+  role        HouseholdRole @default(MEMBER)
+  createdAt   DateTime      @default(now()) @db.Timestamptz
+  household   Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, userId])
+  @@index([userId])
+}
+
+model HouseholdInvite {
+  id            String        @id @default(cuid())
+  householdId   String
+  email         String
+  role          HouseholdRole @default(MEMBER)
+  tokenHash     String        @unique
+  // [{ vehicleId, level, canViewFinancials }]
+  vehicleAccess Json          @default("[]")
+  invitedById   String
+  expiresAt     DateTime      @db.Timestamptz
+  acceptedAt    DateTime?     @db.Timestamptz
+  revokedAt     DateTime?     @db.Timestamptz
+  createdAt     DateTime      @default(now()) @db.Timestamptz
+  household     Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  invitedBy     User          @relation(fields: [invitedById], references: [id])
+
+  @@index([householdId])
+  @@index([email])
+}
+
+// ───────────────────────── Vehicles ─────────────────────────
+
+model Vehicle {
+  id               String          @id @default(cuid())
+  householdId      String
+  nickname         String
+  make             String
+  model            String
+  year             Int
+  trim             String?
+  generation       String?
+  engineType       String?
+  engineDisplacementL Decimal?     @db.Decimal(4, 2)
+  engineCode       String?
+  fuelType         FuelType        @default(PETROL)
+  transmission     Transmission?
+  drivetrain       Drivetrain?
+  vin              String?
+  registrationNumber String?
+  colour           String?
+  bodyType         String?
+  market           String?
+  purchaseDate     DateTime?       @db.Date
+  purchasePrice    Decimal?        @db.Decimal(12, 2)
+  purchaseOdometerKm Decimal?      @db.Decimal(10, 1)
+  currentOdometerKm Decimal?       @db.Decimal(10, 1)
+  currentOdometerAt DateTime?      @db.Date
+  ownershipStatus  OwnershipStatus @default(OWNED)
+  currency         String          @default("CAD")
+  insuranceProvider String?
+  insurancePolicyNumber String?
+  insuranceRenewalDate DateTime?   @db.Date
+  registrationExpiryDate DateTime? @db.Date
+  nextInspectionDate DateTime?     @db.Date
+  photoDocumentId  String?
+  notes            String?
+  isDemo           Boolean         @default(false)
+  templateKey      String?
+  createdById      String?
+  createdAt        DateTime        @default(now()) @db.Timestamptz
+  updatedAt        DateTime        @updatedAt @db.Timestamptz
+  deletedAt        DateTime?       @db.Timestamptz
+
+  household     Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  specification VehicleSpecification?
+  ownerships    VehicleOwnership[]
+  access        VehicleAccess[]
+  odometer      OdometerEntry[]
+  assignments   MaintenanceScheduleAssignment[]
+  records       MaintenanceRecord[]
+  issues        RepairIssue[]
+  codes         DiagnosticCode[]
+  parts         Part[]
+  installedParts InstalledPart[]
+  expenses      Expense[]
+  fuelEntries   FuelEntry[]
+  reminders     Reminder[]
+  notifications Notification[]
+  documents     Document[]
+  warranties    Warranty[]
+  inspections   Inspection[]
+  budgets       Budget[]
+  integrations  Integration[]
+
+  @@index([householdId, deletedAt])
+  @@index([vin])
+}
+
+// Raw decoded data from a VIN decoder + which fields the user has confirmed (never overwritten by decoding).
+model VehicleSpecification {
+  id              String   @id @default(cuid())
+  vehicleId       String   @unique
+  decoder         String?
+  decodedAt       DateTime? @db.Timestamptz
+  decoded         Json?
+  confirmedFields String[] @default([])
+  extra           Json?
+  createdAt       DateTime @default(now()) @db.Timestamptz
+  updatedAt       DateTime @updatedAt @db.Timestamptz
+  vehicle         Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+model VehicleOwnership {
+  id        String    @id @default(cuid())
+  vehicleId String
+  ownerName String
+  fromDate  DateTime  @db.Date
+  toDate    DateTime? @db.Date
+  fromOdometerKm Decimal? @db.Decimal(10, 1)
+  toOdometerKm   Decimal? @db.Decimal(10, 1)
+  notes     String?
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, fromDate])
+}
+
+model VehicleAccess {
+  id                String             @id @default(cuid())
+  vehicleId         String
+  userId            String
+  level             VehicleAccessLevel @default(VIEWER)
+  canViewFinancials Boolean            @default(false)
+  createdAt         DateTime           @default(now()) @db.Timestamptz
+  vehicle           Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([vehicleId, userId])
+  @@index([userId])
+}
+
+model OdometerEntry {
+  id                String         @id @default(cuid())
+  vehicleId         String
+  date              DateTime       @db.Date
+  valueKm           Decimal        @db.Decimal(10, 1)
+  source            OdometerSource @default(MANUAL)
+  note              String?
+  isCorrection      Boolean        @default(false)
+  maintenanceRecordId String?
+  fuelEntryId       String?
+  inspectionId      String?
+  createdById       String?
+  createdAt         DateTime       @default(now()) @db.Timestamptz
+  deletedAt         DateTime?      @db.Timestamptz
+  vehicle           Vehicle        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  maintenanceRecord MaintenanceRecord? @relation(fields: [maintenanceRecordId], references: [id], onDelete: SetNull)
+  fuelEntry         FuelEntry?     @relation(fields: [fuelEntryId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId, date])
+  @@index([vehicleId, valueKm])
+}
+
+// ───────────────────────── Maintenance engine ─────────────────────────
+
+model MaintenanceCategory {
+  id        String @id @default(cuid())
+  key       String @unique
+  name      String
+  sortOrder Int    @default(0)
+
+  schedules   MaintenanceSchedule[]
+  assignments MaintenanceScheduleAssignment[]
+  records     MaintenanceRecordItem[]
+  parts       Part[]
+}
+
+// A schedule is a RULE TEMPLATE. System templates (householdId = null) form the shared library;
+// households can define their own. Applying one to a vehicle creates a MaintenanceScheduleAssignment (a copy of the rule).
+model MaintenanceSchedule {
+  id             String               @id @default(cuid())
+  householdId    String?
+  libraryKey     String?              @unique
+  categoryId     String
+  name           String
+  description    String?
+  componentKey   String
+  triggerType    TriggerType
+  intervalKm     Decimal?             @db.Decimal(10, 1)
+  intervalMonths Int?
+  intervalDays   Int?
+  priority       Priority             @default(NORMAL)
+  estCostMin     Decimal?             @db.Decimal(12, 2)
+  estCostMax     Decimal?             @db.Decimal(12, 2)
+  currency       String               @default("CAD")
+  instructions   String?
+  sourceType     RecommendationSource @default(SUGGESTED)
+  sourceNote     String?
+  // Applicability filter: { fuelTypes?: FuelType[], drivetrains?: Drivetrain[], tags?: string[] }
+  appliesTo      Json                 @default("{}")
+  isSystem       Boolean              @default(false)
+  createdAt      DateTime             @default(now()) @db.Timestamptz
+  updatedAt      DateTime             @updatedAt @db.Timestamptz
+  deletedAt      DateTime?            @db.Timestamptz
+
+  household   Household?          @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  category    MaintenanceCategory @relation(fields: [categoryId], references: [id])
+  assignments MaintenanceScheduleAssignment[]
+
+  @@index([householdId])
+  @@index([categoryId])
+}
+
+model MaintenanceScheduleAssignment {
+  id             String               @id @default(cuid())
+  vehicleId      String
+  scheduleId     String?
+  categoryId     String
+  name           String
+  description    String?
+  componentKey   String
+  triggerType    TriggerType
+  intervalKm     Decimal?             @db.Decimal(10, 1)
+  intervalMonths Int?
+  intervalDays   Int?
+  anchorDate     DateTime?            @db.Date
+  oneTimeDueDate DateTime?            @db.Date
+  oneTimeDueKm   Decimal?             @db.Decimal(10, 1)
+  priority       Priority             @default(NORMAL)
+  estCostMin     Decimal?             @db.Decimal(12, 2)
+  estCostMax     Decimal?             @db.Decimal(12, 2)
+  currency       String               @default("CAD")
+  instructions   String?
+  sourceType     RecommendationSource @default(SUGGESTED)
+  sourceNote     String?
+  enabled        Boolean              @default(true)
+  // Optional per-assignment threshold overrides (fall back to user preferences)
+  dueSoonKm      Int?
+  dueSoonDays    Int?
+  alertKmBefore  Int[]                @default([])
+  alertDaysBefore Int[]               @default([])
+  // History baseline entered manually ("I last did this at…"); no expense is created.
+  baselineDate   DateTime?            @db.Date
+  baselineKm     Decimal?             @db.Decimal(10, 1)
+  // Derived from records/baseline — maintained by the engine
+  lastCompletedAt DateTime?          @db.Date
+  lastCompletedKm Decimal?            @db.Decimal(10, 1)
+  lastRecordId   String?
+  nextDueDate    DateTime?            @db.Date
+  nextDueKm      Decimal?             @db.Decimal(10, 1)
+  status         ScheduleStatus       @default(UNKNOWN_HISTORY)
+  statusUpdatedAt DateTime?           @db.Timestamptz
+  // Condition-based / inspection-based state
+  lastCondition  String?
+  lastInspectedAt DateTime?           @db.Date
+  createdAt      DateTime             @default(now()) @db.Timestamptz
+  updatedAt      DateTime             @updatedAt @db.Timestamptz
+  deletedAt      DateTime?            @db.Timestamptz
+
+  vehicle  Vehicle              @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  schedule MaintenanceSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  category MaintenanceCategory  @relation(fields: [categoryId], references: [id])
+  items    MaintenanceRecordItem[]
+  reminders Reminder[]
+
+  @@unique([vehicleId, scheduleId])
+  @@index([vehicleId, enabled])
+  @@index([status])
+}
+
+model MaintenanceRecord {
+  id             String          @id @default(cuid())
+  vehicleId      String
+  kind           RecordKind      @default(MAINTENANCE)
+  status         RecordStatus    @default(COMPLETED)
+  title          String
+  description    String?
+  serviceDate    DateTime        @db.Date
+  odometerKm     Decimal?        @db.Decimal(10, 1)
+  workPerformedBy WorkPerformedBy @default(INDEPENDENT_MECHANIC)
+  providerId     String?
+  mechanicName   String?
+  location       String?
+  laborCost      Decimal         @default(0) @db.Decimal(12, 2)
+  partsCost      Decimal         @default(0) @db.Decimal(12, 2)
+  tax            Decimal         @default(0) @db.Decimal(12, 2)
+  discount       Decimal         @default(0) @db.Decimal(12, 2)
+  totalCost      Decimal         @default(0) @db.Decimal(12, 2)
+  currency       String          @default("CAD")
+  warrantyInfo   String?
+  notes          String?
+  repairIssueId  String?
+  // Client-generated key making offline-queued submissions idempotent
+  idempotencyKey String?         @unique
+  createdById    String?
+  createdAt      DateTime        @default(now()) @db.Timestamptz
+  updatedAt      DateTime        @updatedAt @db.Timestamptz
+  deletedAt      DateTime?       @db.Timestamptz
+
+  vehicle   Vehicle           @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  provider  ServiceProvider?  @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  repairIssue RepairIssue?    @relation(fields: [repairIssueId], references: [id], onDelete: SetNull)
+  items     MaintenanceRecordItem[]
+  expense   Expense[]
+  documents Document[]
+  odometerEntries OdometerEntry[]
+  installedParts InstalledPart[] @relation("InstallRecord")
+  removedParts   InstalledPart[] @relation("RemovalRecord")
+
+  @@index([vehicleId, serviceDate])
+  @@index([vehicleId, kind, status])
+  @@index([providerId])
+}
+
+model MaintenanceRecordItem {
+  id           String   @id @default(cuid())
+  recordId     String
+  assignmentId String?
+  categoryId   String?
+  componentKey String?
+  name         String
+  description  String?
+  completed    Boolean  @default(true)
+  partName     String?
+  partManufacturer String?
+  partNumber   String?
+  partOrigin   PartOrigin?
+  quantity     Decimal  @default(1) @db.Decimal(8, 2)
+  unitCost     Decimal  @default(0) @db.Decimal(12, 2)
+  laborCost    Decimal  @default(0) @db.Decimal(12, 2)
+  trackAsPart  Boolean  @default(false)
+  warrantyMonths Int?
+  sortOrder    Int      @default(0)
+
+  record     MaintenanceRecord              @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  assignment MaintenanceScheduleAssignment? @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
+  category   MaintenanceCategory?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([recordId])
+  @@index([assignmentId])
+}
+
+// ───────────────────────── Repairs & diagnostics ─────────────────────────
+
+model RepairIssue {
+  id               String        @id @default(cuid())
+  vehicleId        String
+  title            String
+  description      String?
+  discoveredAt     DateTime      @db.Date
+  odometerKm       Decimal?      @db.Decimal(10, 1)
+  symptoms         String?
+  severity         IssueSeverity @default(MODERATE)
+  status           IssueStatus   @default(NEW)
+  componentKey     String?
+  categoryId       String?
+  mechanicAssessment String?
+  estimatedCost    Decimal?      @db.Decimal(12, 2)
+  actualCost       Decimal?      @db.Decimal(12, 2)
+  currency         String        @default("CAD")
+  resolution       String?
+  resolvedAt       DateTime?     @db.Date
+  providerId       String?
+  createdById      String?
+  createdAt        DateTime      @default(now()) @db.Timestamptz
+  updatedAt        DateTime      @updatedAt @db.Timestamptz
+  deletedAt        DateTime?     @db.Timestamptz
+
+  vehicle   Vehicle           @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  provider  ServiceProvider?  @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  codes     DiagnosticCode[]
+  records   MaintenanceRecord[]
+  documents Document[]
+  expenses  Expense[]
+
+  @@index([vehicleId, status])
+}
+
+model DiagnosticCode {
+  id            String        @id @default(cuid())
+  vehicleId     String
+  repairIssueId String?
+  code          String
+  description   String?
+  detectedAt    DateTime      @db.Date
+  odometerKm    Decimal?      @db.Decimal(10, 1)
+  source        DtcSource     @default(MANUAL)
+  component     String?
+  severity      IssueSeverity @default(MODERATE)
+  status        DtcStatus     @default(ACTIVE)
+  symptoms      String?
+  notes         String?
+  resolution    String?
+  resolvedAt    DateTime?     @db.Date
+  createdById   String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @db.Timestamptz
+  deletedAt     DateTime?     @db.Timestamptz
+
+  vehicle Vehicle      @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  issue   RepairIssue? @relation(fields: [repairIssueId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId, detectedAt])
+  @@index([code])
+}
+
+model Inspection {
+  id             String         @id @default(cuid())
+  vehicleId      String
+  type           InspectionType @default(GENERAL)
+  date           DateTime       @db.Date
+  odometerKm     Decimal?       @db.Decimal(10, 1)
+  inspector      String?
+  providerId     String?
+  // [{ assignmentId?, componentKey, name, condition: GOOD|FAIR|POOR|CRITICAL, notes }]
+  items          Json           @default("[]")
+  overallCondition String?
+  nextDueDate    DateTime?      @db.Date
+  notes          String?
+  createdById    String?
+  createdAt      DateTime       @default(now()) @db.Timestamptz
+  updatedAt      DateTime       @updatedAt @db.Timestamptz
+  deletedAt      DateTime?      @db.Timestamptz
+
+  vehicle   Vehicle    @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@index([vehicleId, date])
+}
+
+// ───────────────────────── Parts ─────────────────────────
+
+model Part {
+  id              String     @id @default(cuid())
+  vehicleId       String
+  name            String
+  categoryId      String?
+  componentKey    String?
+  manufacturer    String?
+  origin          PartOrigin @default(UNKNOWN)
+  partNumber      String?
+  supplier        String?
+  purchaseDate    DateTime?  @db.Date
+  purchasePrice   Decimal?   @db.Decimal(12, 2)
+  currency        String     @default("CAD")
+  warrantyStart   DateTime?  @db.Date
+  warrantyEnd     DateTime?  @db.Date
+  expectedLifeKm  Decimal?   @db.Decimal(10, 1)
+  expectedLifeMonths Int?
+  status          PartStatus @default(IN_STORAGE)
+  notes           String?
+  createdAt       DateTime   @default(now()) @db.Timestamptz
+  updatedAt       DateTime   @updatedAt @db.Timestamptz
+  deletedAt       DateTime?  @db.Timestamptz
+
+  vehicle   Vehicle              @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  category  MaintenanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  installations InstalledPart[]
+  documents Document[]
+  warranties Warranty[]
+
+  @@index([vehicleId, status])
+  @@index([vehicleId, componentKey])
+}
+
+// One installation period of a part in a vehicle. Replacing a component closes the open period.
+model InstalledPart {
+  id               String    @id @default(cuid())
+  vehicleId        String
+  partId           String
+  componentKey     String
+  installedAt      DateTime  @db.Date
+  installedKm      Decimal?  @db.Decimal(10, 1)
+  installLaborCost Decimal?  @db.Decimal(12, 2)
+  removedAt        DateTime? @db.Date
+  removedKm        Decimal?  @db.Decimal(10, 1)
+  removalReason    String?
+  installRecordId  String?
+  removalRecordId  String?
+  createdAt        DateTime  @default(now()) @db.Timestamptz
+
+  vehicle       Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  part          Part               @relation(fields: [partId], references: [id], onDelete: Cascade)
+  installRecord MaintenanceRecord? @relation("InstallRecord", fields: [installRecordId], references: [id], onDelete: SetNull)
+  removalRecord MaintenanceRecord? @relation("RemovalRecord", fields: [removalRecordId], references: [id], onDelete: SetNull)
+
+  @@index([vehicleId, componentKey, installedAt])
+  @@index([partId])
+}
+
+model Warranty {
+  id          String       @id @default(cuid())
+  vehicleId   String
+  partId      String?
+  type        WarrantyType @default(MANUFACTURER)
+  name        String
+  provider    String?
+  startDate   DateTime?    @db.Date
+  endDate     DateTime?    @db.Date
+  endKm       Decimal?     @db.Decimal(10, 1)
+  coverage    String?
+  notes       String?
+  createdAt   DateTime     @default(now()) @db.Timestamptz
+  updatedAt   DateTime     @updatedAt @db.Timestamptz
+  deletedAt   DateTime?    @db.Timestamptz
+
+  vehicle   Vehicle    @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  part      Part?      @relation(fields: [partId], references: [id], onDelete: SetNull)
+  documents Document[]
+
+  @@index([vehicleId, endDate])
+}
+
+model ServiceProvider {
+  id          String       @id @default(cuid())
+  householdId String
+  name        String
+  type        ProviderType @default(INDEPENDENT)
+  phone       String?
+  email       String?
+  address     String?
+  website     String?
+  notes       String?
+  createdAt   DateTime     @default(now()) @db.Timestamptz
+  updatedAt   DateTime     @updatedAt @db.Timestamptz
+  deletedAt   DateTime?    @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  records   MaintenanceRecord[]
+  issues    RepairIssue[]
+  expenses  Expense[]
+
+  @@unique([householdId, name])
+}
+
+// ───────────────────────── Money ─────────────────────────
+
+// `amount` is the total paid INCLUDING `tax`.
+model Expense {
+  id                  String          @id @default(cuid())
+  vehicleId           String
+  date                DateTime        @db.Date
+  amount              Decimal         @db.Decimal(12, 2)
+  tax                 Decimal         @default(0) @db.Decimal(12, 2)
+  currency            String          @default("CAD")
+  category            ExpenseCategory
+  vendor              String?
+  providerId          String?
+  description         String?
+  paymentMethod       PaymentMethod?
+  notes               String?
+  maintenanceRecordId String?
+  repairIssueId       String?
+  fuelEntryId         String?   @unique
+  idempotencyKey      String?   @unique
+  createdById         String?
+  createdAt           DateTime        @default(now()) @db.Timestamptz
+  updatedAt           DateTime        @updatedAt @db.Timestamptz
+  deletedAt           DateTime?       @db.Timestamptz
+
+  vehicle           Vehicle            @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  provider          ServiceProvider?   @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  maintenanceRecord MaintenanceRecord? @relation(fields: [maintenanceRecordId], references: [id], onDelete: SetNull)
+  repairIssue       RepairIssue?       @relation(fields: [repairIssueId], references: [id], onDelete: SetNull)
+  fuelEntry         FuelEntry?         @relation(fields: [fuelEntryId], references: [id], onDelete: SetNull)
+  documents         Document[]
+
+  @@index([vehicleId, date])
+  @@index([vehicleId, category])
+  @@index([maintenanceRecordId])
+}
+
+model FuelEntry {
+  id             String    @id @default(cuid())
+  vehicleId      String
+  date           DateTime  @db.Date
+  odometerKm     Decimal   @db.Decimal(10, 1)
+  quantityL      Decimal   @db.Decimal(10, 3)
+  enteredQuantity Decimal  @db.Decimal(10, 3)
+  enteredUnit    VolumeUnit @default(L)
+  pricePerL      Decimal?  @db.Decimal(10, 4)
+  totalCost      Decimal   @db.Decimal(12, 2)
+  currency       String    @default("CAD")
+  fuelType       FuelType  @default(PETROL)
+  station        String?
+  fullTank       Boolean   @default(true)
+  // True when an earlier fill-up was not recorded; economy is not computed across the gap.
+  missedPrevious Boolean   @default(false)
+  notes          String?
+  idempotencyKey String?   @unique
+  createdById    String?
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @db.Timestamptz
+  deletedAt      DateTime? @db.Timestamptz
+
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  expense   Expense?
+  odometerEntries OdometerEntry[]
+
+  @@index([vehicleId, date])
+}
+
+model Budget {
+  id          String       @id @default(cuid())
+  householdId String
+  vehicleId   String?
+  period      BudgetPeriod
+  year        Int
+  month       Int?
+  amount      Decimal      @db.Decimal(12, 2)
+  currency    String       @default("CAD")
+  categories  ExpenseCategory[]
+  alertAtPercent Int[]     @default([80, 100])
+  createdAt   DateTime     @default(now()) @db.Timestamptz
+  updatedAt   DateTime     @updatedAt @db.Timestamptz
+  deletedAt   DateTime?    @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, year])
+}
+
+// ───────────────────────── Reminders & notifications ─────────────────────────
+
+// User-defined reminders (date and/or odometer based). Maintenance/warranty/registration reminders are derived live by the engine.
+model Reminder {
+  id           String         @id @default(cuid())
+  vehicleId    String
+  assignmentId String?
+  type         ReminderType   @default(CUSTOM)
+  title        String
+  notes        String?
+  dueDate      DateTime?      @db.Date
+  dueKm        Decimal?       @db.Decimal(10, 1)
+  leadDays     Int[]          @default([7, 1])
+  leadKm       Int[]          @default([])
+  status       ReminderStatus @default(ACTIVE)
+  createdById  String?
+  createdAt    DateTime       @default(now()) @db.Timestamptz
+  updatedAt    DateTime       @updatedAt @db.Timestamptz
+
+  vehicle    Vehicle                        @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  assignment MaintenanceScheduleAssignment? @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, status])
+}
+
+model Notification {
+  id            String               @id @default(cuid())
+  userId        String
+  vehicleId     String?
+  type          NotificationType
+  severity      NotificationSeverity @default(INFO)
+  title         String
+  body          String
+  actionUrl     String?
+  // Prevents duplicates: one notification per (user, dedupeKey)
+  dedupeKey     String
+  data          Json?
+  deliveredInAppAt DateTime?         @db.Timestamptz
+  emailedAt     DateTime?            @db.Timestamptz
+  emailError    String?
+  pushedAt      DateTime?            @db.Timestamptz
+  readAt        DateTime?            @db.Timestamptz
+  dismissedAt   DateTime?            @db.Timestamptz
+  actionedAt    DateTime?            @db.Timestamptz
+  createdAt     DateTime             @default(now()) @db.Timestamptz
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt, dismissedAt])
+  @@index([createdAt])
+}
+
+// ───────────────────────── Documents ─────────────────────────
+
+model Document {
+  id          String           @id @default(cuid())
+  householdId String
+  vehicleId   String?
+  title       String
+  category    DocumentCategory @default(OTHER)
+  description String?
+  fileKey     String           @unique
+  fileName    String
+  mimeType    String
+  sizeBytes   Int
+  sha256      String
+  expiresOn   DateTime?        @db.Date
+  maintenanceRecordId String?
+  repairIssueId       String?
+  expenseId           String?
+  partId              String?
+  inspectionId        String?
+  warrantyId          String?
+  ocrStatus   OcrStatus        @default(NONE)
+  ocrResult   Json?
+  uploadedById String?
+  createdAt   DateTime         @default(now()) @db.Timestamptz
+  deletedAt   DateTime?        @db.Timestamptz
+
+  vehicle           Vehicle?           @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  maintenanceRecord MaintenanceRecord? @relation(fields: [maintenanceRecordId], references: [id], onDelete: SetNull)
+  repairIssue       RepairIssue?       @relation(fields: [repairIssueId], references: [id], onDelete: SetNull)
+  expense           Expense?           @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  part              Part?              @relation(fields: [partId], references: [id], onDelete: SetNull)
+  inspection        Inspection?        @relation(fields: [inspectionId], references: [id], onDelete: SetNull)
+  warranty          Warranty?          @relation(fields: [warrantyId], references: [id], onDelete: SetNull)
+  uploadedBy        User?              @relation("DocumentUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([householdId, category])
+  @@index([vehicleId, createdAt])
+}
+
+// ───────────────────────── Integrations ─────────────────────────
+
+model Integration {
+  id          String              @id @default(cuid())
+  householdId String
+  vehicleId   String?
+  provider    IntegrationProvider
+  label       String?
+  status      IntegrationStatus   @default(NOT_CONFIGURED)
+  // Non-secret settings only
+  config      Json                @default("{}")
+  lastSyncAt  DateTime?           @db.Timestamptz
+  lastError   String?
+  createdAt   DateTime            @default(now()) @db.Timestamptz
+  updatedAt   DateTime            @updatedAt @db.Timestamptz
+
+  household   Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  credentials IntegrationCredentialReference[]
+
+  @@index([householdId, provider])
+}
+
+// Credentials are NEVER stored in the database — only a reference (env var name or secret-manager path).
+model IntegrationCredentialReference {
+  id            String   @id @default(cuid())
+  integrationId String
+  name          String
+  reference     String
+  createdAt     DateTime @default(now()) @db.Timestamptz
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, name])
+}
+
+// ───────────────────────── AI ─────────────────────────
+
+model AIConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  vehicleId String?
+  title     String   @default("New conversation")
+  createdAt DateTime @default(now()) @db.Timestamptz
+  updatedAt DateTime @updatedAt @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AIMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model AIMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  role           AiRole
+  content        String
+  provider       String?
+  toolCalls      Json?
+  createdAt      DateTime @default(now()) @db.Timestamptz
+  conversation   AIConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+// ───────────────────────── Platform ─────────────────────────
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  householdId String?
+  vehicleId   String?
+  entity      String
+  entityId    String?
+  action      String
+  before      Json?
+  after       Json?
+  ip          String?
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  household Household? @relation(fields: [householdId], references: [id], onDelete: SetNull)
+
+  @@index([entity, entityId])
+  @@index([vehicleId, createdAt])
+  @@index([householdId, createdAt])
+}
+
+model Subscription {
+  id                     String             @id @default(cuid())
+  householdId            String             @unique
+  plan                   Plan               @default(FREE)
+  status                 SubscriptionStatus @default(ACTIVE)
+  currentPeriodEnd       DateTime?          @db.Timestamptz
+  externalProvider       String?
+  externalCustomerId     String?
+  externalSubscriptionId String?
+  limitOverrides         Json?
+  createdAt              DateTime           @default(now()) @db.Timestamptz
+  updatedAt              DateTime           @updatedAt @db.Timestamptz
+  household              Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
+}
+
+model FeatureFlag {
+  key         String   @id
+  enabled     Boolean  @default(false)
+  description String?
+  updatedAt   DateTime @updatedAt @db.Timestamptz
+}
+
+model EmailOutbox {
+  id        String      @id @default(cuid())
+  toEmail   String
+  subject   String
+  text      String
+  html      String?
+  status    EmailStatus @default(PENDING)
+  attempts  Int         @default(0)
+  error     String?
+  createdAt DateTime    @default(now()) @db.Timestamptz
+  sentAt    DateTime?   @db.Timestamptz
+
+  @@index([status, createdAt])
+  @@index([toEmail, createdAt])
+}
+
+model JobRun {
+  id         String    @id @default(cuid())
+  name       String
+  status     JobStatus @default(RUNNING)
+  startedAt  DateTime  @default(now()) @db.Timestamptz
+  finishedAt DateTime? @db.Timestamptz
+  stats      Json?
+  error      String?
+
+  @@index([name, startedAt])
+}
+
+model RateLimitBucket {
+  key         String   @id
+  count       Int
+  windowStart DateTime @db.Timestamptz
+
+  @@index([windowStart])
+}
