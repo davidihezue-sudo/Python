@@ -3,14 +3,14 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Bell, Building2, CalendarDays, Car, Check, ChevronDown, CloudOff, Coins, CreditCard, FileText, Gauge, Home, Landmark, LayoutDashboard, LineChart, LogOut, Menu, Moon, PiggyBank, Plus, Receipt, RefreshCw, Repeat, Search, Settings as SettingsIcon, Shield, ShieldCheck, Sparkles, SlidersHorizontal, Sun, Target, TrendingUp, Upload, UserCircle, Users, Wallet, Wrench, X, ArrowLeftRight, HandCoins, FileSpreadsheet } from "lucide-react";
+import { BarChart3, Bell, Building2, CalendarDays, Car, Check, ChevronDown, CloudOff, Coins, CreditCard, FileText, Gauge, Home, Landmark, LayoutDashboard, LineChart, LogOut, Menu, Moon, PiggyBank, Plus, Receipt, RefreshCw, Repeat, Search, Settings as SettingsIcon, Shield, ShieldCheck, Sparkles, SlidersHorizontal, Sun, Target, TrendingUp, Upload, UserCircle, Users, Wallet, Wrench, X, ArrowLeftRight, HandCoins, FileSpreadsheet, Hammer, Package, FolderOpen } from "lucide-react";
 import { api } from "@/lib/client/api";
 import { flushQueue, listQueue, removeQueued, type QueuedRequest } from "@/lib/client/offline";
 import { cn } from "@/lib/client/utils";
 import { Alert, Badge, Button, Input } from "@/components/ui/primitives";
 import { Dropdown, MenuItem } from "@/components/ui/menu";
 import { Modal } from "@/components/ui/dialog";
-import { QuickAddProvider } from "@/components/forms/quick-dialogs";
+import { QuickAddProvider, QUICK_ACTIONS, useQuickAdd } from "@/components/forms/quick-dialogs";
 import { FinProvider, useFin } from "@/components/finance/provider";
 import { TxDialogProvider, useTxDialog } from "@/components/finance/transaction-form";
 import { ViewSwitch } from "@/components/finance/ui";
@@ -23,7 +23,7 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   { title: "Plan", items: [{ href: "/goals", label: "Savings and goals", icon: PiggyBank }, { href: "/debts", label: "Debt", icon: CreditCard }, { href: "/forecast", label: "Forecast", icon: TrendingUp }, { href: "/simulator", label: "What if", icon: SlidersHorizontal }, { href: "/planner", label: "Home planner", icon: Home }] },
   { title: "Wealth", items: [{ href: "/networth", label: "Net worth", icon: LineChart }, { href: "/investments", label: "Investments", icon: Coins }, { href: "/insurance", label: "Insurance", icon: Shield }, { href: "/subscriptions", label: "Subscriptions", icon: Repeat }, { href: "/tax", label: "Tax", icon: Building2 }] },
   { title: "Tools", items: [{ href: "/reports", label: "Reports", icon: BarChart3 }, { href: "/import", label: "Import and export", icon: Upload }, { href: "/finance-documents", label: "Receipts", icon: FileSpreadsheet }, { href: "/assistant", label: "Assistant", icon: Sparkles }] },
-  { title: "Vehicles", items: [{ href: "/vehicles", label: "My vehicles", icon: Car }, { href: "/maintenance", label: "Maintenance", icon: Wrench }, { href: "/service-history", label: "Service history", icon: Gauge }, { href: "/vehicle-costs", label: "Running costs", icon: Receipt }, { href: "/expenses", label: "Vehicle expenses", icon: Receipt }, { href: "/reminders", label: "Reminders", icon: Bell }] },
+  { title: "Vehicles", items: [{ href: "/vehicle-dashboard", label: "Vehicle overview", icon: LayoutDashboard }, { href: "/vehicles", label: "My vehicles", icon: Car }, { href: "/maintenance", label: "Maintenance", icon: Wrench }, { href: "/service-history", label: "Service history", icon: Gauge }, { href: "/repairs", label: "Repairs", icon: Hammer }, { href: "/parts", label: "Parts", icon: Package }, { href: "/reminders", label: "Reminders", icon: Bell }, { href: "/documents", label: "Vehicle documents", icon: FolderOpen }, { href: "/vehicle-costs", label: "Running costs", icon: Receipt }, { href: "/expenses", label: "Vehicle expenses", icon: Receipt }] },
 ];
 export const NAV = NAV_GROUPS.flatMap((g) => g.items);
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
@@ -48,7 +48,7 @@ function Logo({ className }: { className?: string }) {
       <span className="flex h-8 w-8 items-center justify-center rounded-md border border-accent/60 text-accent" aria-hidden>
         <Landmark className="h-[18px] w-[18px]" />
       </span>
-      <span className="display text-xl leading-none">Family Finance Hub</span>
+      <span className="display whitespace-nowrap text-[17px] leading-none">Family Finance Hub</span>
     </span>
   );
 }
@@ -213,6 +213,7 @@ function HouseholdSwitcher() {
 function TopBar({ onSearch }: { onSearch: () => void }) {
   const me = useMe();
   const tx = useTxDialog();
+  const quick = useQuickAdd();
   const { canWrite, profile } = useFin();
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur safe-top">
@@ -222,7 +223,10 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
         <div className="ml-auto flex items-center gap-1">
           <div className="lg:hidden"><ViewSwitch className="text-xs [&_button]:px-2" /></div>
           <Button variant="ghost" size="icon" onClick={onSearch} aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)"><Search className="h-5 w-5" /></Button>
-          {canWrite && <div className="hidden sm:block"><Button size="sm" onClick={() => tx.open()}><Plus className="h-4 w-4" aria-hidden /> Add transaction</Button></div>}
+          {canWrite && <div className="hidden sm:block"><Dropdown label="Add" trigger={(p) => <Button size="sm" {...p}><Plus className="h-4 w-4" aria-hidden /> Add <ChevronDown className="h-3.5 w-3.5 opacity-80" aria-hidden /></Button>}>
+            <MenuItem onClick={() => tx.open()} icon={<Plus className="h-4 w-4" />}>Transaction</MenuItem>
+            {QUICK_ACTIONS.map((a) => a.href ? <MenuItem key={a.key} href={a.href} icon={<a.icon className="h-4 w-4" />}>{a.label}</MenuItem> : <MenuItem key={a.key} onClick={() => quick.open(a.kind!)} icon={<a.icon className="h-4 w-4" />}>{a.label}</MenuItem>)}
+          </Dropdown></div>}
           <NotificationsBell />
           <ThemeToggle />
           <Dropdown label="Account" trigger={(p) => (
@@ -402,13 +406,15 @@ function SearchPalette({ open, onClose }: { open: boolean; onClose: () => void }
   React.useEffect(() => { const t = setTimeout(() => setDebounced(q), 220); return () => clearTimeout(t); }, [q]);
   React.useEffect(() => { if (open) { setQ(""); setDebounced(""); } }, [open]);
   const { data } = useQuery({ queryKey: ["fin", hid, "search", debounced], queryFn: () => api<any>(`/api/finance/${hid}/transactions?q=${encodeURIComponent(debounced)}&pageSize=8`), enabled: open && !!hid && debounced.trim().length >= 2 });
+  const { data: veh } = useQuery({ queryKey: ["vehicle-search", debounced], queryFn: () => api<{ groups: { label: string; items: { id: string; title: string; subtitle: string; href: string }[] }[] }>(`/api/search?q=${encodeURIComponent(debounced)}`), enabled: open && debounced.trim().length >= 2 });
   const pages = debounced.trim() ? NAV.filter((n) => n.label.toLowerCase().includes(debounced.trim().toLowerCase())) : NAV.slice(0, 8);
   const txs: { id: string; title: string; subtitle: string; href: string }[] = (data?.items ?? []).map((t: any) => ({ id: t.id, title: t.description, subtitle: `${fmt.date(t.date)} · ${fmt.money(t.amount)} · ${t.accountName}`, href: `/transactions?focus=${t.id}` }));
-  const flat = [...pages.map((p) => ({ id: p.href, title: p.label, subtitle: "Go to page", href: p.href })), ...txs];
-  React.useEffect(() => setIdx(0), [debounced, data]);
+  const vehicleHits = (veh?.groups ?? []).flatMap((g) => g.items.map((i) => ({ id: `${g.label}-${i.id}`, title: i.title, subtitle: `${g.label} · ${i.subtitle}`, href: i.href })));
+  const flat = [...pages.map((p) => ({ id: p.href, title: p.label, subtitle: "Go to page", href: p.href })), ...txs, ...vehicleHits];
+  React.useEffect(() => setIdx(0), [debounced, data, veh]);
   const go = (href: string) => { onClose(); router.push(href); };
   return (
-    <Modal open={open} onClose={onClose} title="Search" description="Jump to a page or find a transaction" size="md">
+    <Modal open={open} onClose={onClose} title="Search" description="Jump to a page, or find a transaction, vehicle, service or document" size="md">
       <div role="search" onKeyDown={(e) => {
         if (e.key === "ArrowDown") { e.preventDefault(); setIdx((i) => Math.min(flat.length - 1, i + 1)); }
         if (e.key === "ArrowUp") { e.preventDefault(); setIdx((i) => Math.max(0, i - 1)); }

@@ -39,7 +39,7 @@ Costs entered in the older vehicle Expense records are not added to the ledger f
 
 ## Stack
 
-Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, TanStack Query, Recharts, Prisma 6, PostgreSQL 16, decimal.js for money, zod, Vitest, Playwright. IBM Plex Sans for text, Instrument Serif for display headings only, tabular numerals for every amount.
+Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS, TanStack Query, Recharts, Prisma 6, PostgreSQL 16, decimal.js for money, zod, Vitest, Playwright. Plus Jakarta Sans throughout, with tabular numerals for every amount.
 
 ## Quick start
 

@@ -51,11 +51,11 @@ export function QuickAddProvider({ children }: { children: React.ReactNode }) {
 export const QUICK_ACTIONS: { key: string; label: string; icon: React.ElementType; kind?: QuickKind; href?: string }[] = [
   { key: "maintenance", label: "Log maintenance", icon: Wrench, href: "/service-history/new" },
   { key: "repair", label: "Record repair", icon: ClipboardPlus, href: "/service-history/new?kind=REPAIR" },
-  { key: "expense", label: "Add expense", icon: Receipt, kind: "expense" },
+  { key: "expense", label: "Add vehicle expense", icon: Receipt, kind: "expense" },
   { key: "mileage", label: "Update mileage", icon: Gauge, kind: "mileage" },
   { key: "fuel", label: "Add fuel", icon: Fuel, kind: "fuel" },
   { key: "issue", label: "Report a vehicle issue", icon: AlertTriangle, kind: "issue" },
-  { key: "upload", label: "Upload receipt", icon: FileUp, kind: "upload" },
+  { key: "upload", label: "Upload vehicle receipt", icon: FileUp, kind: "upload" },
 ];
 
 function useDone(onClose: () => void) {

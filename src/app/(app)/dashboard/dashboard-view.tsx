@@ -32,7 +32,7 @@ export function DashboardView() {
   if (!vehicles?.length)
     return (
       <>
-        <PageHeader title="Dashboard" />
+        <PageHeader title="Vehicle overview" />
         <EmptyState icon={<Car className="h-6 w-6" />} title="Add your first vehicle" description="Register a vehicle to start tracking maintenance, repairs, mileage and expenses. You can start from a template, such as the 2015 BMW X3 28i starter profile." action={<><Link href="/vehicles/new"><Button><Plus className="h-4 w-4" /> Add vehicle</Button></Link></>} />
       </>
     );
@@ -45,7 +45,7 @@ export function DashboardView() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title={selected ? selected.nickname : "Dashboard"}
+        title={selected ? selected.nickname : "Vehicle overview"}
         description={selected ? `${selected.year} ${selected.make} ${selected.model}` : "Household overview across all your vehicles"}
         actions={
           <div className="flex flex-wrap items-center gap-2">
