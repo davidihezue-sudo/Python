@@ -1,11 +1,20 @@
 -- CreateEnum
+CREATE TYPE "RecordVisibility" AS ENUM ('PERSONAL', 'HOUSEHOLD', 'SELECTED');
+
+-- CreateEnum
+CREATE TYPE "AllocationMode" AS ENUM ('OWNER', 'MEMBER', 'HOUSEHOLD', 'SPLIT');
+
+-- CreateEnum
+CREATE TYPE "ContributionArrangement" AS ENUM ('INDEPENDENT', 'SHARED_EQUAL', 'INCOME_BASED', 'FIXED', 'CUSTOM');
+
+-- CreateEnum
 CREATE TYPE "FinAccountType" AS ENUM ('CHEQUING', 'SAVINGS', 'HIGH_INTEREST_SAVINGS', 'CREDIT_CARD', 'LINE_OF_CREDIT', 'INVESTMENT', 'MORTGAGE', 'LOAN', 'CASH', 'OTHER_ASSET', 'OTHER_LIABILITY');
 
 -- CreateEnum
 CREATE TYPE "FinAccountStatus" AS ENUM ('ACTIVE', 'CLOSED');
 
 -- CreateEnum
-CREATE TYPE "FinTxType" AS ENUM ('INCOME', 'EXPENSE', 'TRANSFER', 'REFUND', 'REIMBURSEMENT', 'ADJUSTMENT');
+CREATE TYPE "FinTxType" AS ENUM ('INCOME', 'EXPENSE', 'TRANSFER', 'REFUND', 'REIMBURSEMENT', 'ADJUSTMENT', 'SETTLEMENT');
 
 -- CreateEnum
 CREATE TYPE "FinTxStatus" AS ENUM ('POSTED', 'PLANNED');
@@ -35,7 +44,7 @@ CREATE TYPE "GoalKind" AS ENUM ('EMERGENCY_FUND', 'HOME_DOWN_PAYMENT', 'VEHICLE'
 CREATE TYPE "GoalStatus" AS ENUM ('ACTIVE', 'COMPLETED', 'PAUSED', 'CANCELLED');
 
 -- CreateEnum
-CREATE TYPE "GoalTracking" AS ENUM ('CONTRIBUTIONS', 'DEBT_BALANCE', 'NET_WORTH');
+CREATE TYPE "GoalTracking" AS ENUM ('CONTRIBUTIONS', 'DEBT_BALANCE', 'NET_WORTH', 'ACCOUNT_BALANCE');
 
 -- CreateEnum
 CREATE TYPE "InvestmentKind" AS ENUM ('RRSP', 'TFSA', 'FHSA', 'RESP', 'NON_REGISTERED', 'PENSION', 'EMPLOYER_PLAN', 'OTHER');
@@ -111,9 +120,12 @@ ALTER TABLE "Notification" ADD COLUMN     "householdId" TEXT;
 CREATE TABLE "MemberPrivacy" (
     "id" TEXT NOT NULL,
     "householdMemberId" TEXT NOT NULL,
-    "shareIncome" BOOLEAN NOT NULL DEFAULT true,
-    "shareAccounts" BOOLEAN NOT NULL DEFAULT true,
-    "shareTransactions" BOOLEAN NOT NULL DEFAULT false,
+    "incomeDefault" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "accountsDefault" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "transactionsDefault" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "savingsDefault" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "debtsDefault" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "otherDefault" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
     "updatedAt" TIMESTAMPTZ NOT NULL,
 
     CONSTRAINT "MemberPrivacy_pkey" PRIMARY KEY ("id")
@@ -124,6 +136,10 @@ CREATE TABLE "FinAccount" (
     "id" TEXT NOT NULL,
     "householdId" TEXT NOT NULL,
     "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "name" TEXT NOT NULL,
     "institution" TEXT,
     "type" "FinAccountType" NOT NULL,
@@ -176,7 +192,13 @@ CREATE TABLE "FinTransaction" (
     "id" TEXT NOT NULL,
     "householdId" TEXT NOT NULL,
     "accountId" TEXT NOT NULL,
-    "memberId" TEXT,
+    "ownerMemberId" TEXT,
+    "payerMemberId" TEXT,
+    "allocationMode" "AllocationMode" NOT NULL DEFAULT 'OWNER',
+    "allocatedMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "updatedById" TEXT,
     "categoryId" TEXT,
     "merchantId" TEXT,
     "type" "FinTxType" NOT NULL,
@@ -208,10 +230,58 @@ CREATE TABLE "FinTransaction" (
 );
 
 -- CreateTable
+CREATE TABLE "TransactionAllocation" (
+    "id" TEXT NOT NULL,
+    "transactionId" TEXT NOT NULL,
+    "memberId" TEXT,
+    "amount" DECIMAL(14,2) NOT NULL,
+    "percent" DECIMAL(7,4),
+
+    CONSTRAINT "TransactionAllocation_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "ContributionRule" (
+    "id" TEXT NOT NULL,
+    "householdId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "arrangement" "ContributionArrangement" NOT NULL DEFAULT 'SHARED_EQUAL',
+    "settings" JSONB NOT NULL DEFAULT '{}',
+    "effectiveFrom" DATE NOT NULL,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "createdById" TEXT,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMPTZ NOT NULL,
+
+    CONSTRAINT "ContributionRule_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Settlement" (
+    "id" TEXT NOT NULL,
+    "householdId" TEXT NOT NULL,
+    "fromMemberId" TEXT NOT NULL,
+    "toMemberId" TEXT NOT NULL,
+    "amount" DECIMAL(14,2) NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'CAD',
+    "date" DATE NOT NULL,
+    "note" TEXT,
+    "createdById" TEXT,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deletedAt" TIMESTAMPTZ,
+
+    CONSTRAINT "Settlement_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "IncomeSource" (
     "id" TEXT NOT NULL,
     "householdId" TEXT NOT NULL,
-    "memberId" TEXT,
+    "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "accountId" TEXT,
     "name" TEXT NOT NULL,
     "kind" "IncomeKind" NOT NULL DEFAULT 'EMPLOYMENT',
@@ -264,7 +334,11 @@ CREATE TABLE "RecurringRule" (
     "accountId" TEXT NOT NULL,
     "toAccountId" TEXT,
     "categoryId" TEXT,
-    "memberId" TEXT,
+    "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "merchantName" TEXT,
     "frequency" "Frequency" NOT NULL,
     "startDate" DATE NOT NULL,
@@ -294,6 +368,11 @@ CREATE TABLE "Bill" (
     "accountId" TEXT,
     "categoryId" TEXT,
     "responsibleMemberId" TEXT,
+    "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "reminderDays" INTEGER[] DEFAULT ARRAY[3]::INTEGER[],
     "autopay" BOOLEAN NOT NULL DEFAULT false,
     "active" BOOLEAN NOT NULL DEFAULT true,
@@ -312,6 +391,7 @@ CREATE TABLE "BillPayment" (
     "dueDate" DATE NOT NULL,
     "amount" DECIMAL(14,2) NOT NULL,
     "paidOn" DATE NOT NULL,
+    "memberId" TEXT,
     "transactionId" TEXT,
     "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -332,6 +412,10 @@ CREATE TABLE "RecurringSubscription" (
     "accountId" TEXT,
     "categoryId" TEXT,
     "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "cancellationInfo" TEXT,
     "notes" TEXT,
     "priceHistory" JSONB NOT NULL DEFAULT '[]',
@@ -353,6 +437,11 @@ CREATE TABLE "InsurancePolicy" (
     "policyName" TEXT NOT NULL,
     "policyNumberLast4" TEXT,
     "insuredMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "premium" DECIMAL(14,2) NOT NULL,
     "currency" TEXT NOT NULL DEFAULT 'CAD',
     "frequency" "Frequency" NOT NULL DEFAULT 'MONTHLY',
@@ -378,6 +467,10 @@ CREATE TABLE "Debt" (
     "accountId" TEXT NOT NULL,
     "assetId" TEXT,
     "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "lender" TEXT NOT NULL,
     "type" "DebtType" NOT NULL,
     "originalAmount" DECIMAL(14,2) NOT NULL,
@@ -409,6 +502,7 @@ CREATE TABLE "DebtPayment" (
     "principal" DECIMAL(14,2) NOT NULL,
     "interest" DECIMAL(14,2) NOT NULL,
     "fromAccountId" TEXT,
+    "memberId" TEXT,
     "note" TEXT,
     "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deletedAt" TIMESTAMPTZ,
@@ -432,6 +526,11 @@ CREATE TABLE "SavingsGoal" (
     "accountId" TEXT,
     "debtId" TEXT,
     "responsibleMemberId" TEXT,
+    "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "assignedMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "priority" INTEGER NOT NULL DEFAULT 2,
     "status" "GoalStatus" NOT NULL DEFAULT 'ACTIVE',
@@ -505,6 +604,10 @@ CREATE TABLE "Asset" (
     "id" TEXT NOT NULL,
     "householdId" TEXT NOT NULL,
     "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "vehicleId" TEXT,
     "name" TEXT NOT NULL,
     "kind" "AssetKind" NOT NULL,
@@ -538,7 +641,11 @@ CREATE TABLE "AssetValuation" (
 CREATE TABLE "TaxRecord" (
     "id" TEXT NOT NULL,
     "householdId" TEXT NOT NULL,
-    "memberId" TEXT,
+    "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'PERSONAL',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "createdById" TEXT,
+    "updatedById" TEXT,
     "taxYear" INTEGER NOT NULL,
     "kind" "TaxRecordKind" NOT NULL,
     "amount" DECIMAL(14,2) NOT NULL,
@@ -603,6 +710,7 @@ CREATE TABLE "FinScenario" (
     "householdId" TEXT NOT NULL,
     "createdById" TEXT,
     "name" TEXT NOT NULL,
+    "kind" TEXT NOT NULL DEFAULT 'WHAT_IF',
     "description" TEXT,
     "horizonMonths" INTEGER NOT NULL DEFAULT 12,
     "assumptions" JSONB NOT NULL DEFAULT '[]',
@@ -620,9 +728,12 @@ CREATE TABLE "CalendarEvent" (
     "date" DATE NOT NULL,
     "endDate" DATE,
     "notes" TEXT,
-    "memberId" TEXT,
-    "completedAt" TIMESTAMPTZ,
+    "ownerMemberId" TEXT,
+    "visibility" "RecordVisibility" NOT NULL DEFAULT 'HOUSEHOLD',
+    "sharedWithMemberIds" TEXT[] DEFAULT ARRAY[]::TEXT[],
     "createdById" TEXT,
+    "updatedById" TEXT,
+    "completedAt" TIMESTAMPTZ,
     "createdAt" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "deletedAt" TIMESTAMPTZ,
 
@@ -709,6 +820,9 @@ CREATE UNIQUE INDEX "FinTransaction_idempotencyKey_key" ON "FinTransaction"("ide
 CREATE INDEX "FinTransaction_householdId_date_idx" ON "FinTransaction"("householdId", "date");
 
 -- CreateIndex
+CREATE INDEX "FinTransaction_householdId_ownerMemberId_date_idx" ON "FinTransaction"("householdId", "ownerMemberId", "date");
+
+-- CreateIndex
 CREATE INDEX "FinTransaction_accountId_date_idx" ON "FinTransaction"("accountId", "date");
 
 -- CreateIndex
@@ -719,6 +833,18 @@ CREATE INDEX "FinTransaction_transferGroupId_idx" ON "FinTransaction"("transferG
 
 -- CreateIndex
 CREATE INDEX "FinTransaction_householdId_importHash_idx" ON "FinTransaction"("householdId", "importHash");
+
+-- CreateIndex
+CREATE INDEX "TransactionAllocation_transactionId_idx" ON "TransactionAllocation"("transactionId");
+
+-- CreateIndex
+CREATE INDEX "TransactionAllocation_memberId_idx" ON "TransactionAllocation"("memberId");
+
+-- CreateIndex
+CREATE INDEX "ContributionRule_householdId_active_idx" ON "ContributionRule"("householdId", "active");
+
+-- CreateIndex
+CREATE INDEX "Settlement_householdId_date_idx" ON "Settlement"("householdId", "date");
 
 -- CreateIndex
 CREATE INDEX "IncomeSource_householdId_deletedAt_idx" ON "IncomeSource"("householdId", "deletedAt");
@@ -829,6 +955,15 @@ ALTER TABLE "FinTransaction" ADD CONSTRAINT "FinTransaction_categoryId_fkey" FOR
 ALTER TABLE "FinTransaction" ADD CONSTRAINT "FinTransaction_merchantId_fkey" FOREIGN KEY ("merchantId") REFERENCES "FinMerchant"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "TransactionAllocation" ADD CONSTRAINT "TransactionAllocation_transactionId_fkey" FOREIGN KEY ("transactionId") REFERENCES "FinTransaction"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ContributionRule" ADD CONSTRAINT "ContributionRule_householdId_fkey" FOREIGN KEY ("householdId") REFERENCES "Household"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Settlement" ADD CONSTRAINT "Settlement_householdId_fkey" FOREIGN KEY ("householdId") REFERENCES "Household"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "IncomeSource" ADD CONSTRAINT "IncomeSource_householdId_fkey" FOREIGN KEY ("householdId") REFERENCES "Household"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -911,3 +1046,59 @@ ALTER TABLE "FxRate" ADD CONSTRAINT "FxRate_householdId_fkey" FOREIGN KEY ("hous
 
 -- AddForeignKey
 ALTER TABLE "FinAlertSetting" ADD CONSTRAINT "FinAlertSetting_householdId_fkey" FOREIGN KEY ("householdId") REFERENCES "Household"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- ═════════════ Integrity rules enforced by the database itself ═════════════
+-- Ledger sign convention: income-like rows are positive, expenses negative, nothing is zero. Transfers, adjustments and
+-- settlements between members may be either sign because they describe movement, not income or spending.
+ALTER TABLE "FinTransaction" ADD CONSTRAINT "fin_tx_amount_nonzero" CHECK ("amount" <> 0);
+ALTER TABLE "FinTransaction" ADD CONSTRAINT "fin_tx_sign" CHECK (
+  ("type" IN ('INCOME', 'REFUND', 'REIMBURSEMENT') AND "amount" > 0)
+  OR ("type" = 'EXPENSE' AND "amount" < 0)
+  OR "type" IN ('TRANSFER', 'ADJUSTMENT', 'SETTLEMENT')
+);
+ALTER TABLE "FinTransaction" ADD CONSTRAINT "fin_tx_transfer_group" CHECK ("type" <> 'TRANSFER' OR "transferGroupId" IS NOT NULL);
+-- A shared (joint) account has no single owner and must be visible to the household.
+ALTER TABLE "FinAccount" ADD CONSTRAINT "fin_account_joint_visibility" CHECK ("ownerMemberId" IS NOT NULL OR "visibility" = 'HOUSEHOLD');
+ALTER TABLE "FinAccount" ADD CONSTRAINT "fin_account_limit" CHECK ("creditLimit" IS NULL OR "creditLimit" >= 0);
+ALTER TABLE "Debt" ADD CONSTRAINT "debt_rate_range" CHECK ("interestRate" >= 0 AND "interestRate" <= 100);
+ALTER TABLE "Debt" ADD CONSTRAINT "debt_amounts" CHECK ("originalAmount" >= 0 AND "minimumPayment" >= 0 AND "regularPayment" >= 0);
+ALTER TABLE "DebtPayment" ADD CONSTRAINT "debt_payment_split" CHECK ("total" > 0 AND "principal" >= 0 AND "interest" >= 0 AND "principal" + "interest" <= "total");
+ALTER TABLE "FinBudget" ADD CONSTRAINT "fin_budget_dates" CHECK ("endDate" >= "startDate");
+ALTER TABLE "FinBudgetLine" ADD CONSTRAINT "fin_budget_line_amount" CHECK ("amount" >= 0);
+ALTER TABLE "SavingsGoal" ADD CONSTRAINT "goal_target" CHECK ("targetAmount" >= 0 AND "monthlyContribution" >= 0);
+ALTER TABLE "GoalContribution" ADD CONSTRAINT "goal_contribution_nonzero" CHECK ("amount" <> 0);
+ALTER TABLE "BillPayment" ADD CONSTRAINT "bill_payment_positive" CHECK ("amount" > 0);
+ALTER TABLE "IncomeSource" ADD CONSTRAINT "income_amounts" CHECK ("grossAmount" >= 0 AND "netAmount" >= 0);
+ALTER TABLE "FxRate" ADD CONSTRAINT "fx_rate_positive" CHECK ("rate" > 0);
+ALTER TABLE "Bill" ADD CONSTRAINT "bill_amount" CHECK ("amount" >= 0);
+ALTER TABLE "RecurringSubscription" ADD CONSTRAINT "subscription_amount" CHECK ("amount" >= 0);
+ALTER TABLE "InsurancePolicy" ADD CONSTRAINT "insurance_premium" CHECK ("premium" >= 0);
+ALTER TABLE "TransactionAllocation" ADD CONSTRAINT "allocation_positive" CHECK ("amount" > 0);
+ALTER TABLE "Settlement" ADD CONSTRAINT "settlement_amount" CHECK ("amount" > 0 AND "fromMemberId" <> "toMemberId");
+
+-- Expense allocation: the allocations of a split transaction must add up to the transaction amount exactly, and only split
+-- transactions may have allocations. Checked at commit time so a transaction and its rows can be written together.
+CREATE OR REPLACE FUNCTION fin_check_allocation(tx_id text) RETURNS void AS $$
+DECLARE t record; s numeric;
+BEGIN
+  SELECT "allocationMode", "amount", "deletedAt" INTO t FROM "FinTransaction" WHERE "id" = tx_id;
+  IF NOT FOUND OR t."deletedAt" IS NOT NULL THEN RETURN; END IF;
+  SELECT COALESCE(SUM("amount"), 0) INTO s FROM "TransactionAllocation" WHERE "transactionId" = tx_id;
+  IF t."allocationMode" = 'SPLIT' THEN
+    IF s <> abs(t."amount") THEN
+      RAISE EXCEPTION 'Allocations (%) must add up to the transaction amount (%)', s, abs(t."amount") USING ERRCODE = '23514';
+    END IF;
+  ELSIF s <> 0 THEN
+    RAISE EXCEPTION 'Only split transactions can have allocations' USING ERRCODE = '23514';
+  END IF;
+END $$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION fin_tx_alloc_trigger() RETURNS trigger AS $$
+BEGIN
+  IF TG_TABLE_NAME = 'FinTransaction' THEN PERFORM fin_check_allocation(NEW."id");
+  ELSE PERFORM fin_check_allocation(COALESCE(NEW."transactionId", OLD."transactionId")); END IF;
+  RETURN NULL;
+END $$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER fin_tx_allocation_sum AFTER INSERT OR UPDATE ON "FinTransaction" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fin_tx_alloc_trigger();
+CREATE CONSTRAINT TRIGGER fin_alloc_row_sum AFTER INSERT OR UPDATE OR DELETE ON "TransactionAllocation" DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fin_tx_alloc_trigger();

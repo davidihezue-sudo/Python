@@ -11,7 +11,7 @@ import type { Fx } from "./fx";
 import type { IsoDate } from "./dates";
 import { monthKeys, monthOf } from "./dates";
 
-export type TxType = "INCOME" | "EXPENSE" | "TRANSFER" | "REFUND" | "REIMBURSEMENT" | "ADJUSTMENT";
+export type TxType = "INCOME" | "EXPENSE" | "TRANSFER" | "REFUND" | "REIMBURSEMENT" | "ADJUSTMENT" | "SETTLEMENT";
 export const ASSET_ACCOUNT_TYPES = ["CHEQUING", "SAVINGS", "HIGH_INTEREST_SAVINGS", "INVESTMENT", "CASH", "OTHER_ASSET"] as const;
 export const LIABILITY_ACCOUNT_TYPES = ["CREDIT_CARD", "LINE_OF_CREDIT", "MORTGAGE", "LOAN", "OTHER_LIABILITY"] as const;
 export const LIQUID_ACCOUNT_TYPES = ["CHEQUING", "SAVINGS", "HIGH_INTEREST_SAVINGS", "CASH"] as const;

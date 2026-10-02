@@ -1,4 +1,5 @@
 import type { User } from "@prisma/client";
+import { seedDefaultCategories } from "../finance/household";
 import { db } from "@/lib/db";
 import { AppError, notFound } from "@/lib/errors";
 import { randomToken, sha256 } from "@/lib/crypto";
@@ -31,7 +32,9 @@ async function provisionUser(data: { email: string; name: string; passwordHash?:
     const user = await tx.user.create({ data: { email: data.email, name: data.name, passwordHash: data.passwordHash ?? null, emailVerifiedAt: data.verified ? new Date() : null, platformRole: makeAdmin ? "PLATFORM_ADMIN" : "USER" } });
     await tx.userPreference.create({ data: { userId: user.id, timezone: tz } });
     const hh = await tx.household.create({ data: { name: `${data.name.split(" ")[0]}'s Household`, timezone: tz } });
-    await tx.householdMember.create({ data: { householdId: hh.id, userId: user.id, role: "ADMIN" } });
+    const member = await tx.householdMember.create({ data: { householdId: hh.id, userId: user.id, role: "ADMIN", avatarColor: "#185040" } });
+    await tx.memberPrivacy.create({ data: { householdMemberId: member.id } });
+    await seedDefaultCategories(tx, hh.id);
     await tx.subscription.create({ data: { householdId: hh.id, plan: env().DEFAULT_PLAN } });
     return user;
   });

@@ -542,6 +542,8 @@ model Household {
   importBatches      ImportBatch[]
   fxRates            FxRate[]
   alertSettings      FinAlertSetting[]
+  contributionRules  ContributionRule[]
+  settlements        Settlement[]
 
   members      HouseholdMember[]
   invites      HouseholdInvite[]
@@ -1433,6 +1435,27 @@ model RateLimitBucket {
 //  * Transfers are two legs sharing transferGroupId and are never income or expense.
 //  * Only status=POSTED, deletedAt=null rows affect balances and reports. PLANNED rows are "expected" amounts.
 
+enum RecordVisibility {
+  PERSONAL
+  HOUSEHOLD
+  SELECTED
+}
+
+enum AllocationMode {
+  OWNER
+  MEMBER
+  HOUSEHOLD
+  SPLIT
+}
+
+enum ContributionArrangement {
+  INDEPENDENT
+  SHARED_EQUAL
+  INCOME_BASED
+  FIXED
+  CUSTOM
+}
+
 enum FinAccountType {
   CHEQUING
   SAVINGS
@@ -1459,6 +1482,7 @@ enum FinTxType {
   REFUND
   REIMBURSEMENT
   ADJUSTMENT
+  SETTLEMENT
 }
 
 enum FinTxStatus {
@@ -1546,6 +1570,7 @@ enum GoalTracking {
   CONTRIBUTIONS
   DEBT_BALANCE
   NET_WORTH
+  ACCOUNT_BALANCE
 }
 
 enum InvestmentKind {
@@ -1617,35 +1642,43 @@ enum AlertFrequency {
   WEEKLY
 }
 
+/// Each member's own default sharing choices for records they create. Nobody, including administrators, can override them.
 model MemberPrivacy {
-  id                String          @id @default(cuid())
-  householdMemberId String          @unique
-  shareIncome       Boolean         @default(true)
-  shareAccounts     Boolean         @default(true)
-  shareTransactions Boolean         @default(false)
-  updatedAt         DateTime        @updatedAt @db.Timestamptz
-  member            HouseholdMember @relation(fields: [householdMemberId], references: [id], onDelete: Cascade)
+  id                  String           @id @default(cuid())
+  householdMemberId   String           @unique
+  incomeDefault       RecordVisibility @default(HOUSEHOLD)
+  accountsDefault     RecordVisibility @default(HOUSEHOLD)
+  transactionsDefault RecordVisibility @default(HOUSEHOLD)
+  savingsDefault      RecordVisibility @default(HOUSEHOLD)
+  debtsDefault        RecordVisibility @default(HOUSEHOLD)
+  otherDefault        RecordVisibility @default(HOUSEHOLD)
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  member              HouseholdMember  @relation(fields: [householdMemberId], references: [id], onDelete: Cascade)
 }
 
 model FinAccount {
-  id                String           @id @default(cuid())
-  householdId       String
-  ownerMemberId     String?
-  name              String
-  institution       String?
-  type              FinAccountType
-  currency          String           @default("CAD")
-  openingBalance    Decimal          @default(0) @db.Decimal(14, 2)
-  openingDate       DateTime         @db.Date
-  creditLimit       Decimal?         @db.Decimal(14, 2)
-  accountMask       String?
-  notes             String?
-  status            FinAccountStatus @default(ACTIVE)
-  reconciledThrough DateTime?        @db.Date
-  statementBalance  Decimal?         @db.Decimal(14, 2)
-  createdAt         DateTime         @default(now()) @db.Timestamptz
-  updatedAt         DateTime         @updatedAt @db.Timestamptz
-  deletedAt         DateTime?        @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  name                String
+  institution         String?
+  type                FinAccountType
+  currency            String           @default("CAD")
+  openingBalance      Decimal          @default(0) @db.Decimal(14, 2)
+  openingDate         DateTime         @db.Date
+  creditLimit         Decimal?         @db.Decimal(14, 2)
+  accountMask         String?
+  notes               String?
+  status              FinAccountStatus @default(ACTIVE)
+  reconciledThrough   DateTime?        @db.Date
+  statementBalance    Decimal?         @db.Decimal(14, 2)
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household    Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
   transactions FinTransaction[]
@@ -1692,74 +1725,137 @@ model FinMerchant {
 }
 
 model FinTransaction {
-  id                String            @id @default(cuid())
-  householdId       String
-  accountId         String
-  memberId          String?
-  categoryId        String?
-  merchantId        String?
-  type              FinTxType
-  status            FinTxStatus       @default(POSTED)
-  amount            Decimal           @db.Decimal(14, 2)
-  currency          String
-  date              DateTime          @db.Date
-  postingDate       DateTime?         @db.Date
-  description       String
-  notes             String?
-  transferGroupId   String?
-  recurringRuleId   String?
-  incomeSourceId    String?
-  billId            String?
-  subscriptionId    String?
-  insurancePolicyId String?
-  debtPaymentId     String?
-  vehicleId         String?
-  importBatchId     String?
-  importHash        String?
-  reconciliation    FinReconciliation @default(UNRECONCILED)
-  idempotencyKey    String?           @unique
-  createdById       String?
-  createdAt         DateTime          @default(now()) @db.Timestamptz
-  updatedAt         DateTime          @updatedAt @db.Timestamptz
-  deletedAt         DateTime?         @db.Timestamptz
+  id                  String            @id @default(cuid())
+  householdId         String
+  accountId           String
+  ownerMemberId       String?
+  payerMemberId       String?
+  allocationMode      AllocationMode    @default(OWNER)
+  allocatedMemberId   String?
+  visibility          RecordVisibility  @default(HOUSEHOLD)
+  sharedWithMemberIds String[]          @default([])
+  updatedById         String?
+  categoryId          String?
+  merchantId          String?
+  type                FinTxType
+  status              FinTxStatus       @default(POSTED)
+  amount              Decimal           @db.Decimal(14, 2)
+  currency            String
+  date                DateTime          @db.Date
+  postingDate         DateTime?         @db.Date
+  description         String
+  notes               String?
+  transferGroupId     String?
+  recurringRuleId     String?
+  incomeSourceId      String?
+  billId              String?
+  subscriptionId      String?
+  insurancePolicyId   String?
+  debtPaymentId       String?
+  vehicleId           String?
+  importBatchId       String?
+  importHash          String?
+  reconciliation      FinReconciliation @default(UNRECONCILED)
+  idempotencyKey      String?           @unique
+  createdById         String?
+  createdAt           DateTime          @default(now()) @db.Timestamptz
+  updatedAt           DateTime          @updatedAt @db.Timestamptz
+  deletedAt           DateTime?         @db.Timestamptz
 
   household Household    @relation(fields: [householdId], references: [id], onDelete: Cascade)
   account   FinAccount   @relation(fields: [accountId], references: [id], onDelete: Restrict)
   category  FinCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   merchant  FinMerchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
 
+  allocations TransactionAllocation[]
+
   @@index([householdId, date])
+  @@index([householdId, ownerMemberId, date])
   @@index([accountId, date])
   @@index([householdId, categoryId, date])
   @@index([transferGroupId])
   @@index([householdId, importHash])
 }
 
+model TransactionAllocation {
+  id            String         @id @default(cuid())
+  transactionId String
+  /// null = the shared household pool
+  memberId      String?
+  amount        Decimal        @db.Decimal(14, 2)
+  percent       Decimal?       @db.Decimal(7, 4)
+  transaction   FinTransaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([memberId])
+}
+
+model ContributionRule {
+  id            String                  @id @default(cuid())
+  householdId   String
+  name          String
+  arrangement   ContributionArrangement @default(SHARED_EQUAL)
+  /// { participants: memberId[], percentOfNet?: number, fixedMonthly?: {memberId: "amount"}, customShares?: {memberId: percent} }
+  settings      Json                    @default("{}")
+  effectiveFrom DateTime                @db.Date
+  active        Boolean                 @default(true)
+  createdById   String?
+  createdAt     DateTime                @default(now()) @db.Timestamptz
+  updatedAt     DateTime                @updatedAt @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, active])
+}
+
+/// A reimbursement or settlement between two members. It is never an income or an expense.
+model Settlement {
+  id           String    @id @default(cuid())
+  householdId  String
+  fromMemberId String
+  toMemberId   String
+  amount       Decimal   @db.Decimal(14, 2)
+  currency     String    @default("CAD")
+  date         DateTime  @db.Date
+  note         String?
+  createdById  String?
+  createdAt    DateTime  @default(now()) @db.Timestamptz
+  deletedAt    DateTime? @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, date])
+}
+
 model IncomeSource {
-  id               String     @id @default(cuid())
-  householdId      String
-  memberId         String?
-  accountId        String?
-  name             String
-  kind             IncomeKind @default(EMPLOYMENT)
-  employer         String?
-  currency         String     @default("CAD")
-  grossAmount      Decimal    @db.Decimal(14, 2)
-  netAmount        Decimal    @db.Decimal(14, 2)
-  taxDeduction     Decimal    @default(0) @db.Decimal(14, 2)
-  pensionDeduction Decimal    @default(0) @db.Decimal(14, 2)
-  otherDeduction   Decimal    @default(0) @db.Decimal(14, 2)
-  frequency        Frequency  @default(BIWEEKLY)
-  nextPayDate      DateTime?  @db.Date
-  startDate        DateTime?  @db.Date
-  endDate          DateTime?  @db.Date
-  pausedFrom       DateTime?  @db.Date
-  pausedUntil      DateTime?  @db.Date
-  notes            String?
-  active           Boolean    @default(true)
-  createdAt        DateTime   @default(now()) @db.Timestamptz
-  updatedAt        DateTime   @updatedAt @db.Timestamptz
-  deletedAt        DateTime?  @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  accountId           String?
+  name                String
+  kind                IncomeKind       @default(EMPLOYMENT)
+  employer            String?
+  currency            String           @default("CAD")
+  grossAmount         Decimal          @db.Decimal(14, 2)
+  netAmount           Decimal          @db.Decimal(14, 2)
+  taxDeduction        Decimal          @default(0) @db.Decimal(14, 2)
+  pensionDeduction    Decimal          @default(0) @db.Decimal(14, 2)
+  otherDeduction      Decimal          @default(0) @db.Decimal(14, 2)
+  frequency           Frequency        @default(BIWEEKLY)
+  nextPayDate         DateTime?        @db.Date
+  startDate           DateTime?        @db.Date
+  endDate             DateTime?        @db.Date
+  pausedFrom          DateTime?        @db.Date
+  pausedUntil         DateTime?        @db.Date
+  notes               String?
+  active              Boolean          @default(true)
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
   changes   IncomeChange[]
@@ -1785,26 +1881,30 @@ model IncomeChange {
 }
 
 model RecurringRule {
-  id           String    @id @default(cuid())
-  householdId  String
-  type         FinTxType
-  description  String
-  amount       Decimal   @db.Decimal(14, 2)
-  currency     String    @default("CAD")
-  accountId    String
-  toAccountId  String?
-  categoryId   String?
-  memberId     String?
-  merchantName String?
-  frequency    Frequency
-  startDate    DateTime  @db.Date
-  endDate      DateTime? @db.Date
-  lastPostedOn DateTime? @db.Date
-  autoPost     Boolean   @default(false)
-  active       Boolean   @default(true)
-  notes        String?
-  createdAt    DateTime  @default(now()) @db.Timestamptz
-  deletedAt    DateTime? @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  type                FinTxType
+  description         String
+  amount              Decimal          @db.Decimal(14, 2)
+  currency            String           @default("CAD")
+  accountId           String
+  toAccountId         String?
+  categoryId          String?
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  merchantName        String?
+  frequency           Frequency
+  startDate           DateTime         @db.Date
+  endDate             DateTime?        @db.Date
+  lastPostedOn        DateTime?        @db.Date
+  autoPost            Boolean          @default(false)
+  active              Boolean          @default(true)
+  notes               String?
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 
@@ -1812,26 +1912,31 @@ model RecurringRule {
 }
 
 model Bill {
-  id                  String    @id @default(cuid())
+  id                  String           @id @default(cuid())
   householdId         String
   name                String
   provider            String?
-  kind                String    @default("UTILITY")
-  amount              Decimal   @db.Decimal(14, 2)
-  currency            String    @default("CAD")
-  frequency           Frequency @default(MONTHLY)
-  dueDate             DateTime  @db.Date
-  endDate             DateTime? @db.Date
+  kind                String           @default("UTILITY")
+  amount              Decimal          @db.Decimal(14, 2)
+  currency            String           @default("CAD")
+  frequency           Frequency        @default(MONTHLY)
+  dueDate             DateTime         @db.Date
+  endDate             DateTime?        @db.Date
   accountId           String?
   categoryId          String?
   responsibleMemberId String?
-  reminderDays        Int[]     @default([3])
-  autopay             Boolean   @default(false)
-  active              Boolean   @default(true)
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  reminderDays        Int[]            @default([3])
+  autopay             Boolean          @default(false)
+  active              Boolean          @default(true)
   notes               String?
-  createdAt           DateTime  @default(now()) @db.Timestamptz
-  updatedAt           DateTime  @updatedAt @db.Timestamptz
-  deletedAt           DateTime? @db.Timestamptz
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
   payments  BillPayment[]
@@ -1845,6 +1950,7 @@ model BillPayment {
   dueDate       DateTime @db.Date
   amount        Decimal  @db.Decimal(14, 2)
   paidOn        DateTime @db.Date
+  memberId      String?
   transactionId String?
   createdAt     DateTime @default(now()) @db.Timestamptz
 
@@ -1854,26 +1960,30 @@ model BillPayment {
 }
 
 model RecurringSubscription {
-  id               String    @id @default(cuid())
-  householdId      String
-  name             String
-  provider         String?
-  category         String    @default("Streaming")
-  amount           Decimal   @db.Decimal(14, 2)
-  currency         String    @default("CAD")
-  frequency        Frequency @default(MONTHLY)
-  nextBillingDate  DateTime  @db.Date
-  accountId        String?
-  categoryId       String?
-  ownerMemberId    String?
-  cancellationInfo String?
-  notes            String?
-  priceHistory     Json      @default("[]")
-  lastReviewedAt   DateTime? @db.Date
-  active           Boolean   @default(true)
-  createdAt        DateTime  @default(now()) @db.Timestamptz
-  updatedAt        DateTime  @updatedAt @db.Timestamptz
-  deletedAt        DateTime? @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  name                String
+  provider            String?
+  category            String           @default("Streaming")
+  amount              Decimal          @db.Decimal(14, 2)
+  currency            String           @default("CAD")
+  frequency           Frequency        @default(MONTHLY)
+  nextBillingDate     DateTime         @db.Date
+  accountId           String?
+  categoryId          String?
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  cancellationInfo    String?
+  notes               String?
+  priceHistory        Json             @default("[]")
+  lastReviewedAt      DateTime?        @db.Date
+  active              Boolean          @default(true)
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 
@@ -1881,27 +1991,32 @@ model RecurringSubscription {
 }
 
 model InsurancePolicy {
-  id                String        @id @default(cuid())
-  householdId       String
-  kind              InsuranceKind
-  provider          String
-  policyName        String
-  policyNumberLast4 String?
-  insuredMemberIds  String[]      @default([])
-  premium           Decimal       @db.Decimal(14, 2)
-  currency          String        @default("CAD")
-  frequency         Frequency     @default(MONTHLY)
-  coverageAmount    Decimal?      @db.Decimal(14, 2)
-  renewalDate       DateTime?     @db.Date
-  expiryDate        DateTime?     @db.Date
-  beneficiary       String?
-  accountId         String?
-  vehicleId         String?
-  notes             String?
-  active            Boolean       @default(true)
-  createdAt         DateTime      @default(now()) @db.Timestamptz
-  updatedAt         DateTime      @updatedAt @db.Timestamptz
-  deletedAt         DateTime?     @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  kind                InsuranceKind
+  provider            String
+  policyName          String
+  policyNumberLast4   String?
+  insuredMemberIds    String[]         @default([])
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  premium             Decimal          @db.Decimal(14, 2)
+  currency            String           @default("CAD")
+  frequency           Frequency        @default(MONTHLY)
+  coverageAmount      Decimal?         @db.Decimal(14, 2)
+  renewalDate         DateTime?        @db.Date
+  expiryDate          DateTime?        @db.Date
+  beneficiary         String?
+  accountId           String?
+  vehicleId           String?
+  notes               String?
+  active              Boolean          @default(true)
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 
@@ -1909,29 +2024,33 @@ model InsurancePolicy {
 }
 
 model Debt {
-  id                 String    @id @default(cuid())
-  householdId        String
-  accountId          String    @unique
-  assetId            String?
-  ownerMemberId      String?
-  lender             String
-  type               DebtType
-  originalAmount     Decimal   @db.Decimal(14, 2)
-  interestRate       Decimal   @default(0) @db.Decimal(7, 4)
-  compoundingPerYear Int       @default(12)
-  minimumPayment     Decimal   @default(0) @db.Decimal(14, 2)
-  regularPayment     Decimal   @default(0) @db.Decimal(14, 2)
-  frequency          Frequency @default(MONTHLY)
-  nextDueDate        DateTime? @db.Date
-  termMonths         Int?
-  startDate          DateTime? @db.Date
-  maturityDate       DateTime? @db.Date
-  paymentAccountId   String?
-  notes              String?
-  active             Boolean   @default(true)
-  createdAt          DateTime  @default(now()) @db.Timestamptz
-  updatedAt          DateTime  @updatedAt @db.Timestamptz
-  deletedAt          DateTime? @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  accountId           String           @unique
+  assetId             String?
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  lender              String
+  type                DebtType
+  originalAmount      Decimal          @db.Decimal(14, 2)
+  interestRate        Decimal          @default(0) @db.Decimal(7, 4)
+  compoundingPerYear  Int              @default(12)
+  minimumPayment      Decimal          @default(0) @db.Decimal(14, 2)
+  regularPayment      Decimal          @default(0) @db.Decimal(14, 2)
+  frequency           Frequency        @default(MONTHLY)
+  nextDueDate         DateTime?        @db.Date
+  termMonths          Int?
+  startDate           DateTime?        @db.Date
+  maturityDate        DateTime?        @db.Date
+  paymentAccountId    String?
+  notes               String?
+  active              Boolean          @default(true)
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
   account   FinAccount    @relation(fields: [accountId], references: [id], onDelete: Restrict)
@@ -1948,6 +2067,7 @@ model DebtPayment {
   principal     Decimal   @db.Decimal(14, 2)
   interest      Decimal   @db.Decimal(14, 2)
   fromAccountId String?
+  memberId      String?
   note          String?
   createdAt     DateTime  @default(now()) @db.Timestamptz
   deletedAt     DateTime? @db.Timestamptz
@@ -1958,28 +2078,33 @@ model DebtPayment {
 }
 
 model SavingsGoal {
-  id                  String       @id @default(cuid())
+  id                  String           @id @default(cuid())
   householdId         String
   name                String
   description         String?
-  kind                GoalKind     @default(GENERAL_SAVINGS)
-  tracking            GoalTracking @default(CONTRIBUTIONS)
-  targetAmount        Decimal      @db.Decimal(14, 2)
-  startingAmount      Decimal      @default(0) @db.Decimal(14, 2)
-  currency            String       @default("CAD")
-  targetDate          DateTime?    @db.Date
-  monthlyContribution Decimal      @default(0) @db.Decimal(14, 2)
+  kind                GoalKind         @default(GENERAL_SAVINGS)
+  tracking            GoalTracking     @default(CONTRIBUTIONS)
+  targetAmount        Decimal          @db.Decimal(14, 2)
+  startingAmount      Decimal          @default(0) @db.Decimal(14, 2)
+  currency            String           @default("CAD")
+  targetDate          DateTime?        @db.Date
+  monthlyContribution Decimal          @default(0) @db.Decimal(14, 2)
   accountId           String?
   debtId              String?
   responsibleMemberId String?
-  assignedMemberIds   String[]     @default([])
-  priority            Int          @default(2)
-  status              GoalStatus   @default(ACTIVE)
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  assignedMemberIds   String[]         @default([])
+  priority            Int              @default(2)
+  status              GoalStatus       @default(ACTIVE)
   notes               String?
-  completedAt         DateTime?    @db.Date
-  createdAt           DateTime     @default(now()) @db.Timestamptz
-  updatedAt           DateTime     @updatedAt @db.Timestamptz
-  deletedAt           DateTime?    @db.Timestamptz
+  completedAt         DateTime?        @db.Date
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household     Household          @relation(fields: [householdId], references: [id], onDelete: Cascade)
   contributions GoalContribution[]
@@ -2049,22 +2174,26 @@ model InvestmentValuation {
 }
 
 model Asset {
-  id              String    @id @default(cuid())
-  householdId     String
-  ownerMemberId   String?
-  vehicleId       String?
-  name            String
-  kind            AssetKind
-  currency        String    @default("CAD")
-  currentValue    Decimal   @db.Decimal(14, 2)
-  valuationDate   DateTime  @db.Date
-  valuationSource String?
-  details         Json      @default("{}")
-  notes           String?
-  soldOn          DateTime? @db.Date
-  createdAt       DateTime  @default(now()) @db.Timestamptz
-  updatedAt       DateTime  @updatedAt @db.Timestamptz
-  deletedAt       DateTime? @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  vehicleId           String?
+  name                String
+  kind                AssetKind
+  currency            String           @default("CAD")
+  currentValue        Decimal          @db.Decimal(14, 2)
+  valuationDate       DateTime         @db.Date
+  valuationSource     String?
+  details             Json             @default("{}")
+  notes               String?
+  soldOn              DateTime?        @db.Date
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  updatedAt           DateTime         @updatedAt @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household  Household        @relation(fields: [householdId], references: [id], onDelete: Cascade)
   valuations AssetValuation[]
@@ -2086,18 +2215,22 @@ model AssetValuation {
 }
 
 model TaxRecord {
-  id          String        @id @default(cuid())
-  householdId String
-  memberId    String?
-  taxYear     Int
-  kind        TaxRecordKind
-  amount      Decimal       @db.Decimal(14, 2)
-  currency    String        @default("CAD")
-  date        DateTime?     @db.Date
-  description String?
-  notes       String?
-  createdAt   DateTime      @default(now()) @db.Timestamptz
-  deletedAt   DateTime?     @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(PERSONAL)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  taxYear             Int
+  kind                TaxRecordKind
+  amount              Decimal          @db.Decimal(14, 2)
+  currency            String           @default("CAD")
+  date                DateTime?        @db.Date
+  description         String?
+  notes               String?
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 
@@ -2160,6 +2293,7 @@ model FinScenario {
   householdId   String
   createdById   String?
   name          String
+  kind          String   @default("WHAT_IF")
   description   String?
   horizonMonths Int      @default(12)
   assumptions   Json     @default("[]")
@@ -2172,17 +2306,20 @@ model FinScenario {
 }
 
 model CalendarEvent {
-  id          String    @id @default(cuid())
-  householdId String
-  title       String
-  date        DateTime  @db.Date
-  endDate     DateTime? @db.Date
-  notes       String?
-  memberId    String?
-  completedAt DateTime? @db.Timestamptz
-  createdById String?
-  createdAt   DateTime  @default(now()) @db.Timestamptz
-  deletedAt   DateTime? @db.Timestamptz
+  id                  String           @id @default(cuid())
+  householdId         String
+  title               String
+  date                DateTime         @db.Date
+  endDate             DateTime?        @db.Date
+  notes               String?
+  ownerMemberId       String?
+  visibility          RecordVisibility @default(HOUSEHOLD)
+  sharedWithMemberIds String[]         @default([])
+  createdById         String?
+  updatedById         String?
+  completedAt         DateTime?        @db.Timestamptz
+  createdAt           DateTime         @default(now()) @db.Timestamptz
+  deletedAt           DateTime?        @db.Timestamptz
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 
