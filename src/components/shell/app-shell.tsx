@@ -26,6 +26,9 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   { title: "Vehicles", items: [{ href: "/vehicle-dashboard", label: "Vehicle overview", icon: LayoutDashboard }, { href: "/vehicles", label: "My vehicles", icon: Car }, { href: "/maintenance", label: "Maintenance", icon: Wrench }, { href: "/service-history", label: "Service history", icon: Gauge }, { href: "/repairs", label: "Repairs", icon: Hammer }, { href: "/parts", label: "Parts", icon: Package }, { href: "/reminders", label: "Reminders", icon: Bell }, { href: "/documents", label: "Vehicle documents", icon: FolderOpen }, { href: "/vehicle-costs", label: "Running costs", icon: Receipt }, { href: "/expenses", label: "Vehicle expenses", icon: Receipt }] },
 ];
 export const NAV = NAV_GROUPS.flatMap((g) => g.items);
+const VEHICLE_GROUP = "Vehicles";
+const VEHICLE_HREFS = NAV_GROUPS.filter((g) => g.title === VEHICLE_GROUP).flatMap((g) => g.items.map((i) => i.href));
+const FINANCE_HREFS = NAV_GROUPS.filter((g) => g.title !== VEHICLE_GROUP).flatMap((g) => g.items.map((i) => i.href));
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -84,6 +87,12 @@ function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   React.useEffect(() => setMore(false), [path]);
+  const [area, setArea] = React.useState<"finance" | "vehicles">(VEHICLE_HREFS.some((h) => isActive(path, h)) ? "vehicles" : "finance");
+  React.useEffect(() => {
+    // follow the page you are on; shared pages (settings, notifications, assistant) keep the current section
+    if (VEHICLE_HREFS.some((h) => isActive(path, h))) setArea("vehicles");
+    else if (FINANCE_HREFS.some((h) => isActive(path, h))) setArea("finance");
+  }, [path]);
   const tx = useTxDialog();
   const onboarding = path.startsWith("/onboarding");
   if (onboarding) return <div className="min-h-dvh bg-background">{children}</div>;
@@ -96,7 +105,14 @@ function Shell({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex" aria-label="Primary">
         <div className="px-5 pb-4 pt-6 text-white"><Logo /></div>
         <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Main navigation">
-          {NAV_GROUPS.map((g) => (
+          <div role="group" aria-label="Section" className="mx-1 mb-3 grid grid-cols-2 gap-1 rounded-lg bg-white/5 p-1">
+            {([["finance", "Finance", "/dashboard", LayoutDashboard], ["vehicles", "Vehicles", "/vehicle-dashboard", Car]] as const).map(([k, label, href, Icon]) => (
+              <Link key={k} href={href} aria-current={area === k ? "true" : undefined} className={cn("flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-semibold transition-colors", area === k ? "bg-white text-sidebar" : "text-white/70 hover:bg-white/10 hover:text-white")}>
+                <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
+              </Link>
+            ))}
+          </div>
+          {NAV_GROUPS.filter((g) => (g.title === VEHICLE_GROUP) === (area === "vehicles")).map((g) => (
             <div key={g.title} className="mb-3">
               <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-[0.18em] text-white/40">{g.title}</p>
               <div className="space-y-px">
