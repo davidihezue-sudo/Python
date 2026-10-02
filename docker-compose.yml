@@ -8,6 +8,8 @@ services:
       POSTGRES_USER: autovault
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autovault}
       POSTGRES_DB: autovault
+    # published on localhost so `npm run dev` / `npm start` on the host can reach it (set DB_PORT if 5432 is taken)
+    ports: ["127.0.0.1:${DB_PORT:-5432}:5432"]
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U autovault -d autovault"]
