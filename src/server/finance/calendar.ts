@@ -6,6 +6,7 @@ import { D, money } from "./engine/decimal";
 import { occurrences, type Frequency } from "./engine/frequency";
 import { addDays, addMonths } from "./engine/dates";
 import { sortObligations, type Obligation } from "./engine/obligations";
+import { vehicleObligations } from "./vehicles";
 import { dateIso, id, isoDate, optText, text, toDate } from "./common";
 import { metaView, newRecordMeta, requireVisible, requireWriter, updateRecordMeta, visibilityFields, visWhere, type FinCtx, type View } from "./access";
 import { billOccurrences } from "./bills";
@@ -48,6 +49,7 @@ export async function obligations(ctx: FinCtx, from: string, to: string, view: V
   }
   for (const r of rules) for (const d of occurrences(r.frequency as Frequency, dateIso(r.startDate)!, r.lastPostedOn ? addDays(dateIso(r.lastPostedOn)!, 1) > from ? addDays(dateIso(r.lastPostedOn)!, 1) : from : from, to, dateIso(r.endDate))) out.push({ key: `rec:${r.id}:${d}`, date: d, kind: "RECURRING", title: r.description, amount: money(r.amount), direction: r.type === "INCOME" ? "in" : r.type === "EXPENSE" ? "out" : "neutral", sourceType: "recurring", sourceId: r.id, ownerMemberId: r.ownerMemberId });
   for (const e of events) out.push({ key: `evt:${e.id}`, date: dateIso(e.date)!, kind: "CUSTOM", title: e.title, amount: null, direction: "neutral", sourceType: "event", sourceId: e.id, ownerMemberId: e.ownerMemberId, completed: !!e.completedAt, note: e.notes });
+  if (view !== "my") out.push(...((await vehicleObligations(ctx, from, to)) as Obligation[]));
   return sortObligations(out.filter((o) => o.date >= from && o.date <= to));
 }
 

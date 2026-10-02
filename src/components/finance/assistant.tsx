@@ -6,7 +6,7 @@ import { api, ApiError } from "@/lib/client/api";
 import { useFin } from "@/components/finance/provider";
 import { NeedsHousehold, Notice, PageHeader, Section, ViewSwitch } from "@/components/finance/ui";
 
-const EXAMPLES = ["How much did we spend on groceries last month?", "What are my top 5 expense categories this year?", "How much did I spend in September?", "What bills are due in the next 7 days?", "Can we afford a 600 dollar monthly payment?", "What is our net worth?", "How much have I paid toward shared costs?"];
+const EXAMPLES = ["How much did we spend on groceries last month?", "What are my top 5 expense categories this year?", "How much did I spend in September?", "What bills are due in the next 7 days?", "What did our cars cost this year?", "What maintenance is due on our vehicles?", "Can we afford a 600 dollar monthly payment?", "What is our net worth?", "How much have I paid toward shared costs?"];
 interface Msg { role: "user" | "assistant"; text: string; answer?: any }
 
 export function FinAssistant() {

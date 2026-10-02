@@ -24,7 +24,18 @@ Built for Canadian households (CAD, provinces, RRSP, TFSA, FHSA, RESP, CPP, EI, 
 | Assistant | Deterministic finance assistant that reads only what you are allowed to see. No external AI is required |
 | Alerts | In-app notifications and email for due bills, budgets, low balances, renewals, unusual spending |
 
-The repository also contains the earlier vehicle maintenance module (vehicles, service history, reminders). It remains available from the navigation and shares accounts and households.
+### Vehicles (the AutoVault module, integrated)
+
+Vehicle maintenance, service history, repairs, parts, fuel and reminders live in the same app and the same households. They connect to the finance side like this:
+
+- **Tag any expense with a vehicle** in the transaction form (fuel, insurance, repairs, parking). The ledger remains the single source of money, so a cost is counted once and follows the same Personal, Household and Selected members visibility rules.
+- **Running costs page** (Vehicles, Running costs): cost per vehicle by category and month, cost per kilometre or mile from odometer readings, next maintenance item and open repair issues.
+- **Money calendar and dashboard** show maintenance due dates and insurance, registration and inspection renewals next to bills and pay days.
+- **Net worth and insurance**: link a vehicle asset or an auto policy to the vehicle.
+- **Reports and assistant**: a "Vehicle running costs" report, and questions such as "What did our cars cost this year?" or "What maintenance is due?".
+- **Access** to a vehicle still uses the vehicle permission levels. You cannot tag a vehicle you cannot see, and a vehicle whose financials are hidden from you shows no costs.
+
+Costs entered in the older vehicle Expense records are not added to the ledger figures, so nothing is double counted. Use the ledger for money.
 
 ## Stack
 

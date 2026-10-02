@@ -6,7 +6,7 @@ import { Alert, Button, Checkbox, Field, Input, Select, Textarea } from "@/compo
 import { Modal } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/client/api";
 import { useFin, useFinMutation, useFinQuery } from "./provider";
-import { AccountSelect, CategorySelect, MemberSelect, VisibilityField, useAccounts, useMembers } from "./ui";
+import { AccountSelect, CategorySelect, MemberSelect, VehicleSelect, VisibilityField, useAccounts, useMembers, useVehicleOptions } from "./ui";
 
 export type TxKind = "EXPENSE" | "INCOME" | "REFUND" | "REIMBURSEMENT" | "TRANSFER";
 interface Preset { kind?: TxKind; accountId?: string; categoryId?: string; description?: string; amount?: string; id?: string; initial?: any }
@@ -40,12 +40,13 @@ const today = () => new Date().toISOString().slice(0, 10);
 export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose: () => void }) {
   const { profile, fmt } = useFin();
   const { members } = useMembers();
+  const vehicles = useVehicleOptions();
   const { accounts } = useAccounts();
   const editing = !!preset.id;
   const init = preset.initial;
   const [kind, setKind] = React.useState<TxKind>(init?.type ?? preset.kind ?? "EXPENSE");
   const [v, setV] = React.useState<Record<string, any>>(() => ({
-    accountId: init?.accountId ?? preset.accountId ?? "", toAccountId: "", amount: init ? String(Math.abs(Number(init.amount))) : preset.amount ?? "", toAmount: "", date: init?.date ?? profile?.today ?? today(), description: init?.description ?? preset.description ?? "", categoryId: init?.categoryId ?? preset.categoryId ?? "", merchant: init?.merchant ?? "", notes: init?.notes ?? "",
+    accountId: init?.accountId ?? preset.accountId ?? "", toAccountId: "", amount: init ? String(Math.abs(Number(init.amount))) : preset.amount ?? "", toAmount: "", date: init?.date ?? profile?.today ?? today(), description: init?.description ?? preset.description ?? "", categoryId: init?.categoryId ?? preset.categoryId ?? "", merchant: init?.merchant ?? "", vehicleId: init?.vehicleId ?? "", notes: init?.notes ?? "",
     status: init?.status ?? "POSTED", assignTo: "", payer: init ? (init.paidByHousehold ? "HOUSEHOLD" : init.payer?.id ?? "") : "", allocMode: init?.allocationMode ?? "", allocMember: init?.allocations?.[0]?.memberId ?? "", splitKind: init?.allocationMode === "SPLIT" ? (init.allocations.every((a: any) => a.percent && Number(a.percent) !== 100 && false) ? "percent" : "amount") : "equal",
     splits: init?.allocationMode === "SPLIT" ? init.allocations.map((a: any) => ({ memberId: a.memberId, percent: a.percent ?? "", amount: a.amount })) : [], visibility: init?.visibility ?? undefined, sharedWithMemberIds: init?.sharedWithMemberIds ?? [],
   }));
@@ -83,7 +84,7 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
       if (kind === "TRANSFER") {
         await create.mutateAsync({ __transfer: true, fromAccountId: v.accountId, toAccountId: v.toAccountId, amount: v.amount, ...(acct && toAcct && acct.currency !== toAcct.currency ? { toAmount: v.toAmount } : {}), date: v.date, description: v.description || "Transfer", notes: v.notes || undefined });
       } else {
-        const body: any = { type: kind, accountId: v.accountId, amount: v.amount, date: v.date, description: v.description, categoryId: v.categoryId || null, merchant: v.merchant || undefined, notes: v.notes || undefined, status: v.status, allocation: buildAllocation(), visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined, force: force || undefined };
+        const body: any = { type: kind, accountId: v.accountId, amount: v.amount, date: v.date, description: v.description, categoryId: v.categoryId || null, vehicleId: v.vehicleId || null, merchant: v.merchant || undefined, notes: v.notes || undefined, status: v.status, allocation: buildAllocation(), visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined, force: force || undefined };
         if (v.assignTo) body.assignToMemberId = v.assignTo;
         if (v.payer) body.payer = v.payer;
         if (editing) await patch.mutateAsync({ ...body, type: undefined, force: undefined });
@@ -129,6 +130,7 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
             <Field label="Description" required error={err("description")} className="sm:col-span-2">{(p) => <Input {...p} value={v.description} onChange={(e) => set("description", e.target.value)} placeholder={kind === "INCOME" ? "e.g. Salary" : "e.g. Supermarket"} />}</Field>
             <Field label={kind === "INCOME" ? "Deposited into" : "Paid from"} required error={err("accountId")}>{(p) => <AccountSelect id={p.id} value={v.accountId} onChange={(x) => set("accountId", x)} />}</Field>
             <Field label="Category" error={err("categoryId")}>{(p) => <CategorySelect id={p.id} value={v.categoryId} onChange={(x) => set("categoryId", x)} kind={kind === "INCOME" ? "INCOME" : "EXPENSE"} />}</Field>
+            {(kind === "EXPENSE" || kind === "REFUND") && (vehicles.data?.length ?? 0) > 0 && <Field label="Vehicle" hint="Optional. Counts toward that vehicle's running costs.">{(p) => <VehicleSelect id={p.id} value={v.vehicleId} onChange={(x) => set("vehicleId", x)} />}</Field>}
           </>
         )}
         {allocatable && (

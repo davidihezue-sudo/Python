@@ -4,12 +4,12 @@ import { Download, Filter, X } from "lucide-react";
 import { Button, Checkbox, Input, Select } from "@/components/ui/primitives";
 import { EmptyState } from "@/components/ui/empty";
 import { useFin, useFinMutation, useFinQuery } from "./provider";
-import { CategorySelect, DataTable, MemberChip, Money, VisibilityBadge, humanize, useAccounts, useMembers, type Col } from "./ui";
+import { CategorySelect, DataTable, MemberChip, Money, VisibilityBadge, humanize, useAccounts, useMembers, useVehicleOptions, type Col } from "./ui";
 import { TransactionDetail } from "./tx-detail";
 import { useTxDialog } from "./transaction-form";
 
-export interface TxFilters { view: string; q: string; types: string; accountId: string; categoryIds: string; member: string; from: string; to: string; minAmount: string; maxAmount: string; status: string; recurring: string; reconciliation: string; sort: string }
-export const emptyFilters = (over: Partial<TxFilters> = {}): TxFilters => ({ view: "all", q: "", types: "", accountId: "", categoryIds: "", member: "", from: "", to: "", minAmount: "", maxAmount: "", status: "", recurring: "", reconciliation: "", sort: "date_desc", ...over });
+export interface TxFilters { view: string; q: string; types: string; accountId: string; vehicleId: string; categoryIds: string; member: string; from: string; to: string; minAmount: string; maxAmount: string; status: string; recurring: string; reconciliation: string; sort: string }
+export const emptyFilters = (over: Partial<TxFilters> = {}): TxFilters => ({ view: "all", q: "", types: "", accountId: "", vehicleId: "", categoryIds: "", member: "", from: "", to: "", minAmount: "", maxAmount: "", status: "", recurring: "", reconciliation: "", sort: "date_desc", ...over });
 
 export function TransactionList({ initial, lockedTypes, showAdd = true, exportEntity = "transactions", focus }: { initial?: Partial<TxFilters>; lockedTypes?: string; showAdd?: boolean; exportEntity?: string; focus?: string | null }) {
   const { fmt, view: globalView, hid } = useFin();
@@ -21,6 +21,7 @@ export function TransactionList({ initial, lockedTypes, showAdd = true, exportEn
   const [bulkCat, setBulkCat] = React.useState("");
   const tx = useTxDialog();
   const { accounts } = useAccounts();
+  const vehicleOpts = useVehicleOptions();
   const { members } = useMembers();
   const set = (k: keyof TxFilters, v: string) => { setF((s) => ({ ...s, [k]: v })); setPage(1); };
   const params: Record<string, string | number> = { page, pageSize: 40, sort: f.sort };
@@ -57,6 +58,7 @@ export function TransactionList({ initial, lockedTypes, showAdd = true, exportEn
           {!lockedTypes && <label className="text-xs">Type<Select value={f.types} onChange={(e) => set("types", e.target.value)} className="mt-1 h-9"><option value="">All types</option>{["INCOME", "EXPENSE", "TRANSFER", "REFUND", "REIMBURSEMENT", "ADJUSTMENT", "SETTLEMENT"].map((t) => <option key={t} value={t}>{humanize(t)}</option>)}</Select></label>}
           <label className="text-xs">Category<div className="mt-1"><CategorySelect value={f.categoryIds} onChange={(v) => set("categoryIds", v)} includeNone="All categories" /></div></label>
           <label className="text-xs">Account<Select value={f.accountId} onChange={(e) => set("accountId", e.target.value)} className="mt-1 h-9"><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></label>
+          {(vehicleOpts.data?.length ?? 0) > 0 && <label className="text-xs">Vehicle<Select value={f.vehicleId} onChange={(e) => set("vehicleId", e.target.value)} className="mt-1 h-9"><option value="">All vehicles</option>{vehicleOpts.data!.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select></label>}
           <label className="text-xs">Member<Select value={f.member} onChange={(e) => set("member", e.target.value)} className="mt-1 h-9"><option value="">All members</option>{members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</Select></label>
           <label className="text-xs">Smallest amount<Input inputMode="decimal" value={f.minAmount} onChange={(e) => set("minAmount", e.target.value)} className="mt-1 h-9 text-right" /></label>
           <label className="text-xs">Largest amount<Input inputMode="decimal" value={f.maxAmount} onChange={(e) => set("maxAmount", e.target.value)} className="mt-1 h-9 text-right" /></label>

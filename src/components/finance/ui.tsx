@@ -132,6 +132,13 @@ export function useAccounts(view: FinView | "all" = "all") {
   const q = useFinQuery<{ items: any[]; totals: any }>("/accounts", { view });
   return { accounts: q.data?.items ?? [], totals: q.data?.totals, ...q };
 }
+export function useVehicleOptions() {
+  return useFinQuery<{ id: string; name: string }[]>("/vehicles/options");
+}
+export function VehicleSelect({ value, onChange, id, includeNone = "No vehicle" }: { value: string; onChange: (v: string) => void; id?: string; includeNone?: string }) {
+  const { data } = useVehicleOptions();
+  return <Select id={id} value={value} onChange={(e) => onChange(e.target.value)}><option value="">{includeNone}</option>{(data ?? []).map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</Select>;
+}
 export function useCategories() {
   const q = useFinQuery<any[]>("/categories");
   return { categories: q.data ?? [], ...q };
@@ -173,7 +180,7 @@ export const FREQ_OPTIONS: [string, string][] = [["WEEKLY", "Weekly"], ["BIWEEKL
 
 // ───── forms
 export type FieldDef = {
-  name: string; label: string; kind?: "text" | "money" | "number" | "date" | "select" | "textarea" | "checkbox" | "account" | "category" | "member" | "frequency";
+  name: string; label: string; kind?: "text" | "money" | "number" | "date" | "select" | "textarea" | "checkbox" | "account" | "category" | "member" | "frequency" | "vehicle";
   options?: [string, string][]; hint?: string; required?: boolean; show?: (v: any) => boolean; categoryKind?: "EXPENSE" | "INCOME"; half?: boolean; placeholder?: string; accountFilter?: (a: any) => boolean; includeNone?: string; step?: string; disabled?: boolean;
 };
 export function ControlFor({ f, v, set, id, extra }: { f: FieldDef; v: any; set: (x: any) => void; id: string; extra: Record<string, any> }) {
@@ -182,6 +189,7 @@ export function ControlFor({ f, v, set, id, extra }: { f: FieldDef; v: any; set:
   if (kind === "frequency") return <Select id={id} {...extra} value={v ?? "MONTHLY"} onChange={(e) => set(e.target.value)}>{FREQ_OPTIONS.map(([a, b]) => <option key={a} value={a}>{b}</option>)}</Select>;
   if (kind === "account") return <AccountSelect id={id} value={v ?? ""} onChange={set} filter={f.accountFilter} includeNone={f.includeNone} />;
   if (kind === "category") return <CategorySelect id={id} value={v ?? ""} onChange={set} kind={f.categoryKind} />;
+  if (kind === "vehicle") return <VehicleSelect id={id} value={v ?? ""} onChange={set} includeNone={f.includeNone} />;
   if (kind === "member") return <MemberSelect id={id} value={v ?? ""} onChange={set} includeNone={f.includeNone} />;
   if (kind === "textarea") return <Textarea id={id} {...extra} value={v ?? ""} onChange={(e) => set(e.target.value)} placeholder={f.placeholder} />;
   if (kind === "checkbox") return <Checkbox id={id} checked={!!v} onChange={(e) => set(e.target.checked)} label={f.hint ?? f.label} />;

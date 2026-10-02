@@ -20,7 +20,7 @@ export const outstanding = (amount: DecLike, paid: DecLike): DecT => {
   return r.isNegative() ? ZERO : r;
 };
 
-export type ObligationKind = "INCOME" | "BILL" | "MORTGAGE" | "LOAN" | "CREDIT_CARD" | "INSURANCE" | "INSURANCE_RENEWAL" | "SUBSCRIPTION" | "SAVINGS" | "GOAL" | "CUSTOM" | "RECURRING";
+export type ObligationKind = "INCOME" | "BILL" | "MORTGAGE" | "LOAN" | "CREDIT_CARD" | "INSURANCE" | "INSURANCE_RENEWAL" | "SUBSCRIPTION" | "SAVINGS" | "GOAL" | "CUSTOM" | "RECURRING" | "MAINTENANCE" | "VEHICLE_RENEWAL";
 export interface Obligation {
   key: string;
   date: IsoDate;

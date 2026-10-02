@@ -189,6 +189,7 @@ export async function listInsurance(ctx: FinCtx, view: View | "all" = "all") {
 }
 export async function createInsurance(ctx: FinCtx, input: z.infer<typeof insuranceSchema>) {
   requireWriter(ctx);
+  await (await import("./vehicles")).assertVehicleLink(ctx, input.vehicleId);
   if (input.accountId) await requireAccount(ctx, input.accountId);
   for (const m of input.insuredMemberIds) if (!ctx.members.some((x) => x.id === m)) throw new AppError("VALIDATION_ERROR", "Insured members must belong to this household");
   const p = await db.insurancePolicy.create({ data: { householdId: ctx.householdId, ...newRecordMeta(ctx, input, "other"), kind: input.kind, provider: input.provider, policyName: input.policyName, policyNumberLast4: input.policyNumberLast4 ?? null, insuredMemberIds: input.insuredMemberIds, premium: input.premium, currency: input.currency ?? ctx.base, frequency: input.frequency, coverageAmount: input.coverageAmount ?? null, renewalDate: input.renewalDate ? toDate(input.renewalDate) : null, expiryDate: input.expiryDate ? toDate(input.expiryDate) : null, beneficiary: input.beneficiary ?? null, accountId: input.accountId ?? null, vehicleId: input.vehicleId ?? null, notes: input.notes ?? null } });
@@ -198,6 +199,7 @@ export async function createInsurance(ctx: FinCtx, input: z.infer<typeof insuran
 export async function updateInsurance(ctx: FinCtx, polId: string, patch: z.infer<typeof insurancePatchSchema>) {
   requireWriter(ctx);
   const p = requireVisible(ctx, await db.insurancePolicy.findUnique({ where: { id: polId } }), "Policy", { write: true });
+  if (patch.vehicleId) await (await import("./vehicles")).assertVehicleLink(ctx, patch.vehicleId);
   const data: Record<string, unknown> = updateRecordMeta(ctx, p, patch, "other");
   for (const k of ["kind", "provider", "policyName", "policyNumberLast4", "insuredMemberIds", "premium", "currency", "frequency", "coverageAmount", "beneficiary", "accountId", "vehicleId", "notes", "active"] as const) if ((patch as Record<string, unknown>)[k] !== undefined) data[k] = (patch as Record<string, unknown>)[k];
   for (const k of ["renewalDate", "expiryDate"] as const) if (patch[k] !== undefined) data[k] = patch[k] ? toDate(patch[k] as string) : null;

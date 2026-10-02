@@ -103,6 +103,7 @@ export async function listAssets(ctx: FinCtx, view: View | "all" = "all") {
 }
 export async function createAsset(ctx: FinCtx, input: z.infer<typeof assetSchema>) {
   requireWriter(ctx);
+  await (await import("./vehicles")).assertVehicleLink(ctx, input.vehicleId);
   const date = input.valuationDate ?? ctx.today;
   const a = await db.asset.create({ data: { householdId: ctx.householdId, ...newRecordMeta(ctx, input, "other"), name: input.name, kind: input.kind, currency: input.currency ?? ctx.base, currentValue: input.currentValue, valuationDate: toDate(date), valuationSource: input.valuationSource ?? null, details: input.details, vehicleId: input.vehicleId ?? null, notes: input.notes ?? null, valuations: { create: { date: toDate(date), value: input.currentValue, source: input.valuationSource ?? null } } } });
   await audit(null, ctx.actor, { entity: "Asset", entityId: a.id, action: "create", householdId: ctx.householdId, after: { name: a.name, value: money(a.currentValue) } });
@@ -111,6 +112,7 @@ export async function createAsset(ctx: FinCtx, input: z.infer<typeof assetSchema
 export async function updateAsset(ctx: FinCtx, assetId: string, patch: z.infer<typeof assetPatchSchema>) {
   requireWriter(ctx);
   const a = requireVisible(ctx, await db.asset.findUnique({ where: { id: assetId } }), "Asset", { write: true });
+  if (patch.vehicleId) await (await import("./vehicles")).assertVehicleLink(ctx, patch.vehicleId);
   const data: Record<string, unknown> = updateRecordMeta(ctx, a, patch, "other");
   for (const k of ["name", "kind", "currency", "valuationSource", "details", "vehicleId", "notes"] as const) if ((patch as Record<string, unknown>)[k] !== undefined) data[k] = (patch as Record<string, unknown>)[k];
   if (patch.soldOn !== undefined) data.soldOn = patch.soldOn ? toDate(patch.soldOn) : null;

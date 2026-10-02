@@ -29,6 +29,7 @@ import * as R from "./reports";
 import * as Imp from "./imports";
 import * as Doc from "./documents";
 import * as As from "./assistant";
+import * as Veh from "./vehicles";
 import * as Demo from "./demo";
 import { analyticsQuery, getAnalytics, auditHistory, fxSchema, listFx, saveFx, deleteFx, exportMyData } from "./misc";
 import { renderReport, REPORT_FORMATS, type ReportFormat } from "../services/report-render";
@@ -183,6 +184,9 @@ export const ROUTES: Def[] = [
   { method: "GET", path: "/settlements", h: ({ ctx }) => Con.listSettlements(ctx) },
   { method: "POST", path: "/settlements", need: "write", body: Con.settlementSchema, status: 201, h: ({ ctx, body }) => Con.createSettlement(ctx, body) },
   { method: "DELETE", path: "/settlements/:id", need: "write", h: ({ ctx, params }) => Con.deleteSettlement(ctx, params.id) },
+  // ───── vehicles (cost of ownership from the ledger, maintenance from the vehicle module)
+  { method: "GET", path: "/vehicles/options", h: ({ ctx }) => Veh.vehicleOptions(ctx) },
+  { method: "GET", path: "/vehicles/overview", query: Veh.vehicleOverviewQuery, h: ({ ctx, query }) => Veh.vehicleOverview(ctx, query) },
   // ───── calendar, alerts
   { method: "GET", path: "/calendar", query: z.object({ from: isoDate, to: isoDate, view: z.enum(["my", "household", "all"]).default("all") }), h: ({ ctx, query }) => Cal.obligations(ctx, query.from, query.to, query.view) },
   { method: "GET", path: "/calendar/events", h: ({ ctx }) => Cal.listEvents(ctx) },

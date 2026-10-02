@@ -19,6 +19,7 @@ import { audit } from "../services/audit";
 import { csvList, currencyCode, dateIso, id, isoDate, moneyIn, optText, pageQ, posMoney, text, toDate } from "./common";
 import { canEdit, canSee, clampToAccount, memberRef, ownerFor, requireAccount, requireInHousehold, requireMember, requireVisible, requireWriter, resolveVisibility, visibilityFields, visWhere, type FinCtx, type View } from "./access";
 import { upsertMerchant } from "./categories";
+import { assertVehicleLink } from "./vehicles";
 
 export const TX_TYPES = ["INCOME", "EXPENSE", "REFUND", "REIMBURSEMENT", "ADJUSTMENT"] as const;
 const splitPart = z.object({ memberId: id.nullable(), percent: z.union([z.string(), z.number()]).optional(), amount: moneyIn.optional() });
@@ -50,7 +51,7 @@ export const txCreateSchema = z.object({
 export const txPatchSchema = z.object({
   amount: moneyIn.optional(), date: isoDate.optional(), postingDate: isoDate.nullish(), description: text(200).optional(), categoryId: id.nullish(), merchant: optText(100), notes: optText(2000),
   type: z.enum(["INCOME", "EXPENSE", "REFUND", "REIMBURSEMENT"]).optional(), accountId: id.optional(), status: z.enum(["POSTED", "PLANNED"]).optional(),
-  payer: z.string().max(40).nullish(), allocation: allocationSchema.optional(), assignToMemberId: id.nullish(), reconciliation: z.enum(["UNRECONCILED", "CLEARED", "RECONCILED"]).optional(), ...visibilityFields,
+  payer: z.string().max(40).nullish(), vehicleId: id.nullish(), allocation: allocationSchema.optional(), assignToMemberId: id.nullish(), reconciliation: z.enum(["UNRECONCILED", "CLEARED", "RECONCILED"]).optional(), ...visibilityFields,
 });
 export const transferSchema = z.object({ fromAccountId: id, toAccountId: id, amount: posMoney, toAmount: posMoney.optional(), date: isoDate, description: text(200).default("Transfer"), notes: optText(1000), idempotencyKey: z.string().max(80).nullish() });
 
@@ -98,7 +99,7 @@ export function txView(ctx: FinCtx, t: TxFull) {
   const amountAbs = D(t.amount).abs();
   const allocations = !hasAllocations(t.type) ? [] : t.allocationMode === "SPLIT" ? t.allocations.map((a) => ({ memberId: a.memberId, member: a.memberId ? memberRef(ctx, a.memberId) : null, amount: money(a.amount), percent: a.percent ? a.percent.toString() : null })) : t.allocationMode === "HOUSEHOLD" ? [{ memberId: null, member: null, amount: money(amountAbs), percent: "100" }] : [{ memberId: t.allocationMode === "MEMBER" ? t.allocatedMemberId : t.ownerMemberId, member: memberRef(ctx, t.allocationMode === "MEMBER" ? t.allocatedMemberId : t.ownerMemberId), amount: money(amountAbs), percent: "100" }];
   return {
-    id: t.id, date: dateIso(t.date), postingDate: dateIso(t.postingDate), description: t.description, amount: money(t.amount), type: t.type, status: t.status, currency: t.currency,
+    id: t.id, vehicleId: t.vehicleId, date: dateIso(t.date), postingDate: dateIso(t.postingDate), description: t.description, amount: money(t.amount), type: t.type, status: t.status, currency: t.currency,
     accountId: t.accountId, accountName: ctx.accountIds.has(t.accountId) ? t.account.name : "Private account", categoryId: t.categoryId, categoryName: t.category ? (t.category.parent ? `${t.category.parent.name} / ${t.category.name}` : t.category.name) : null,
     merchant: t.merchant?.name ?? null, notes: t.notes, owner: memberRef(ctx, t.ownerMemberId), payer: t.payerMemberId ? memberRef(ctx, t.payerMemberId) : null, paidByHousehold: !t.payerMemberId && hasAllocations(t.type),
     enteredBy: byUser(ctx, t.createdById), lastModifiedBy: byUser(ctx, t.updatedById), createdAt: t.createdAt.toISOString(), updatedAt: t.updatedAt.toISOString(), edited: t.updatedAt.getTime() - t.createdAt.getTime() > 1500,
@@ -108,7 +109,7 @@ export function txView(ctx: FinCtx, t: TxFull) {
 }
 
 export const txQuerySchema = z.object({
-  view: z.enum(["my", "household", "all"]).default("all"), member: id.optional(), from: isoDate.optional(), to: isoDate.optional(), types: csvList, categoryIds: csvList, accountId: id.optional(), merchant: z.string().max(100).optional(), q: z.string().max(100).optional(),
+  vehicleId: id.optional(), view: z.enum(["my", "household", "all"]).default("all"), member: id.optional(), from: isoDate.optional(), to: isoDate.optional(), types: csvList, categoryIds: csvList, accountId: id.optional(), merchant: z.string().max(100).optional(), q: z.string().max(100).optional(),
   minAmount: z.coerce.number().optional(), maxAmount: z.coerce.number().optional(), recurring: z.enum(["1", "0"]).optional(), status: z.enum(["POSTED", "PLANNED"]).optional(), reconciliation: z.enum(["UNRECONCILED", "CLEARED", "RECONCILED"]).optional(),
   sort: z.enum(["date_desc", "date_asc", "amount_desc", "amount_asc"]).default("date_desc"), ...pageQ,
 });
@@ -120,6 +121,7 @@ export async function txWhere(ctx: FinCtx, q: Partial<z.infer<typeof txQuerySche
     and.push({ categoryId: { in: kids.map((k) => k.id) } });
   }
   if (q.q) and.push({ OR: [{ description: { contains: q.q, mode: "insensitive" } }, { notes: { contains: q.q, mode: "insensitive" } }, { merchant: { name: { contains: q.q, mode: "insensitive" } } }] });
+  if (q.vehicleId) and.push({ vehicleId: q.vehicleId });
   if (q.merchant) and.push({ merchant: { name: { contains: q.merchant, mode: "insensitive" } } });
   if (q.minAmount !== undefined || q.maxAmount !== undefined) {
     // amounts are signed; compare magnitudes
@@ -189,6 +191,7 @@ export async function createTransaction(ctx: FinCtx, input: z.infer<typeof txCre
     }
   }
   await checkCategory(ctx, input.categoryId, input.type);
+  await assertVehicleLink(ctx, input.vehicleId);
   const owner = ownerFor(ctx, input.assignToMemberId);
   const signed = money(sign(input.type, input.amount));
   if (!input.force) {
@@ -276,6 +279,7 @@ export async function updateTransaction(ctx: FinCtx, txId: string, patch: z.infe
   if (mag.lte(0)) throw new AppError("VALIDATION_ERROR", "Enter an amount greater than zero");
   const signed = money(sign(type, mag.toFixed(2)));
   await checkCategory(ctx, patch.categoryId === undefined ? t.categoryId : patch.categoryId, type);
+  if (patch.vehicleId) await assertVehicleLink(ctx, patch.vehicleId);
   const owner = patch.assignToMemberId ? ownerFor(ctx, patch.assignToMemberId) : t.ownerMemberId;
   const joint = !accountRow.ownerMemberId;
   const payerId = patch.payer !== undefined ? resolvePayer(ctx, patch.payer, owner ?? ctx.me.id, joint) : t.payerMemberId;
@@ -295,7 +299,7 @@ export async function updateTransaction(ctx: FinCtx, txId: string, patch: z.infe
   await db.$transaction(async (tx) => {
     await tx.finTransaction.update({
       where: { id: t.id },
-      data: { type, amount: signed, ...(patch.date ? { date: toDate(patch.date) } : {}), ...(patch.postingDate !== undefined ? { postingDate: patch.postingDate ? toDate(patch.postingDate) : null } : {}), ...(patch.description ? { description: patch.description } : {}), ...(patch.notes !== undefined ? { notes: patch.notes } : {}), ...(patch.categoryId !== undefined ? { categoryId: patch.categoryId } : {}), ...(merchantId !== undefined ? { merchantId } : {}), ...(acct ? { accountId: acct.id } : {}), ...(patch.status ? { status: patch.status } : {}), ...(patch.reconciliation ? { reconciliation: patch.reconciliation } : {}), ownerMemberId: owner, payerMemberId: payerId, ...(alloc ? { allocationMode: alloc.mode, allocatedMemberId: alloc.allocatedMemberId } : {}), ...(vis ?? {}), updatedById: ctx.actor.id },
+      data: { type, amount: signed, ...(patch.vehicleId !== undefined ? { vehicleId: patch.vehicleId } : {}), ...(patch.date ? { date: toDate(patch.date) } : {}), ...(patch.postingDate !== undefined ? { postingDate: patch.postingDate ? toDate(patch.postingDate) : null } : {}), ...(patch.description ? { description: patch.description } : {}), ...(patch.notes !== undefined ? { notes: patch.notes } : {}), ...(patch.categoryId !== undefined ? { categoryId: patch.categoryId } : {}), ...(merchantId !== undefined ? { merchantId } : {}), ...(acct ? { accountId: acct.id } : {}), ...(patch.status ? { status: patch.status } : {}), ...(patch.reconciliation ? { reconciliation: patch.reconciliation } : {}), ownerMemberId: owner, payerMemberId: payerId, ...(alloc ? { allocationMode: alloc.mode, allocatedMemberId: alloc.allocatedMemberId } : {}), ...(vis ?? {}), updatedById: ctx.actor.id },
     });
     if (alloc) {
       await tx.transactionAllocation.deleteMany({ where: { transactionId: t.id } });

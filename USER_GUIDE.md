@@ -20,6 +20,9 @@ Household, Members, Invite by email. Choose Administrator (manages the household
 - **Refunds** and **reimbursements** reduce the category they refund. **Settlements** between members only move who owes whom.
 - Joint accounts belong to the household. Spending from them is household spending paid by nobody in particular.
 
+## 4a. Vehicles
+Add vehicles under Vehicles. When you record a fuel, insurance or repair expense, choose the vehicle in the form. Vehicles, Running costs then shows what each vehicle cost, the cost per kilometre, and the next maintenance due. Maintenance dates also appear on the Calendar and Dashboard. Only transactions you are allowed to see are counted.
+
 ## 5. Contributions and settling up
 Household, Contributions. Pick an arrangement (independent, shared equally, income based, fixed amounts, custom), see what each member paid, their share and the net position, then record a settlement when someone pays someone back.
 

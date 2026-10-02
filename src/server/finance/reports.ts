@@ -33,6 +33,7 @@ export const REPORT_TYPES = [
   { type: "member-contribution", label: "Household member contribution report", description: "Who paid, who it is allocated to, and positions." },
   { type: "member-comparison", label: "Member comparison", description: "A neutral side by side of shared contributions." },
   { type: "recurring-expenses", label: "Recurring expenses report", description: "Bills, subscriptions, insurance and recurring items." },
+  { type: "vehicle-costs", label: "Vehicle running costs", description: "What each vehicle cost, cost per distance, and what maintenance is due next." },
   { type: "transactions", label: "Transaction ledger", description: "Every transaction in the period." },
 ] as const;
 export type FinReportType = (typeof REPORT_TYPES)[number]["type"];
@@ -163,6 +164,15 @@ export async function buildFinanceReport(ctx: FinCtx, q: z.infer<typeof reportQu
       for (const x of i.items.filter((y) => y.active)) rep.rows.push({ kind: "Insurance", name: x.policyName, frequency: x.frequency.toLowerCase().replace(/_/g, "-"), amount: num(x.premium), monthly: num(x.monthlyCost), owner: x.owner?.name ?? "Joint", next: x.renewalDate });
       for (const x of r.filter((y) => y.active && y.type === "EXPENSE")) rep.rows.push({ kind: "Recurring", name: x.description, frequency: x.frequency.toLowerCase().replace(/_/g, "-"), amount: num(x.amount), monthly: null, owner: x.owner?.name ?? "Joint", next: x.nextDate });
       rep.summary.push({ label: "Monthly equivalent (bills, subscriptions, insurance)", value: Number(rep.rows.reduce((a, x) => a + (Number(x.monthly) || 0), 0).toFixed(2)) });
+      break;
+    }
+    case "vehicle-costs": {
+      const { vehicleOverview } = await import("./vehicles");
+      const o = await vehicleOverview(ctx, { view, from, to });
+      rep.columns = [col("vehicle", "Vehicle"), col("cost", "Running cost", M), col("count", "Transactions", { format: "number", align: "right" }), col("distance", `Distance driven (${o.distanceUnit === "MI" ? "mi" : "km"})`, { format: "number", align: "right" }), col("perDistance", `Cost per ${o.distanceUnit === "MI" ? "mile" : "km"}`, M), col("next", "Next maintenance"), col("overdue", "Overdue items", { format: "number", align: "right" })];
+      for (const v of o.vehicles) rep.rows.push({ vehicle: v.name, cost: v.costs ? num(v.costs.total) : null, count: v.costs ? v.costs.transactions : null, distance: v.costs?.distanceDriven ?? null, perDistance: v.costs?.costPerDistance ? num(v.costs.costPerDistance) : null, next: v.nextService ? `${v.nextService.name}: ${v.nextService.summary}` : "", overdue: v.overdueCount });
+      rep.summary.push({ label: "Total running cost", value: num(o.totalCost) as number });
+      rep.notes.push(...o.notes);
       break;
     }
     case "transactions": {

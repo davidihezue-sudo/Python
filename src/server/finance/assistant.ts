@@ -51,6 +51,22 @@ export async function ask(ctx: FinCtx, input: z.infer<typeof askSchema>): Promis
   const mk = (a: Partial<Answer> & Pick<Answer, "answer" | "explanation" | "figures">): Answer => ({ period: null, view, kind: "actual", note: scopeNote, ...a });
   const cur = ctx.base;
 
+  // 0. vehicles: running costs from the ledger, next maintenance from the vehicle module
+  if (/\b(vehicle|vehicles|car|cars|truck|van|motorcycle|bike|civic|maintenance|oil change|service due)\b/.test(q) || /\bnext service\b/.test(q)) {
+    const { vehicleOverview } = await import("./vehicles");
+    const o = await vehicleOverview(ctx, { view, from: period.from, to: period.to });
+    if (o.vehicles.length) {
+      const named = o.vehicles.filter((v) => q.includes(v.name.toLowerCase()) || q.includes(`${v.make} ${v.model}`.toLowerCase()) || q.includes(v.model.toLowerCase()));
+      const pick = named.length ? named : o.vehicles;
+      if (/maintenance|service|oil change|due|next|overdue/.test(q)) {
+        const lines = pick.map((v) => `${v.name}: ${v.nextService ? `${v.nextService.name}, ${v.nextService.summary}` : "no maintenance due date recorded"}${v.overdueCount ? ` (${v.overdueCount} overdue)` : ""}`);
+        return mk({ answer: lines.join(". ") + ".", explanation: "Read from each vehicle's maintenance schedule and odometer history in the vehicle module.", figures: pick.map((v) => ({ label: `${v.name} overdue items`, value: String(v.overdueCount), kind: "actual" as const })), note: "Maintenance intervals are suggestions unless you entered a manufacturer interval." });
+      }
+      const withCost = pick.filter((v) => v.costs);
+      const total = withCost.reduce((a, v) => a.plus(D((v.costs as { total: string }).total)), ZERO);
+      return mk({ period, answer: withCost.length ? `${withCost.map((v) => `${v.name} cost ${(v.costs as { total: string }).total} ${cur}`).join(", ")} in ${period.label}${withCost.length > 1 ? ` (${money(total)} ${cur} together)` : ""}.` : "Costs for your vehicles are hidden from you or none are recorded.", explanation: "Adds the ledger transactions tagged with the vehicle (fuel, insurance, repairs and so on), net of refunds, counted once.", figures: withCost.map((v) => ({ label: v.name, value: `${(v.costs as { total: string }).total} ${cur}`, kind: "actual" as const })), note: "Tag a transaction with a vehicle to include it. " + scopeNote });
+    }
+  }
   // 1. top categories
   if (/(top|largest|biggest|main)\s*(\d+|one|two|three|four|five|six|seven|eight|nine|ten)?\s*(expense )?categor/.test(q)) {
     const nMatch = /(\d+|one|two|three|four|five|six|seven|eight|nine|ten)/.exec(q.replace(/.*(top|largest|biggest|main)/, ""));

@@ -7,7 +7,7 @@ import { Modal } from "@/components/ui/dialog";
 import { useConfirm } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { useFin, useFinMutation, useFinQuery } from "./provider";
-import { MemberChip, Money, StatusBadge, VisibilityBadge, humanize } from "./ui";
+import { MemberChip, Money, StatusBadge, VisibilityBadge, humanize, useVehicleOptions } from "./ui";
 import { useTxDialog } from "./transaction-form";
 
 export function TransactionDetail({ id, onClose }: { id: string; onClose: () => void }) {
@@ -15,6 +15,7 @@ export function TransactionDetail({ id, onClose }: { id: string; onClose: () => 
   const tx = useTxDialog();
   const confirm = useConfirm();
   const { toast } = useToast();
+  const vehicleOpts = useVehicleOptions();
   const { data: t, isLoading, error, refetch } = useFinQuery<any>(`/transactions/${id}`);
   const del = useFinMutation<void, any>("DELETE", `/transactions/${id}`, { success: "Deleted", onSuccess: onClose });
   const dup = useFinMutation<any, any>("POST", `/transactions/${id}/duplicate`, { success: "Duplicated with today's date", onSuccess: onClose });
@@ -46,6 +47,7 @@ export function TransactionDetail({ id, onClose }: { id: string; onClose: () => 
           <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
             <Row k="Category" v={t.categoryName ?? "Uncategorised"} />
             <Row k="Merchant" v={t.merchant ?? "n/a"} />
+            {t.vehicleId && <Row k="Vehicle" v={vehicleOpts.data?.find((x) => x.id === t.vehicleId)?.name ?? "A vehicle you cannot see"} />}
             <Row k="Owner" v={<MemberChip member={t.owner} />} hint="Whose record this is" />
             <Row k="Paid by" v={t.paidByHousehold ? "The household (joint account)" : <MemberChip member={t.payer} fallback="n/a" />} hint="Who actually paid" />
             <Row k="Entered by" v={<MemberChip member={t.enteredBy} fallback="n/a" />} hint={`on ${fmt.date(t.createdAt)}`} />

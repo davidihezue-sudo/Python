@@ -20,6 +20,7 @@ Query parameter `view` is `my`, `household` (or `all` where noted). Dates are `Y
 | Planning | `GET /forecast`, `POST /scenarios/run`, `/scenarios`, `POST /planner/mortgage`, `/planner/mortgage/compare`, `/planner/affordability`, `/planner/down-payment`, `/planner/saved` |
 | Contributions | `GET /contributions`, `POST /contributions/preview`, `/contributions/rules`, `/settlements`, `GET /comparison` |
 | Tax | `/tax/records`, `GET /tax/summary?year=`, `GET,PUT /tax/rules` (PUT admin) |
+| Vehicles | `GET /vehicles/options`, `GET /vehicles/overview?view=&from=&to=` (costs from tagged ledger rows plus maintenance status). Transactions accept `vehicleId` and `GET /transactions?vehicleId=` filters by it |
 | Insight | `GET /dashboard`, `GET /analytics`, `GET /calendar`, `/calendar/events`, `GET /alerts`, `POST /alerts/refresh`, `/alert-settings` |
 | Reports and data | `GET /reports`, `GET /reports/run?type=&format=pdf|xlsx|csv|json`, `GET /export/:entity`, `GET /export-all`, `/import/preview`, `/import/analyze`, `/import/commit`, `/import/batches`, `POST /import/batches/:id/undo` |
 | Documents | `GET,POST /documents` (multipart), `DELETE /documents/:id`; download through `/api/documents/:id/file` |

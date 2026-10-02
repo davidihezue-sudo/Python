@@ -7,7 +7,7 @@ import { useFin, useFinMutation, useFinQuery } from "@/components/finance/provid
 import { Add, FormModal, NeedsHousehold, PageHeader, Section, ViewNote, humanize, type FieldDef } from "@/components/finance/ui";
 import { addDays, addMonths } from "@/lib/dates";
 
-const KIND_LABEL: Record<string, string> = { INCOME: "Income", BILL: "Bill", SUBSCRIPTION: "Subscription", INSURANCE: "Insurance premium", INSURANCE_RENEWAL: "Insurance renewal", MORTGAGE: "Mortgage", LOAN: "Loan payment", CREDIT_CARD: "Credit card payment", GOAL: "Savings contribution", RECURRING: "Recurring", CUSTOM: "Event" };
+const KIND_LABEL: Record<string, string> = { INCOME: "Income", BILL: "Bill", SUBSCRIPTION: "Subscription", INSURANCE: "Insurance premium", INSURANCE_RENEWAL: "Insurance renewal", MORTGAGE: "Mortgage", LOAN: "Loan payment", CREDIT_CARD: "Credit card payment", GOAL: "Savings contribution", RECURRING: "Recurring", CUSTOM: "Event", MAINTENANCE: "Maintenance", VEHICLE_RENEWAL: "Vehicle renewal" };
 
 export default function CalendarPage() {
   return <NeedsHousehold><Inner /></NeedsHousehold>;

@@ -26,6 +26,7 @@ function Inner() {
   const fields: FieldDef[] = [
     { name: "name", label: "Name", required: true },
     { name: "kind", label: "Kind", kind: "select", options: [["PROPERTY", "Property"], ["VEHICLE", "Vehicle"], ["VALUABLE", "Valuable item"], ["OTHER", "Other"]], half: true },
+    { name: "vehicleId", label: "Linked vehicle", kind: "vehicle", includeNone: "None", half: true, show: (v) => v.kind === "VEHICLE" },
     { name: "currentValue", label: "Current value", kind: "money", required: true, half: true },
     { name: "valuationDate", label: "Valuation date", kind: "date", half: true },
     { name: "valuationSource", label: "Valuation source", half: true, placeholder: "e.g. appraisal, online estimate" },
@@ -81,7 +82,7 @@ function Inner() {
       </Section>
       <FormModal open={!!edit} onClose={() => setEdit(null)} title={edit === "new" ? "Add an asset" : `Edit ${edit?.name ?? ""}`} fields={fields} visibility size="lg" initial={edit && edit !== "new" ? { ...edit, ...(edit.details ?? {}) } : { kind: "PROPERTY", valuationDate: new Date().toISOString().slice(0, 10) }}
         footerExtra={edit && edit !== "new" && edit.canEdit ? <Button variant="ghost" className="mr-auto text-danger" onClick={async () => { if (await confirm({ title: "Remove this asset?", confirmLabel: "Remove", tone: "danger" })) { del.mutate({ id: edit.id }); setEdit(null); } }}>Remove</Button> : undefined}
-        onSubmit={(v) => { const details: any = { address: v.address || undefined, purchasePrice: v.purchasePrice || undefined, purchaseDate: v.purchaseDate || undefined, annualPropertyTax: v.annualPropertyTax || undefined }; const body: any = { name: v.name, kind: v.kind, details, notes: v.notes || null, valuationSource: v.valuationSource || null, visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined }; return edit === "new" ? create.mutateAsync({ ...body, currentValue: v.currentValue, valuationDate: v.valuationDate || undefined }) : upd.mutateAsync({ id: edit.id, ...body }); }} />
+        onSubmit={(v) => { const details: any = { address: v.address || undefined, purchasePrice: v.purchasePrice || undefined, purchaseDate: v.purchaseDate || undefined, annualPropertyTax: v.annualPropertyTax || undefined }; const body: any = { name: v.name, kind: v.kind, vehicleId: v.kind === "VEHICLE" ? v.vehicleId || null : null, details, notes: v.notes || null, valuationSource: v.valuationSource || null, visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined }; return edit === "new" ? create.mutateAsync({ ...body, currentValue: v.currentValue, valuationDate: v.valuationDate || undefined }) : upd.mutateAsync({ id: edit.id, ...body }); }} />
       <FormModal open={!!val} onClose={() => setVal(null)} title={`Update value: ${val?.name ?? ""}`} fields={[{ name: "value", label: "New value", kind: "money", required: true, half: true }, { name: "date", label: "Valuation date", kind: "date", required: true, half: true }, { name: "source", label: "Source", placeholder: "e.g. appraisal, listing, guide" }]} initial={{ value: val?.currentValue ?? "", date: new Date().toISOString().slice(0, 10), source: "" }} onSubmit={(v) => addVal.mutateAsync({ id: val.id, value: v.value, date: v.date, source: v.source || null })} />
     </div>
   );

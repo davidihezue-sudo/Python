@@ -169,6 +169,8 @@ function Dashboard() {
           </div>
           {d.contributions && <Section title="Upcoming obligations" description="The next 30 days" action={<Link href="/calendar" className="text-sm text-primary hover:underline">Calendar</Link>}><Upcoming items={d.upcoming} /></Section>}
 
+          <VehiclesCard />
+
           <Section title="Recent transactions" description="Select one to see who entered it, who paid, and how it is allocated." action={<Add label="Add" onClick={() => tx.open()} />} flush>
             {d.recent.length === 0 ? <div className="p-5"><EmptyState title="No transactions yet" description="Add your first transaction or import a CSV file from your bank." action={<Link href="/import" className="rounded-md border border-border px-3 py-2 text-sm">Import a CSV</Link>} /></div> : (
               <ul className="divide-y divide-border">
@@ -215,12 +217,32 @@ function Upcoming({ items }: { items: any[] }) {
   return (
     <ol className="divide-y divide-border">
       {items.map((o) => (
-        <li key={o.key} className="grid grid-cols-[4.5rem_1fr_auto] items-center gap-3 py-2.5 text-sm">
+        <li key={o.key} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-2.5 text-sm">
           <span className="text-xs text-muted-foreground">{fmt.date(o.date)}</span>
           <span className="min-w-0 truncate">{o.title} <span className="text-xs text-muted-foreground">{humanize(o.kind)}</span></span>
           <span className="flex items-center gap-2">{o.status && o.status !== "UPCOMING" && <StatusBadge status={o.status} />}<span className="money">{o.amount ? fmt.money(o.amount) : ""}</span></span>
         </li>
       ))}
     </ol>
+  );
+}
+
+function VehiclesCard() {
+  const { fmt, view, profile } = useFin();
+  const year = (profile?.today ?? new Date().toISOString()).slice(0, 4);
+  const { data } = useFinQuery<any>("/vehicles/overview", { view: view === "my" ? "my" : "household", from: `${year}-01-01`, to: profile?.today });
+  if (!data || data.vehicles.length === 0) return null;
+  return (
+    <Section title="Vehicles" description={`Running costs since 1 January and what each needs next`} action={<Link href="/vehicle-costs" className="text-sm text-primary hover:underline">Running costs</Link>}>
+      <ul className="divide-y divide-border">
+        {data.vehicles.map((v: any) => (
+          <li key={v.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm">
+            <span className="font-medium">{v.name}</span>
+            <span className="text-muted-foreground">{v.nextService ? `${v.nextService.name}: ${v.nextService.summary}` : "No maintenance due date yet"}{v.overdueCount > 0 ? ` (${v.overdueCount} overdue)` : ""}</span>
+            <span className="money">{v.costs ? fmt.money(v.costs.total) : "Hidden"}</span>
+          </li>
+        ))}
+      </ul>
+    </Section>
   );
 }

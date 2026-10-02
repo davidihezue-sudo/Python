@@ -236,6 +236,31 @@ export async function populateDemoData(ctx: FinCtx, partnerMemberId: string) {
   await createEvent(ctx, eventSchema.parse({ title: "Review the household budget together", date: addDays(ctx.today, 6), notes: "Illustrative reminder" }));
   await db.householdMember.update({ where: { id: partner }, data: { responsibilities: "Utilities and insurance" } });
   await db.householdMember.update({ where: { id: me }, data: { responsibilities: "Mortgage, savings and investments" } });
+  // ───── a demo vehicle: odometer history and a maintenance checklist from the vehicle module, with ledger costs tagged to it
+  {
+    const { createVehicle } = await import("../services/vehicles");
+    const { addReading } = await import("../services/odometer");
+    const { applyLibraryForActor } = await import("../services/schedules");
+    const { vehicleCreateSchema } = await import("@/lib/validation");
+    const { id: vid } = await createVehicle(ctx.actor, vehicleCreateSchema.parse({ householdId: ctx.householdId, nickname: "Family SUV (demo)", make: "Demo", model: "SUV", year: 2020, trim: "Sample", fuelType: "PETROL", ownershipStatus: "FINANCED", currency: ctx.base, notes: "Sample vehicle created with the demo household." }));
+    await db.vehicle.update({ where: { id: vid }, data: { isDemo: true } });
+    let km = 61000;
+    const kmByMonthsAgo = new Map<number, number>();
+    for (let m = 11; m >= 0; m--) { km += Math.round(1150 + r() * 400); kmByMonthsAgo.set(m, km); await addReading(ctx.actor, vid, { date: addMonths(ctx.today, -m), valueKm: km, source: "MANUAL", confirmCorrection: false }); }
+    await applyLibraryForActor(ctx.actor, vid);
+    // a few real service records, so the checklist has genuine due dates (a vehicle with no history shows "unknown", never invented dates)
+    const { createRecord } = await import("../services/records");
+    const { evaluateVehicleSchedules } = await import("../services/schedules");
+    const items = (await evaluateVehicleSchedules(vid, ctx.actor.prefs, true)).items;
+    const idOf = (n: string) => items.find((i) => i.name === n)?.id ?? null;
+    const service = async (monthsAgo: number, title: string, names: string[], labor: number, parts: number) => createRecord(ctx.actor, { vehicleId: vid, title, serviceDate: addMonths(ctx.today, -monthsAgo), odometerKm: kmByMonthsAgo.get(monthsAgo) ?? km, workPerformedBy: "INDEPENDENT_MECHANIC", providerName: "Sample Auto Service", laborCost: labor, partsCost: parts, tax: Math.round((labor + parts) * 5) / 100, discount: 0, status: "COMPLETED", kind: "MAINTENANCE", items: names.map((n) => ({ assignmentId: idOf(n), name: n, completed: true, quantity: 1, unitCost: 0, laborCost: 0, trackAsPart: false, categoryId: null })), allowDuplicate: false, confirmOdometerCorrection: false } as never);
+    await service(7, "Oil and filter change", ["Engine oil", "Oil filter"], 35, 55);
+    await service(9, "Tire rotation", ["Tire rotation"], 25, 0);
+    await service(11, "Brake fluid flush", ["Brake fluid"], 90, 18);
+    await db.finTransaction.updateMany({ where: { householdId: ctx.householdId, deletedAt: null, categoryId: { in: [C.fuel, C.carIns] } }, data: { vehicleId: vid } });
+    await db.asset.updateMany({ where: { householdId: ctx.householdId, kind: "VEHICLE", name: "Family SUV" }, data: { vehicleId: vid } });
+    await db.insurancePolicy.updateMany({ where: { householdId: ctx.householdId, kind: "VEHICLE" }, data: { vehicleId: vid } });
+  }
   await db.household.update({ where: { id: ctx.householdId }, data: { onboardedAt: new Date() } });
   return { transactions: futureSafe.length };
 }
