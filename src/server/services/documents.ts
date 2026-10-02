@@ -87,7 +87,7 @@ export async function uploadDocument(actor: Actor, file: { name: string; size: n
   if (declaredExt && !ALLOWED_TYPES[mime].ext.includes(declaredExt)) throw new AppError("UNSUPPORTED_MEDIA_TYPE", "The file extension does not match the file contents");
 
   let householdId: string;
-  let vehicleId: string | null = metaIn.vehicleId ?? null;
+  const vehicleId: string | null = metaIn.vehicleId ?? null;
   let fin = true;
   if (vehicleId) {
     const r = await requireVehicle(actor, vehicleId, "write");

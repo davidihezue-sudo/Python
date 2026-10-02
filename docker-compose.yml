@@ -1,0 +1,63 @@
+# Local / single-host deployment: web + background worker + PostgreSQL (+ optional MinIO S3 and Mailpit for development).
+# Usage:  cp .env.example .env  (edit secrets)  &&  docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: autovault
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autovault}
+      POSTGRES_DB: autovault
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autovault -d autovault"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://autovault:${POSTGRES_PASSWORD:-autovault}@db:5432/autovault?schema=public
+      NODE_ENV: production
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      STORAGE_LOCAL_DIR: /app/storage
+    ports: ["3000:3000"]
+    volumes: [uploads:/app/storage]
+    command: ["web"]
+
+  worker:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db: { condition: service_healthy }
+      web: { condition: service_started }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://autovault:${POSTGRES_PASSWORD:-autovault}@db:5432/autovault?schema=public
+      NODE_ENV: production
+      STORAGE_LOCAL_DIR: /app/storage
+    volumes: [uploads:/app/storage]
+    command: ["worker"]
+
+  # --- development extras (docker compose --profile dev up) ---
+  mailpit:
+    profiles: [dev]
+    image: axllent/mailpit
+    ports: ["8025:8025", "1025:1025"]
+  minio:
+    profiles: [dev]
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment: { MINIO_ROOT_USER: minioadmin, MINIO_ROOT_PASSWORD: minioadmin }
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+
+volumes:
+  pgdata:
+  uploads:
+  miniodata:

@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens (space-separated RGB so Tailwind can apply opacity). Deep charcoal / neutral grey / white with restrained blue. */
+:root {
+  --background: 246 247 249;
+  --foreground: 15 23 42;
+  --card: 255 255 255;
+  --card-foreground: 15 23 42;
+  --muted: 241 245 249;
+  --muted-foreground: 100 116 139;
+  --border: 226 232 240;
+  --input: 203 213 225;
+  --primary: 37 99 235;
+  --primary-foreground: 255 255 255;
+  --ring: 37 99 235;
+  --success: 22 128 61;
+  --warning: 180 83 9;
+  --danger: 220 38 38;
+  --info: 2 132 199;
+  --sidebar: 15 23 42;
+  --sidebar-foreground: 203 213 225;
+  --hero-from: 15 23 42;
+  --hero-to: 30 41 59;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: 11 15 20;
+    --foreground: 230 234 240;
+    --card: 18 24 31;
+    --card-foreground: 230 234 240;
+    --muted: 28 36 46;
+    --muted-foreground: 148 163 184;
+    --border: 38 48 60;
+    --input: 55 68 84;
+    --primary: 96 154 255;
+    --primary-foreground: 8 14 26;
+    --ring: 96 154 255;
+    --success: 74 222 128;
+    --warning: 251 191 36;
+    --danger: 248 113 113;
+    --info: 56 189 248;
+    --sidebar: 8 11 16;
+    --hero-from: 21 30 43;
+    --hero-to: 12 17 24;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --background: 11 15 20;
+  --foreground: 230 234 240;
+  --card: 18 24 31;
+  --card-foreground: 230 234 240;
+  --muted: 28 36 46;
+  --muted-foreground: 148 163 184;
+  --border: 38 48 60;
+  --input: 55 68 84;
+  --primary: 96 154 255;
+  --primary-foreground: 8 14 26;
+  --ring: 96 154 255;
+  --success: 74 222 128;
+  --warning: 251 191 36;
+  --danger: 248 113 113;
+  --info: 56 189 248;
+  --sidebar: 8 11 16;
+  --hero-from: 21 30 43;
+  --hero-to: 12 17 24;
+  color-scheme: dark;
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { @apply bg-background text-foreground antialiased; font-feature-settings: "cv02", "cv03", "cv04", "cv11"; }
+  :focus-visible { @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background; }
+  ::selection { background: rgb(var(--primary) / 0.25); }
+  input, select, textarea, button { font: inherit; }
+  dialog { color: inherit; }
+  dialog::backdrop { background: rgb(2 6 12 / 0.55); backdrop-filter: blur(2px); }
+}
+
+@layer components {
+  .hero-card { background: linear-gradient(135deg, rgb(var(--hero-from)), rgb(var(--hero-to))); @apply text-white; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .safe-bottom { padding-bottom: max(0.5rem, env(safe-area-inset-bottom)); }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .skeleton { @apply relative overflow-hidden rounded-md bg-muted; }
+  .skeleton::after { content: ""; @apply absolute inset-0 -translate-x-full animate-shimmer; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

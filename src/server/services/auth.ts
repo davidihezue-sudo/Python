@@ -131,7 +131,7 @@ export async function changePassword(actor: Actor, input: z.infer<typeof changeP
 export async function loginWithGoogle(profile: { sub: string; email: string; emailVerified: boolean; name: string }, meta: { ip?: string | null; userAgent?: string | null }) {
   if (!profile.emailVerified) throw new AppError("FORBIDDEN", "Your Google account's email address is not verified");
   const email = profile.email.toLowerCase();
-  let account = await db.account.findUnique({ where: { provider_providerAccountId: { provider: "google", providerAccountId: profile.sub } }, include: { user: { include: { preference: true } } } });
+  const account = await db.account.findUnique({ where: { provider_providerAccountId: { provider: "google", providerAccountId: profile.sub } }, include: { user: { include: { preference: true } } } });
   let user: (User & { preference: any }) | null = account?.user ?? null;
   if (!user) {
     const byEmail = await db.user.findUnique({ where: { email }, include: { preference: true } });

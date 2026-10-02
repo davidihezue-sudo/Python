@@ -1,0 +1,40 @@
+name: CI
+on:
+  push: { branches: [main, "claude/**"] }
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: autovault, POSTGRES_PASSWORD: autovault, POSTGRES_DB: autovault_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U autovault" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://autovault:autovault@localhost:5432/autovault_test?schema=public
+      AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-0123
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test:unit
+      - name: Create test databases
+        run: |
+          PGPASSWORD=autovault psql -h localhost -U autovault -d postgres -c "CREATE DATABASE autovault_e2e"
+      - run: npm run test:integration
+      - run: npm run build
+        env: { AUTH_SECRET: ci-secret-ci-secret-ci-secret-ci-secret-0123 }
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env: { CI: "true" }
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-traces, path: test-results }
