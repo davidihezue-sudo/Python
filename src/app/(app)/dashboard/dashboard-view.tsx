@@ -80,7 +80,7 @@ export function DashboardView() {
         )}
       </section>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3 [&>*]:min-w-0">
         {/* Vehicle health */}
         <Card className="lg:col-span-2">
           <CardHeader title="Vehicle health overview" description={k?.health ? (k.health.score === null ? "Maintenance condition: insufficient recorded data to estimate" : `Household maintenance condition ${k.health.score}/100 - ${k.health.label} (based on ${k.health.known} schedules with recorded history)`) : undefined} action={<Link href="/vehicles"><Button variant="ghost" size="sm">All vehicles <ArrowRight className="h-4 w-4" /></Button></Link>} />
@@ -128,7 +128,7 @@ export function DashboardView() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         {/* Upcoming */}
         <Card>
           <CardHeader title="Upcoming maintenance" description="Sorted by urgency, then due date" action={<Link href="/reminders"><Button variant="ghost" size="sm">All reminders</Button></Link>} />
@@ -173,7 +173,7 @@ export function DashboardView() {
       </div>
 
       {/* Expense analytics */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <ChartCard title="Monthly maintenance & repair spending" unit={ex?.currency} data={ex?.hasFinancialAccess === false ? [] : (ex?.byMonth ?? [])} loading={!ex} empty={ex?.hasFinancialAccess === false ? "Financial details aren't visible with your access level" : undefined} columns={[{ key: "month", label: "Month" }, { key: "maintenance", label: "Maintenance" }, { key: "repairs", label: "Repairs" }, { key: "other", label: "Other" }]}>
           <StackedBars data={ex?.byMonth ?? []} xKey="month" series={[{ key: "maintenance", label: "Maintenance" }, { key: "repairs", label: "Repairs" }, { key: "other", label: "Other" }]} fmt={(v) => f.money(v, ex?.currency)} />
         </ChartCard>
@@ -202,7 +202,7 @@ export function DashboardView() {
         </Card>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         <Card>
           <CardHeader title="Recent service activity" action={<Link href="/service-history"><Button variant="ghost" size="sm">History</Button></Link>} />
           <CardBody>

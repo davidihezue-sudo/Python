@@ -28,8 +28,12 @@ export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
 export const NAV = NAV_GROUPS.flatMap((g) => g.items);
 const VEHICLE_GROUP = "Vehicles";
 const VEHICLE_HREFS = NAV_GROUPS.filter((g) => g.title === VEHICLE_GROUP).flatMap((g) => g.items.map((i) => i.href));
+/** Pages that exist once but are useful from both sections. In the Vehicles section they are listed under Tools. */
+const VEHICLE_EXTRA: NavItem[] = [{ href: "/reports?tab=vehicles", label: "Vehicle reports", icon: BarChart3 }, { href: "/assistant", label: "Assistant", icon: Sparkles }, { href: "/notifications", label: "Notifications", icon: Bell }];
+type Area = "finance" | "vehicles";
+export const areaGroups = (area: Area) => (area === "vehicles" ? [...NAV_GROUPS.filter((g) => g.title === VEHICLE_GROUP), { title: "Tools", items: VEHICLE_EXTRA }] : NAV_GROUPS.filter((g) => g.title !== VEHICLE_GROUP));
 const FINANCE_HREFS = NAV_GROUPS.filter((g) => g.title !== VEHICLE_GROUP).flatMap((g) => g.items.map((i) => i.href));
-const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
+const isActive = (path: string, href: string) => { const h = href.split("?")[0]; return path === h || path.startsWith(h + "/"); };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -42,6 +46,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </FinProvider>
       </QuickAddProvider>
     </VehicleProvider>
+  );
+}
+
+/** Finance | Vehicles. Sits in the desktop menu and the phone's bottom bar; both read the same `area`, so the whole app stays in sync. */
+function AreaSwitch({ area, variant }: { area: Area; variant: "sidebar" | "bar" }) {
+  const items = [["finance", "Finance", "/dashboard", LayoutDashboard], ["vehicles", "Vehicles", "/vehicle-dashboard", Car]] as const;
+  return (
+    <div role="group" aria-label="Section" className={cn("grid grid-cols-2 gap-1 rounded-lg p-1", variant === "sidebar" ? "mx-1 mb-3 bg-white/5" : "mx-3 mb-1 bg-muted")}>
+      {items.map(([k, label, href, Icon]) => (
+        <Link key={k} href={href} aria-current={area === k ? "true" : undefined} className={cn("flex items-center justify-center gap-1.5 rounded-md px-2 text-[13px] font-semibold transition-colors", variant === "sidebar" ? "py-1.5" : "min-h-[34px]", area === k ? (variant === "sidebar" ? "bg-white text-sidebar" : "bg-primary text-primary-foreground shadow-sm") : variant === "sidebar" ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-muted-foreground")}>
+          <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
+        </Link>
+      ))}
+    </div>
   );
 }
 
@@ -87,13 +105,21 @@ function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   React.useEffect(() => setMore(false), [path]);
-  const [area, setArea] = React.useState<"finance" | "vehicles">(VEHICLE_HREFS.some((h) => isActive(path, h)) ? "vehicles" : "finance");
+  const [area, setArea] = React.useState<Area>(VEHICLE_HREFS.some((h) => isActive(path, h)) ? "vehicles" : "finance");
   React.useEffect(() => {
-    // follow the page you are on; shared pages (settings, notifications, assistant) keep the current section
-    if (VEHICLE_HREFS.some((h) => isActive(path, h))) setArea("vehicles");
-    else if (FINANCE_HREFS.some((h) => isActive(path, h))) setArea("finance");
+    // follow the page you are on; shared pages (settings, notifications, assistant) keep the section you last used, even after a reload
+    let next: Area | null = VEHICLE_HREFS.some((h) => isActive(path, h)) ? "vehicles" : FINANCE_HREFS.some((h) => isActive(path, h)) ? "finance" : null;
+    if (!next) {
+      try { const v = localStorage.getItem("ffh:area"); if (v === "vehicles" || v === "finance") next = v; } catch { /* storage unavailable */ }
+    }
+    if (next) {
+      setArea(next);
+      try { localStorage.setItem("ffh:area", next); } catch { /* storage unavailable */ }
+    }
   }, [path]);
   const tx = useTxDialog();
+  const quick = useQuickAdd();
+  const [addVehicle, setAddVehicle] = React.useState(false);
   const onboarding = path.startsWith("/onboarding");
   if (onboarding) return <div className="min-h-dvh bg-background">{children}</div>;
 
@@ -105,14 +131,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex" aria-label="Primary">
         <div className="px-5 pb-4 pt-6 text-white"><Logo /></div>
         <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Main navigation">
-          <div role="group" aria-label="Section" className="mx-1 mb-3 grid grid-cols-2 gap-1 rounded-lg bg-white/5 p-1">
-            {([["finance", "Finance", "/dashboard", LayoutDashboard], ["vehicles", "Vehicles", "/vehicle-dashboard", Car]] as const).map(([k, label, href, Icon]) => (
-              <Link key={k} href={href} aria-current={area === k ? "true" : undefined} className={cn("flex items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-semibold transition-colors", area === k ? "bg-white text-sidebar" : "text-white/70 hover:bg-white/10 hover:text-white")}>
-                <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
-              </Link>
-            ))}
-          </div>
-          {NAV_GROUPS.filter((g) => (g.title === VEHICLE_GROUP) === (area === "vehicles")).map((g) => (
+          <AreaSwitch area={area} variant="sidebar" />
+          {areaGroups(area).map((g) => (
             <div key={g.title} className="mb-3">
               <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-[0.18em] text-white/40">{g.title}</p>
               <div className="space-y-px">
@@ -138,21 +158,37 @@ function Shell({ children }: { children: React.ReactNode }) {
         <TopBar onSearch={() => setSearchOpen(true)} />
         <OfflineBanner />
         {!me.emailVerified && <VerifyBanner />}
-        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-28 pt-6 outline-none sm:px-6 lg:pb-12">
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-36 pt-6 outline-none sm:px-6 lg:pb-12">
           {children}
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur lg:hidden safe-bottom" aria-label="Mobile navigation">
-        <ul className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pt-1.5">
-          <BottomLink href="/dashboard" label="Home" icon={LayoutDashboard} active={isActive(path, "/dashboard")} />
-          <BottomLink href="/transactions" label="Ledger" icon={ArrowLeftRight} active={isActive(path, "/transactions")} />
-          <li className="flex justify-center">
-            <button onClick={() => tx.open()} aria-label="Add a transaction" className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
-              <Plus className="h-7 w-7" />
-            </button>
-          </li>
-          <BottomLink href="/budgets" label="Budgets" icon={Wallet} active={isActive(path, "/budgets")} />
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pt-1.5 backdrop-blur lg:hidden safe-bottom" aria-label="Mobile navigation">
+        <div className="mx-auto max-w-lg"><AreaSwitch area={area} variant="bar" /></div>
+        <ul className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pt-0.5">
+          {area === "finance" ? (
+            <>
+              <BottomLink href="/dashboard" label="Home" icon={LayoutDashboard} active={isActive(path, "/dashboard")} />
+              <BottomLink href="/transactions" label="Ledger" icon={ArrowLeftRight} active={isActive(path, "/transactions")} />
+              <li className="flex justify-center">
+                <button onClick={() => tx.open()} aria-label="Add a transaction" className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
+                  <Plus className="h-7 w-7" />
+                </button>
+              </li>
+              <BottomLink href="/budgets" label="Budgets" icon={Wallet} active={isActive(path, "/budgets")} />
+            </>
+          ) : (
+            <>
+              <BottomLink href="/vehicle-dashboard" label="Overview" icon={LayoutDashboard} active={isActive(path, "/vehicle-dashboard")} />
+              <BottomLink href="/vehicles" label="Vehicles" icon={Car} active={isActive(path, "/vehicles")} />
+              <li className="flex justify-center">
+                <button onClick={() => setAddVehicle(true)} aria-label="Add or log something for a vehicle" className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
+                  <Plus className="h-7 w-7" />
+                </button>
+              </li>
+              <BottomLink href="/maintenance" label="Service" icon={Wrench} active={isActive(path, "/maintenance") || isActive(path, "/service-history")} />
+            </>
+          )}
           <li>
             <button onClick={() => setMore(true)} className="flex min-h-[52px] w-full flex-col items-center justify-center gap-0.5 rounded-lg text-[11px] font-medium text-muted-foreground" aria-haspopup="dialog">
               <Menu className="h-5 w-5" aria-hidden />
@@ -161,9 +197,22 @@ function Shell({ children }: { children: React.ReactNode }) {
           </li>
         </ul>
       </nav>
-      <Modal open={more} onClose={() => setMore(false)} title="Everything" size="sm">
+      <Modal open={addVehicle} onClose={() => setAddVehicle(false)} title="Add or log" size="sm">
+        <ul className="grid grid-cols-2 gap-2">
+          {QUICK_ACTIONS.map((a) => (
+            <li key={a.key}>
+              {a.href ? (
+                <Link href={a.href} onClick={() => setAddVehicle(false)} className="flex min-h-[52px] items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><a.icon className="h-4 w-4 shrink-0" aria-hidden />{a.label}</Link>
+              ) : (
+                <button onClick={() => { setAddVehicle(false); quick.open(a.kind!); }} className="flex min-h-[52px] w-full items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-left text-sm font-medium hover:bg-muted"><a.icon className="h-4 w-4 shrink-0" aria-hidden />{a.label}</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </Modal>
+      <Modal open={more} onClose={() => setMore(false)} title={area === "vehicles" ? "Vehicles" : "Finance"} size="sm">
         <div className="space-y-4">
-          {NAV_GROUPS.map((g) => (
+          {areaGroups(area).map((g) => (
             <div key={g.title}>
               <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{g.title}</p>
               <ul className="grid grid-cols-2 gap-2">

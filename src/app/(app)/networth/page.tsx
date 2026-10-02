@@ -60,13 +60,13 @@ function Inner() {
               <Lines data={n.history.map((h: any) => ({ m: fmt.month(h.month), Assets: Number(h.assets), Liabilities: Number(h.liabilities) }))} xKey="m" series={[{ key: "Assets", label: "Assets" }, { key: "Liabilities", label: "Liabilities" }]} fmt={(v) => fmt.money(v)} />
             </ChartCard>
           </div>
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
             {[["Assets", "asset", assetsLines], ["Liabilities", "liability", liabLines]].map(([title, side, groups]: any) => (
               <Section key={title} title={title} flush>
                 {groups.length === 0 ? <p className="p-5 text-sm text-muted-foreground">None recorded.</p> : groups.map((g: any) => (
                   <details key={g.group} className="border-b border-border last:border-0" open>
                     <summary className="flex cursor-pointer items-center justify-between px-5 py-3 text-sm font-medium"><span>{GROUP_LABEL[g.group] ?? humanize(g.group)}</span><span className="money">{fmt.money(g.value)}</span></summary>
-                    <ul className="pb-2">{n.lines.filter((l: any) => l.group === g.group && l.side === side).map((l: any) => <li key={l.id} className="flex items-center justify-between px-5 py-1.5 pl-8 text-sm text-muted-foreground"><span>{l.name}{l.valuedOn ? <span className="ml-1 text-xs">(valued {fmt.date(l.valuedOn)})</span> : null}</span><span className="money">{fmt.money(l.value, { currency: l.currency })}</span></li>)}</ul>
+                    <ul className="pb-2">{n.lines.filter((l: any) => l.group === g.group && l.side === side).map((l: any) => <li key={l.id} className="flex items-center justify-between gap-3 px-5 py-1.5 pl-8 text-sm text-muted-foreground"><span className="min-w-0">{l.name}{l.valuedOn ? <span className="ml-1 text-xs">(valued {fmt.date(l.valuedOn)})</span> : null}</span><span className="money">{fmt.money(l.value, { currency: l.currency })}</span></li>)}</ul>
                   </details>
                 ))}
               </Section>
