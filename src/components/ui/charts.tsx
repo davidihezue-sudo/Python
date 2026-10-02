@@ -5,7 +5,7 @@ import { BarChart3 } from "lucide-react";
 import { Card, CardBody, CardHeader } from "./primitives";
 import { EmptyState } from "./empty";
 
-export const PALETTE = ["#3b82f6", "#14b8a6", "#f59e0b", "#a78bfa", "#f43f5e", "#22c55e", "#06b6d4", "#64748b"];
+export const PALETTE = ["#2F7D63", "#B08D45", "#4C7A93", "#B5483E", "#7E8744", "#6FA39C", "#C9895C", "#7A817C"];
 const axis = { stroke: "rgb(var(--border))" };
 const tick = { fill: "rgb(var(--muted-foreground))", fontSize: 12 };
 

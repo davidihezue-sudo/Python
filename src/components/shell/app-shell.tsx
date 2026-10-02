@@ -3,37 +3,40 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, BarChart3, Bell, Car, ChevronDown, CloudOff, FileText, History, LayoutDashboard, LogOut, Menu, Moon, Package, Plus, Search, Settings as SettingsIcon, ShieldCheck, Sparkles, Sun, UserCircle, Wallet, Wrench, X, Check, RefreshCw } from "lucide-react";
+import { BarChart3, Bell, Building2, CalendarDays, Car, Check, ChevronDown, CloudOff, Coins, CreditCard, FileText, Gauge, Home, Landmark, LayoutDashboard, LineChart, LogOut, Menu, Moon, PiggyBank, Plus, Receipt, RefreshCw, Repeat, Search, Settings as SettingsIcon, Shield, ShieldCheck, Sparkles, SlidersHorizontal, Sun, Target, TrendingUp, Upload, UserCircle, Users, Wallet, Wrench, X, ArrowLeftRight, HandCoins, FileSpreadsheet } from "lucide-react";
 import { api } from "@/lib/client/api";
 import { flushQueue, listQueue, removeQueued, type QueuedRequest } from "@/lib/client/offline";
 import { cn } from "@/lib/client/utils";
 import { Alert, Badge, Button, Input } from "@/components/ui/primitives";
 import { Dropdown, MenuItem } from "@/components/ui/menu";
 import { Modal } from "@/components/ui/dialog";
-import { QUICK_ACTIONS, QuickAddProvider, useQuickAdd } from "@/components/forms/quick-dialogs";
-import { useMe, useSelectedVehicle, useVehicles, VehicleProvider } from "./providers";
+import { QuickAddProvider } from "@/components/forms/quick-dialogs";
+import { FinProvider, useFin } from "@/components/finance/provider";
+import { TxDialogProvider, useTxDialog } from "@/components/finance/transaction-form";
+import { ViewSwitch } from "@/components/finance/ui";
+import { useMe, VehicleProvider } from "./providers";
 
-export const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/vehicles", label: "My Vehicles", icon: Car },
-  { href: "/maintenance", label: "Maintenance", icon: Wrench },
-  { href: "/service-history", label: "Service History", icon: History },
-  { href: "/repairs", label: "Repairs & Issues", icon: AlertTriangle },
-  { href: "/parts", label: "Parts Inventory", icon: Package },
-  { href: "/expenses", label: "Expenses", icon: Wallet },
-  { href: "/reminders", label: "Reminders", icon: Bell },
-  { href: "/reports", label: "Reports & Analytics", icon: BarChart3 },
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/settings", label: "Settings", icon: SettingsIcon },
-] as const;
-
+type NavItem = { href: string; label: string; icon: React.ElementType };
+export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  { title: "Overview", items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, { href: "/household", label: "Household", icon: Users }] },
+  { title: "Money", items: [{ href: "/transactions", label: "Transactions", icon: ArrowLeftRight }, { href: "/spending", label: "Expenses", icon: Receipt }, { href: "/income", label: "Income", icon: HandCoins }, { href: "/accounts", label: "Accounts", icon: Landmark }, { href: "/budgets", label: "Budgets", icon: Wallet }, { href: "/bills", label: "Bills", icon: FileText }, { href: "/calendar", label: "Calendar", icon: CalendarDays }] },
+  { title: "Plan", items: [{ href: "/goals", label: "Savings and goals", icon: PiggyBank }, { href: "/debts", label: "Debt", icon: CreditCard }, { href: "/forecast", label: "Forecast", icon: TrendingUp }, { href: "/simulator", label: "What if", icon: SlidersHorizontal }, { href: "/planner", label: "Home planner", icon: Home }] },
+  { title: "Wealth", items: [{ href: "/networth", label: "Net worth", icon: LineChart }, { href: "/investments", label: "Investments", icon: Coins }, { href: "/insurance", label: "Insurance", icon: Shield }, { href: "/subscriptions", label: "Subscriptions", icon: Repeat }, { href: "/tax", label: "Tax", icon: Building2 }] },
+  { title: "Tools", items: [{ href: "/reports", label: "Reports", icon: BarChart3 }, { href: "/import", label: "Import and export", icon: Upload }, { href: "/finance-documents", label: "Receipts", icon: FileSpreadsheet }, { href: "/assistant", label: "Assistant", icon: Sparkles }] },
+  { title: "Vehicles", items: [{ href: "/vehicles", label: "My vehicles", icon: Car }, { href: "/maintenance", label: "Maintenance", icon: Wrench }, { href: "/service-history", label: "Service history", icon: Gauge }, { href: "/expenses", label: "Vehicle costs", icon: Receipt }, { href: "/reminders", label: "Reminders", icon: Bell }] },
+];
+export const NAV = NAV_GROUPS.flatMap((g) => g.items);
 const isActive = (path: string, href: string) => path === href || path.startsWith(href + "/");
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <VehicleProvider>
       <QuickAddProvider>
-        <Shell>{children}</Shell>
+        <FinProvider>
+          <TxDialogProvider>
+            <Shell>{children}</Shell>
+          </TxDialogProvider>
+        </FinProvider>
       </QuickAddProvider>
     </VehicleProvider>
   );
@@ -41,11 +44,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function Logo({ className }: { className?: string }) {
   return (
-    <span className={cn("flex items-center gap-2 font-semibold tracking-tight", className)}>
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Car className="h-5 w-5" aria-hidden />
+    <span className={cn("flex items-center gap-2.5", className)}>
+      <span className="flex h-8 w-8 items-center justify-center rounded-md border border-accent/60 text-accent" aria-hidden>
+        <Landmark className="h-[18px] w-[18px]" />
       </span>
-      AutoVault
+      <span className="display text-xl leading-none">Family Finance Hub</span>
     </span>
   );
 }
@@ -81,61 +84,59 @@ function Shell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
   React.useEffect(() => setMore(false), [path]);
+  const tx = useTxDialog();
+  const onboarding = path.startsWith("/onboarding");
+  if (onboarding) return <div className="min-h-dvh bg-background">{children}</div>;
 
   return (
     <div className="min-h-dvh">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground">
         Skip to content
       </a>
-      {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex" aria-label="Primary">
-        <div className="px-5 py-5 text-white">
-          <Logo />
-        </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-4" aria-label="Main navigation">
-          {NAV.map((n) => (
-            <Link key={n.href} href={n.href} aria-current={isActive(path, n.href) ? "page" : undefined} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/10 hover:text-white", isActive(path, n.href) && "bg-white/10 text-white")}>
-              <n.icon className="h-[18px] w-[18px]" aria-hidden />
-              {n.label}
-            </Link>
+        <div className="px-5 pb-4 pt-6 text-white"><Logo /></div>
+        <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Main navigation">
+          {NAV_GROUPS.map((g) => (
+            <div key={g.title} className="mb-3">
+              <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-[0.18em] text-white/40">{g.title}</p>
+              <div className="space-y-px">
+                {g.items.map((n) => (
+                  <Link key={n.href} href={n.href} aria-current={isActive(path, n.href) ? "page" : undefined} className={cn("flex items-center gap-3 rounded-md px-3 py-2 text-[13.5px] font-medium transition-colors hover:bg-white/10 hover:text-white", isActive(path, n.href) ? "bg-white/10 text-white shadow-[inset_2px_0_0_rgb(var(--accent))]" : "")}>
+                    <n.icon className="h-4 w-4 opacity-80" aria-hidden />
+                    {n.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           ))}
-          <div className="my-3 border-t border-white/10" />
-          <Link href="/assistant" aria-current={isActive(path, "/assistant") ? "page" : undefined} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/10 hover:text-white", isActive(path, "/assistant") && "bg-white/10 text-white")}>
-            <Sparkles className="h-[18px] w-[18px]" aria-hidden /> AI Assistant
-          </Link>
           {me.platformRole === "PLATFORM_ADMIN" && (
-            <Link href="/admin" aria-current={isActive(path, "/admin") ? "page" : undefined} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/10 hover:text-white", isActive(path, "/admin") && "bg-white/10 text-white")}>
-              <ShieldCheck className="h-[18px] w-[18px]" aria-hidden /> Platform admin
+            <Link href="/admin" aria-current={isActive(path, "/admin") ? "page" : undefined} className={cn("flex items-center gap-3 rounded-md px-3 py-2 text-[13.5px] font-medium hover:bg-white/10 hover:text-white", isActive(path, "/admin") && "bg-white/10 text-white")}>
+              <ShieldCheck className="h-4 w-4 opacity-80" aria-hidden /> Platform admin
             </Link>
           )}
         </nav>
-        <div className="border-t border-white/10 p-3 text-xs text-white/50">Vehicle records stay private to your household.</div>
+        <div className="border-t border-white/10 p-4 text-xs leading-relaxed text-white/45">Figures are built from records your household enters. Private records stay private.</div>
       </aside>
 
       <div className="lg:pl-64">
         <TopBar onSearch={() => setSearchOpen(true)} />
         <OfflineBanner />
         {!me.emailVerified && <VerifyBanner />}
-        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-28 pt-5 outline-none sm:px-6 lg:pb-10">
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-28 pt-6 outline-none sm:px-6 lg:pb-12">
           {children}
         </main>
       </div>
 
-      {/* Mobile bottom navigation */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur lg:hidden safe-bottom" aria-label="Mobile navigation">
         <ul className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pt-1.5">
           <BottomLink href="/dashboard" label="Home" icon={LayoutDashboard} active={isActive(path, "/dashboard")} />
-          <BottomLink href="/vehicles" label="Vehicles" icon={Car} active={isActive(path, "/vehicles")} />
+          <BottomLink href="/transactions" label="Ledger" icon={ArrowLeftRight} active={isActive(path, "/transactions")} />
           <li className="flex justify-center">
-            <Dropdown label="Quick add" align="left" trigger={(p) => (
-              <button {...p} aria-label="Quick add" className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
-                <Plus className="h-7 w-7" />
-              </button>
-            )}>
-              {(close) => <QuickMenu onPick={close} up />}
-            </Dropdown>
+            <button onClick={() => tx.open()} aria-label="Add a transaction" className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
+              <Plus className="h-7 w-7" />
+            </button>
           </li>
-          <BottomLink href="/maintenance" label="Maintenance" icon={Wrench} active={isActive(path, "/maintenance")} />
+          <BottomLink href="/budgets" label="Budgets" icon={Wallet} active={isActive(path, "/budgets")} />
           <li>
             <button onClick={() => setMore(true)} className="flex min-h-[52px] w-full flex-col items-center justify-center gap-0.5 rounded-lg text-[11px] font-medium text-muted-foreground" aria-haspopup="dialog">
               <Menu className="h-5 w-5" aria-hidden />
@@ -144,25 +145,28 @@ function Shell({ children }: { children: React.ReactNode }) {
           </li>
         </ul>
       </nav>
-      <Modal open={more} onClose={() => setMore(false)} title="More" size="sm">
-        <ul className="grid grid-cols-2 gap-2">
-          {[...NAV.slice(2), { href: "/assistant", label: "AI Assistant", icon: Sparkles }].map((n) => (
-            <li key={n.href}>
-              <Link href={n.href} className={cn("flex min-h-[52px] items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted", isActive(path, n.href) && "border-primary text-primary")}>
-                <n.icon className="h-5 w-5 shrink-0" aria-hidden />
-                {n.label}
-              </Link>
-            </li>
+      <Modal open={more} onClose={() => setMore(false)} title="Everything" size="sm">
+        <div className="space-y-4">
+          {NAV_GROUPS.map((g) => (
+            <div key={g.title}>
+              <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{g.title}</p>
+              <ul className="grid grid-cols-2 gap-2">
+                {g.items.map((n) => (
+                  <li key={n.href}>
+                    <Link href={n.href} className={cn("flex min-h-[48px] items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted", isActive(path, n.href) && "border-primary text-primary")}>
+                      <n.icon className="h-4 w-4 shrink-0" aria-hidden />
+                      {n.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-          {me.platformRole === "PLATFORM_ADMIN" && (
-            <li>
-              <Link href="/admin" className="flex min-h-[52px] items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><ShieldCheck className="h-5 w-5" /> Admin</Link>
-            </li>
-          )}
-          <li className="col-span-2">
-            <Button variant="outline" className="w-full" onClick={signOut}><LogOut className="h-4 w-4" /> Sign out</Button>
-          </li>
-        </ul>
+          <div className="grid grid-cols-2 gap-2">
+            <Link href="/settings" className="flex min-h-[48px] items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><SettingsIcon className="h-4 w-4" /> Settings</Link>
+            <Button variant="outline" className="h-auto min-h-[48px]" onClick={signOut}><LogOut className="h-4 w-4" /> Sign out</Button>
+          </div>
+        </div>
       </Modal>
       <SearchPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
@@ -180,72 +184,45 @@ function BottomLink({ href, label, icon: Icon, active }: { href: string; label: 
   );
 }
 
-function QuickMenu({ onPick, up }: { onPick: () => void; up?: boolean }) {
-  const { open } = useQuickAdd();
-  const router = useRouter();
+function HouseholdSwitcher() {
+  const { households, hid, setHid, profile } = useFin();
+  const current = households.find((h) => h.id === hid);
+  if (!current) return null;
   return (
-    <div className={cn(up && "max-sm:fixed max-sm:inset-x-3 max-sm:bottom-24 max-sm:rounded-lg")}>
-      {QUICK_ACTIONS.map((a) => (
-        <MenuItem
-          key={a.key}
-          icon={<a.icon className="h-4 w-4 text-muted-foreground" />}
-          onClick={() => {
-            onPick();
-            if (a.href) router.push(a.href);
-            else if (a.kind) open(a.kind);
-          }}
-        >
-          {a.label}
-        </MenuItem>
-      ))}
-    </div>
+    <Dropdown align="left" label="Choose household" trigger={(p) => (
+      <Button variant="outline" size="sm" {...p} aria-label={`Household: ${current.name}`}>
+        <Users className="h-4 w-4" aria-hidden />
+        <span className="max-w-[10rem] truncate">{current.name}</span>
+        {current.isDemo && <Badge tone="warning">Demo</Badge>}
+        {households.length > 1 && <ChevronDown className="h-4 w-4 opacity-60" aria-hidden />}
+      </Button>
+    )}>
+      {(close) => (
+        <>
+          {households.map((h) => (
+            <MenuItem key={h.id} onClick={() => { setHid(h.id); close(); }} icon={h.id === hid ? <Check className="h-4 w-4" /> : <span className="w-4" />}>{h.name}{h.isDemo ? " (demo)" : ""}</MenuItem>
+          ))}
+          <div className="my-1 border-t border-border" />
+          <MenuItem href="/onboarding?new=1" onClick={close} icon={<Plus className="h-4 w-4" />}>New household</MenuItem>
+        </>
+      )}
+    </Dropdown>
   );
 }
 
 function TopBar({ onSearch }: { onSearch: () => void }) {
   const me = useMe();
-  const { vehicleId, setVehicleId } = useSelectedVehicle();
-  const { data: vehicles } = useVehicles();
-  const current = vehicles?.find((v) => v.id === vehicleId);
+  const tx = useTxDialog();
+  const { canWrite, profile } = useFin();
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur safe-top">
+    <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur safe-top">
       <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:px-6">
-        <Logo className="lg:hidden" />
-        <div className="hidden lg:block">
-          <Dropdown align="left" label="Choose vehicle" trigger={(p) => (
-            <Button variant="outline" size="sm" {...p} aria-label={`Selected vehicle: ${current?.nickname ?? "All vehicles"}`}>
-              <Car className="h-4 w-4" aria-hidden />
-              <span className="max-w-[12rem] truncate">{current?.nickname ?? "All vehicles"}</span>
-              <ChevronDown className="h-4 w-4 opacity-60" aria-hidden />
-            </Button>
-          )}>
-            {(close) => (
-              <>
-                <MenuItem onClick={() => { setVehicleId("all"); close(); }} icon={vehicleId === "all" ? <Check className="h-4 w-4" /> : <span className="w-4" />}>All vehicles (household)</MenuItem>
-                {vehicles?.map((v) => (
-                  <MenuItem key={v.id} onClick={() => { setVehicleId(v.id); close(); }} icon={vehicleId === v.id ? <Check className="h-4 w-4" /> : <span className="w-4" />}>
-                    {v.nickname}
-                  </MenuItem>
-                ))}
-                {!vehicles?.length && <p className="px-3 py-2 text-sm text-muted-foreground">No vehicles yet</p>}
-              </>
-            )}
-          </Dropdown>
-        </div>
+        <Logo className="lg:hidden [&_span.display]:hidden sm:[&_span.display]:inline" />
+        <div className="hidden items-center gap-3 lg:flex"><HouseholdSwitcher /><ViewSwitch /></div>
         <div className="ml-auto flex items-center gap-1">
-          <div className="lg:hidden">
-            <VehicleSwitcherMobile />
-          </div>
-          <Button variant="ghost" size="icon" onClick={onSearch} aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)">
-            <Search className="h-5 w-5" />
-          </Button>
-          <div className="hidden sm:block">
-            <Dropdown label="Quick add" trigger={(p) => (
-              <Button {...p} size="sm"><Plus className="h-4 w-4" aria-hidden /> Quick add</Button>
-            )}>
-              {(close) => <QuickMenu onPick={close} />}
-            </Dropdown>
-          </div>
+          <div className="lg:hidden"><ViewSwitch className="text-xs [&_button]:px-2" /></div>
+          <Button variant="ghost" size="icon" onClick={onSearch} aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)"><Search className="h-5 w-5" /></Button>
+          {canWrite && <div className="hidden sm:block"><Button size="sm" onClick={() => tx.open()}><Plus className="h-4 w-4" aria-hidden /> Add transaction</Button></div>}
           <NotificationsBell />
           <ThemeToggle />
           <Dropdown label="Account" trigger={(p) => (
@@ -258,10 +235,11 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
                 <div className="px-3 py-2">
                   <p className="truncate text-sm font-medium">{me.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{me.email}</p>
+                  {profile && <p className="mt-0.5 text-xs text-muted-foreground">{profile.myRole === "ADMIN" ? "Household administrator" : profile.myRole === "READ_ONLY" ? "Read-only member" : "Household member"}</p>}
                 </div>
                 <div className="my-1 border-t border-border" />
+                <MenuItem href="/household" icon={<Users className="h-4 w-4" />} onClick={close}>Household and sharing</MenuItem>
                 <MenuItem href="/settings" icon={<SettingsIcon className="h-4 w-4" />} onClick={close}>Settings</MenuItem>
-                <MenuItem href="/assistant" icon={<Sparkles className="h-4 w-4" />} onClick={close}>AI Assistant</MenuItem>
                 <MenuItem icon={<LogOut className="h-4 w-4" />} onClick={signOut}>Sign out</MenuItem>
               </>
             )}
@@ -269,20 +247,6 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
         </div>
       </div>
     </header>
-  );
-}
-
-function VehicleSwitcherMobile() {
-  const { vehicleId, setVehicleId } = useSelectedVehicle();
-  const { data: vehicles } = useVehicles();
-  if (!vehicles || vehicles.length < 2) return null;
-  return (
-    <select aria-label="Selected vehicle" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)} className="h-10 max-w-[7.5rem] truncate rounded-md border border-input bg-card px-2 text-sm">
-      <option value="all">All vehicles</option>
-      {vehicles.map((v) => (
-        <option key={v.id} value={v.id}>{v.nickname}</option>
-      ))}
-    </select>
   );
 }
 
@@ -351,7 +315,7 @@ function NotificationsBell() {
             )}
           </div>
           <div className="border-t border-border p-1">
-            <MenuItem href="/reminders#notifications" onClick={close}>View all notifications</MenuItem>
+            <MenuItem href="/notifications" onClick={close}>View all notifications</MenuItem>
           </div>
         </div>
       )}
@@ -428,69 +392,39 @@ function VerifyBanner() {
   );
 }
 
-// ───────── Global search (command palette)
+// ───────── Global search (command palette): jump to a page or find a transaction
 function SearchPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [q, setQ] = React.useState("");
   const [debounced, setDebounced] = React.useState("");
   const [idx, setIdx] = React.useState(0);
   const router = useRouter();
-  React.useEffect(() => {
-    const t = setTimeout(() => setDebounced(q), 220);
-    return () => clearTimeout(t);
-  }, [q]);
-  React.useEffect(() => {
-    if (open) {
-      setQ("");
-      setDebounced("");
-    }
-  }, [open]);
-  const { data, isFetching } = useQuery({ queryKey: ["search", debounced], queryFn: () => api<{ groups: { label: string; items: { id: string; title: string; subtitle: string; href: string }[] }[] }>(`/api/search?q=${encodeURIComponent(debounced)}`), enabled: open && debounced.trim().length >= 2 });
-  const flat = (data?.groups ?? []).flatMap((g) => g.items);
-  React.useEffect(() => setIdx(0), [data]);
-  const go = (href: string) => {
-    onClose();
-    router.push(href);
-  };
+  const { hid, fmt } = useFin();
+  React.useEffect(() => { const t = setTimeout(() => setDebounced(q), 220); return () => clearTimeout(t); }, [q]);
+  React.useEffect(() => { if (open) { setQ(""); setDebounced(""); } }, [open]);
+  const { data } = useQuery({ queryKey: ["fin", hid, "search", debounced], queryFn: () => api<any>(`/api/finance/${hid}/transactions?q=${encodeURIComponent(debounced)}&pageSize=8`), enabled: open && !!hid && debounced.trim().length >= 2 });
+  const pages = debounced.trim() ? NAV.filter((n) => n.label.toLowerCase().includes(debounced.trim().toLowerCase())) : NAV.slice(0, 8);
+  const txs: { id: string; title: string; subtitle: string; href: string }[] = (data?.items ?? []).map((t: any) => ({ id: t.id, title: t.description, subtitle: `${fmt.date(t.date)} · ${fmt.money(t.amount)} · ${t.accountName}`, href: `/transactions?focus=${t.id}` }));
+  const flat = [...pages.map((p) => ({ id: p.href, title: p.label, subtitle: "Go to page", href: p.href })), ...txs];
+  React.useEffect(() => setIdx(0), [debounced, data]);
+  const go = (href: string) => { onClose(); router.push(href); };
   return (
-    <Modal open={open} onClose={onClose} title="Search" description="Vehicles, services, repairs, parts, receipts and documents" size="md">
+    <Modal open={open} onClose={onClose} title="Search" description="Jump to a page or find a transaction" size="md">
       <div role="search" onKeyDown={(e) => {
         if (e.key === "ArrowDown") { e.preventDefault(); setIdx((i) => Math.min(flat.length - 1, i + 1)); }
         if (e.key === "ArrowUp") { e.preventDefault(); setIdx((i) => Math.max(0, i - 1)); }
         if (e.key === "Enter" && flat[idx]) go(flat[idx].href);
       }}>
-        <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search e.g. brake pads, VIN, receipt…" aria-label="Search query" type="search" />
-        <div className="mt-3 min-h-[8rem]" aria-live="polite">
-          {debounced.trim().length < 2 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Type at least 2 characters.</p>
-          ) : isFetching && !data ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">Searching…</p>
-          ) : flat.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">No results for “{debounced}”.</p>
-          ) : (
-            (() => {
-              let n = -1;
-              return data!.groups.map((g) => (
-                <div key={g.label} className="mb-3">
-                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.label}</p>
-                  <ul>
-                    {g.items.map((it) => {
-                      n++;
-                      const mine = n;
-                      return (
-                        <li key={it.id}>
-                          <button className={cn("flex w-full flex-col rounded-md px-3 py-2 text-left hover:bg-muted", idx === mine && "bg-muted")} onClick={() => go(it.href)} onMouseEnter={() => setIdx(mine)}>
-                            <span className="text-sm font-medium">{it.title}</span>
-                            <span className="text-xs text-muted-foreground">{it.subtitle}</span>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              ));
-            })()
-          )}
-        </div>
+        <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search, for example groceries or budgets" aria-label="Search query" type="search" />
+        <ul className="mt-3 max-h-80 overflow-y-auto" aria-live="polite">
+          {flat.length === 0 ? <li className="py-6 text-center text-sm text-muted-foreground">No results for {debounced}.</li> : flat.map((it, i) => (
+            <li key={`${it.id}-${i}`}>
+              <button className={cn("flex w-full flex-col rounded-md px-3 py-2 text-left hover:bg-muted", idx === i && "bg-muted")} onClick={() => go(it.href)} onMouseEnter={() => setIdx(i)}>
+                <span className="text-sm font-medium">{it.title}</span>
+                <span className="text-xs text-muted-foreground">{it.subtitle}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
     </Modal>
   );
