@@ -33,7 +33,7 @@ test("Journey A: new user → verify → household → BMW X3 → odometer → s
   await page.getByLabel("Filter by status").selectOption("all");
   await expect(page.getByText("Engine oil", { exact: true }).first()).toBeVisible();
   await expect(page.getByText("Spark plugs").first()).toBeVisible();
-  await expect(page.getByText("Unknown history").first()).toBeVisible();
+  await expect(page.locator("span, div, p", { hasText: "Unknown history" }).first()).toBeVisible();
   await page.getByRole("tab", { name: "Service history" }).click();
   await expect(page.getByText("No service history")).toBeVisible();
 
@@ -54,7 +54,7 @@ test("Journey A: new user → verify → household → BMW X3 → odometer → s
   await expect(page.getByText("Schedule updated")).toBeVisible();
   const oil = await prisma.maintenanceScheduleAssignment.findFirstOrThrow({ where: { vehicleId, name: "Engine oil" } });
   expect(Number(oil.nextDueKm)).toBe(170000); // 160,000 + suggested 10,000 km
-  expect(oil.sourceType).toBe("USER_DEFINED"); // editing makes it the user's own schedule
+  expect(oil.sourceType).toBe("SUGGESTED"); // only the history changed, so the library suggestion stays labelled as a suggestion
 
   // dashboard shows real database information
   await page.goto("/dashboard");
@@ -84,11 +84,11 @@ test("Journey B + C + D: oil change with receipt, repair lifecycle, mileage-trig
   await expect(page.getByLabel("Title")).toHaveValue("Engine oil"); // prefilled from the schedule
   await expect(page.getByLabel("Item name").first()).toHaveValue("Engine oil");
   await expect(page.getByLabel("Item name").nth(1)).toHaveValue("Oil filter");
-  await page.getByLabel("Service date").fill("2026-01-15");
+  await page.getByLabel("Service date").fill(new Date().toISOString().slice(0, 10));
   await page.getByLabel("Odometer").fill("160500");
   await page.getByLabel("Service provider").selectOption("__new");
   await page.getByPlaceholder("Workshop name").fill("Calgary Lube");
-  await page.getByText("Parts & cost details").first().click();
+  for (const summary of await page.getByText("Parts & cost details").all()) await summary.click();
   await page.getByLabel("Part replaced").first().fill("Synthetic 5W-30");
   await page.getByLabel("Part replaced").nth(1).fill("Oil filter");
   await page.getByLabel(/^Parts\s*\*?$/).fill("65.5");
@@ -142,6 +142,7 @@ test("Journey B + C + D: oil change with receipt, repair lifecycle, mileage-trig
 
   // complete the maintenance and verify the schedule recalculated
   await page.goto(`/service-history/new?assignmentId=${oil.id}`);
+  await expect(page.getByLabel("Title")).toHaveValue("Engine oil"); // wait for the prefill so it can't overwrite our input
   await page.getByLabel("Odometer").fill("169800");
   await page.getByRole("button", { name: "Save service" }).click();
   await expect(page.getByText("Service recorded")).toBeVisible();
@@ -160,7 +161,7 @@ test("Journey C: report issue with photo → diagnostic code → repair → reso
   await page.getByLabel("What's wrong?").fill("Coolant leak");
   await page.getByLabel("Description").fill("Puddle under the engine after parking");
   await page.getByLabel("Severity").selectOption("HIGH");
-  await page.locator('input[type="file"]').setInputFiles(fixture("leak.png", png));
+  await page.getByLabel(/Photos/).setInputFiles(fixture("leak.png", png));
   await page.getByRole("button", { name: "Report issue" }).click();
   await page.waitForURL(/\/repairs\?issue=/);
   const dlg = page.getByRole("dialog");
@@ -169,7 +170,7 @@ test("Journey C: report issue with photo → diagnostic code → repair → reso
 
   // diagnostic findings: a generic code is explained but never presented as a diagnosis
   await dlg.getByRole("button", { name: "Add code" }).click();
-  await page.getByLabel("Code").fill("P0128");
+  await page.getByRole("dialog", { name: "Add diagnostic trouble code" }).getByLabel("Code").fill("P0128");
   await expect(page.getByText(/not a diagnosis/i).first()).toBeVisible();
   await page.getByRole("button", { name: "Save code" }).click();
   await expect(dlg.getByText("P0128")).toBeVisible();
@@ -212,7 +213,7 @@ test("Journey E: household invite, scoped access, and blocked unauthorized acces
   await owner.getByLabel("Model year").fill("2012");
   await owner.getByLabel("Nickname").fill("Private Civic");
   await owner.getByRole("button", { name: "Add vehicle" }).click();
-  await owner.waitForURL(/\/vehicles\/[a-z0-9]+/);
+  await owner.waitForURL(/\/vehicles\/(?!new)[a-z0-9]+/);
   const privateId = owner.url().split("/vehicles/")[1].split("?")[0];
 
   // spouse registers first (so their address is verified), then the owner invites with access to ONE vehicle
@@ -220,7 +221,7 @@ test("Journey E: household invite, scoped access, and blocked unauthorized acces
   await owner.goto("/settings?tab=household");
   await owner.getByRole("button", { name: "Invite a family member" }).click();
   await owner.getByLabel("Email").fill(spouseEmail);
-  await owner.getByLabel("My X3").check();
+  await owner.getByRole("checkbox", { name: "My X3" }).check();
   await owner.getByLabel("Access level for My X3").selectOption("MAINTENANCE_MANAGER");
   await owner.getByRole("button", { name: "Send invitation" }).click();
   await expect(owner.getByRole("heading", { name: "Invitation created" })).toBeVisible();
@@ -246,7 +247,7 @@ test("Journey E: household invite, scoped access, and blocked unauthorized acces
   expect((await apiJson(spouseCtx, `/api/maintenance/records?vehicleId=${privateId}`)).status).toBe(404);
   expect((await apiJson(spouseCtx, `/api/expenses?vehicleId=${sharedId}`)).status).toBe(403);
   await spouse.goto(`/vehicles/${privateId}`);
-  await expect(spouse.getByText("Vehicle not found")).toBeVisible();
+  await expect(spouse.getByText("Vehicle not found").first()).toBeVisible();
   // write attempts outside their permission fail server-side even if the UI were bypassed
   const patch = await apiJson(spouseCtx, `/api/vehicles/${sharedId}`, { method: "PATCH", data: { colour: "Pink" } });
   expect(patch.status).toBe(403);

@@ -92,7 +92,10 @@ test("data export and account deletion", async ({ page }) => {
   await page.getByRole("button", { name: "Permanently delete" }).click();
   await page.waitForURL(/login\?deleted=1/);
   expect(await prisma.user.count({ where: { email } })).toBe(0);
-  await login(page, email).catch(() => undefined);
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page.getByText("Invalid email or password")).toBeVisible();
 });
 

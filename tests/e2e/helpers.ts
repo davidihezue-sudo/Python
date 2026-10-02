@@ -17,6 +17,9 @@ export async function lastToken(email: string, subject: string) {
 
 /** Registers through the UI, verifies via the emailed link, and signs in. */
 export async function registerVerifyLogin(page: Page, email: string, name = "Ada Tester") {
+  // each simulated user gets its own client IP so per-IP rate limits (register: 8/10min) don't trip across tests
+  const ip = `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${1 + Math.floor(Math.random() * 250)}`;
+  await page.context().setExtraHTTPHeaders({ "x-forwarded-for": ip });
   await page.goto("/register");
   await page.getByLabel("Full name").fill(name);
   await page.getByLabel("Email").fill(email);
@@ -47,7 +50,7 @@ export async function addBmwFromTemplate(page: Page) {
   await expect(page.getByLabel(/^Model\s*\*?$/)).toHaveValue("X3");
   await page.getByLabel("Nickname").fill("My X3");
   await page.getByRole("button", { name: "Add vehicle" }).click();
-  await page.waitForURL(/\/vehicles\/[a-z0-9]+/);
+  await page.waitForURL(/\/vehicles\/(?!new)[a-z0-9]+/);
   return page.url().split("/vehicles/")[1].split("?")[0];
 }
 

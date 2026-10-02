@@ -11,11 +11,12 @@ export const reqStr = (max = 200) => trimmed(max).min(1, "Required");
 export const optStr = (max = 200) => z.preprocess((v) => (v === "" || v === undefined ? null : v), trimmed(max).nullable().optional());
 export const longText = (max = 4000) => optStr(max);
 export const id = z.string().min(5).max(40);
+export const optId = z.preprocess((v) => (v === "" ? null : v), id.nullable().optional());
 export const km = z.coerce.number().min(0, "Cannot be negative").max(5_000_000, "Unrealistically large");
 export const optKm = z.preprocess((v) => (v === "" || v === null || v === undefined ? null : v), km.nullable().optional());
 export const money = z.coerce.number().min(0, "Cannot be negative").max(100_000_000);
 export const optMoney = z.preprocess((v) => (v === "" || v === null || v === undefined ? null : v), money.nullable().optional());
-export const currency = z.string().regex(/^[A-Z]{3}$/, "Use a 3-letter currency code").default("CAD");
+export const currency = z.preprocess((v) => (v === "" || v === null ? undefined : typeof v === "string" ? v.trim().toUpperCase() : v), z.string().regex(/^[A-Z]{3}$/, "Use a 3-letter currency code").default("CAD"));
 const optInt = (min = 0, max = 100_000) => z.preprocess((v) => (v === "" || v === null || v === undefined ? null : v), z.coerce.number().int().min(min).max(max).nullable().optional());
 
 export const fuelTypeEnum = z.enum(["PETROL", "DIESEL", "HYBRID", "PLUGIN_HYBRID", "ELECTRIC", "OTHER"]);
@@ -132,7 +133,7 @@ export const vehicleCreateSchema = vehicleBase.extend({
   applySuggestedSchedules: z.boolean().default(true),
   useDecodedSpec: z.any().optional(),
 });
-export const vehicleUpdateSchema = vehicleBase.partial().extend({ photoDocumentId: id.nullable().optional() });
+export const vehicleUpdateSchema = vehicleBase.partial().extend({ photoDocumentId: optId });
 export const vehicleAccessSchema = z.object({ userId: id, level: vehicleLevelEnum, canViewFinancials: z.boolean().optional() });
 export const ownershipSchema = z.object({ ownerName: reqStr(120), fromDate: isoDate, toDate: optDate, fromOdometerKm: optKm, toOdometerKm: optKm, notes: longText(1000) });
 
@@ -208,8 +209,8 @@ export const scheduleTemplateSchema = z.object({ ...scheduleCore, anchorDate: op
 
 // ───────── maintenance records
 export const recordItemSchema = z.object({
-  assignmentId: id.nullable().optional(),
-  categoryId: id.nullable().optional(),
+  assignmentId: optId,
+  categoryId: optId,
   componentKey: z.preprocess((v) => (v === "" ? null : v), z.string().max(60).nullable().optional()),
   name: reqStr(160),
   description: optStr(1000),
@@ -233,7 +234,7 @@ export const recordCreateSchema = z.object({
   serviceDate: isoDate,
   odometerKm: optKm,
   workPerformedBy: workByEnum.default("INDEPENDENT_MECHANIC"),
-  providerId: id.nullable().optional(),
+  providerId: optId,
   providerName: optStr(120),
   mechanicName: optStr(120),
   location: optStr(200),
@@ -244,7 +245,7 @@ export const recordCreateSchema = z.object({
   currency: currency.optional(),
   warrantyInfo: optStr(500),
   notes: longText(4000),
-  repairIssueId: id.nullable().optional(),
+  repairIssueId: optId,
   items: z.array(recordItemSchema).max(60).default([]),
   idempotencyKey: z.string().min(8).max(80).optional(),
   allowDuplicate: z.boolean().default(false),
@@ -264,12 +265,12 @@ export const issueCreateSchema = z.object({
   severity: severityEnum.default("MODERATE"),
   status: issueStatusEnum.default("NEW"),
   componentKey: optStr(60),
-  categoryId: id.nullable().optional(),
+  categoryId: optId,
   mechanicAssessment: longText(3000),
   estimatedCost: optMoney,
   actualCost: optMoney,
   resolution: longText(3000),
-  providerId: id.nullable().optional(),
+  providerId: optId,
   currency: currency.optional(),
 });
 export const issueUpdateSchema = issueCreateSchema.omit({ vehicleId: true }).partial();
@@ -281,7 +282,7 @@ export const convertIssueSchema = z.object({
   partsCost: optMoney,
   tax: optMoney,
   discount: optMoney,
-  providerId: id.nullable().optional(),
+  providerId: optId,
   workPerformedBy: workByEnum.default("INDEPENDENT_MECHANIC"),
   mechanicName: optStr(120),
   resolution: longText(3000),
@@ -291,7 +292,7 @@ export const convertIssueSchema = z.object({
 });
 export const dtcSchema = z.object({
   vehicleId: id.optional(),
-  repairIssueId: id.nullable().optional(),
+  repairIssueId: optId,
   code: z.string().trim().min(2).max(12),
   description: optStr(300),
   detectedAt: isoDate,
@@ -309,7 +310,7 @@ export const dtcSchema = z.object({
 export const partSchema = z.object({
   vehicleId: id,
   name: reqStr(160),
-  categoryId: id.nullable().optional(),
+  categoryId: optId,
   componentKey: optStr(60),
   manufacturer: optStr(120),
   origin: partOriginEnum.default("UNKNOWN"),
@@ -336,13 +337,13 @@ export const replacePartSchema = z.object({
   installedKm: optKm,
   removalReason: optStr(300),
   installLaborCost: optMoney,
-  maintenanceRecordId: id.nullable().optional(),
-  existingPartId: id.nullable().optional(),
+  maintenanceRecordId: optId,
+  existingPartId: optId,
   part: partSchema.omit({ vehicleId: true, componentKey: true, status: true, installedAt: true, installedKm: true, installLaborCost: true }).optional(),
 });
 export const warrantySchema = z.object({
   vehicleId: id,
-  partId: id.nullable().optional(),
+  partId: optId,
   type: z.enum(["MANUFACTURER", "POWERTRAIN", "EXTENDED", "PART", "OTHER"]).default("MANUFACTURER"),
   name: reqStr(120),
   provider: optStr(120),
@@ -358,9 +359,9 @@ export const inspectionSchema = z.object({
   date: isoDate,
   odometerKm: optKm,
   inspector: optStr(120),
-  providerId: id.nullable().optional(),
+  providerId: optId,
   items: z
-    .array(z.object({ assignmentId: id.nullable().optional(), componentKey: optStr(60), name: reqStr(120), condition: conditionEnum, notes: optStr(500) }))
+    .array(z.object({ assignmentId: optId, componentKey: optStr(60), name: reqStr(120), condition: conditionEnum, notes: optStr(500) }))
     .max(80)
     .default([]),
   overallCondition: optStr(40),
@@ -388,7 +389,7 @@ export const expenseSchema = z.object({
   currency: currency.optional(),
   category: expenseCategoryEnum,
   vendor: optStr(120),
-  providerId: id.nullable().optional(),
+  providerId: optId,
   description: optStr(500),
   paymentMethod: z.preprocess((v) => (v === "" ? null : v), paymentEnum.nullable().optional()),
   notes: longText(2000),
@@ -415,7 +416,7 @@ export const fuelSchema = z.object({
 export const fuelUpdateSchema = fuelSchema.omit({ vehicleId: true, idempotencyKey: true }).partial();
 export const budgetSchema = z
   .object({
-    vehicleId: id.nullable().optional(),
+    vehicleId: optId,
     householdId: id.optional(),
     period: z.enum(["MONTHLY", "ANNUAL"]),
     year: z.coerce.number().int().min(2000).max(2100),
@@ -429,7 +430,7 @@ export const budgetSchema = z
 export const reminderSchema = z
   .object({
     vehicleId: id,
-    assignmentId: id.nullable().optional(),
+    assignmentId: optId,
     type: z.enum(["CUSTOM", "REGISTRATION", "INSURANCE", "INSPECTION", "WARRANTY"]).default("CUSTOM"),
     title: reqStr(160),
     notes: longText(1000),
@@ -448,12 +449,12 @@ export const documentMetaSchema = z.object({
   category: docCategoryEnum.default("OTHER"),
   description: longText(1000),
   expiresOn: optDate,
-  maintenanceRecordId: id.nullable().optional(),
-  repairIssueId: id.nullable().optional(),
-  expenseId: id.nullable().optional(),
-  partId: id.nullable().optional(),
-  inspectionId: id.nullable().optional(),
-  warrantyId: id.nullable().optional(),
+  maintenanceRecordId: optId,
+  repairIssueId: optId,
+  expenseId: optId,
+  partId: optId,
+  inspectionId: optId,
+  warrantyId: optId,
   runOcr: z.coerce.boolean().optional(),
 });
 export const documentUpdateSchema = documentMetaSchema.omit({ runOcr: true }).partial();
@@ -467,7 +468,7 @@ export const ocrConfirmSchema = z.object({
   category: expenseCategoryEnum.default("MAINTENANCE"),
   description: optStr(500),
 });
-export const aiChatSchema = z.object({ message: reqStr(2000), conversationId: id.optional(), vehicleId: id.nullable().optional() });
+export const aiChatSchema = z.object({ message: reqStr(2000), conversationId: id.optional(), vehicleId: optId });
 export const pushSubSchema = z.object({ endpoint: z.string().url().max(1000), keys: z.object({ p256dh: z.string().max(300), auth: z.string().max(100) }) });
 export const dateRangeQuery = z.object({
   range: z.enum(["30d", "90d", "ytd", "12m", "all", "custom"]).default("12m"),

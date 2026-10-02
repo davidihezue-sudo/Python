@@ -153,7 +153,7 @@ export function VehicleForm({ mode, vehicleId, defaults = {}, onSaved, onCancel,
           <Field label="Purchase price">{(p) => <Controller control={form.control} name="purchasePrice" render={({ field }) => <MoneyInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
           <Field label="Odometer at purchase">{(p) => <Controller control={form.control} name="purchaseOdometerKm" render={({ field }) => <DistanceInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>
           {mode === "create" && <Field label="Current odometer" hint="You can add this later">{(p) => <Controller control={form.control} name="currentOdometerKm" render={({ field }) => <DistanceInput {...p} value={field.value} onChange={field.onChange} />} />}</Field>}
-          <Field label="Currency">{(p) => <Input {...p} {...reg("currency")} maxLength={3} className="uppercase" />}</Field>
+          <Field label="Currency">{(p) => <Input {...p} {...reg("currency")} maxLength={3} placeholder="e.g. CAD" className="uppercase" />}</Field>
         </div>
       </fieldset>
 

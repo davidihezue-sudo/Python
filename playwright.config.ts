@@ -17,7 +17,7 @@ export default defineConfig({
   globalSetup: "./tests/e2e/global-setup.ts",
   use: { baseURL: `http://localhost:${PORT}`, trace: "retain-on-failure", screenshot: "only-on-failure", launchOptions: { executablePath, args: ["--no-sandbox"] } },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"], viewport: { width: 1360, height: 860 }, launchOptions: { executablePath, args: ["--no-sandbox"] } } },
+    { name: "desktop", testIgnore: /mobile\.spec\.ts/, use: { ...devices["Desktop Chrome"], viewport: { width: 1360, height: 860 }, launchOptions: { executablePath, args: ["--no-sandbox"] } } },
     { name: "mobile", testMatch: /mobile\.spec\.ts/, use: { ...devices["Pixel 7"], launchOptions: { executablePath, args: ["--no-sandbox"] } } },
   ],
   webServer: {
