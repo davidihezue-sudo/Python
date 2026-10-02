@@ -3,7 +3,7 @@ import * as React from "react";
 import { cn } from "@/lib/client/utils";
 
 /** Small accessible dropdown (menu button pattern): arrow-key navigation, Esc, outside click. */
-export function Dropdown({ trigger, children, align = "right", label }: { trigger: (p: { onClick: () => void; "aria-expanded": boolean; "aria-haspopup": "menu" }) => React.ReactNode; children: React.ReactNode | ((close: () => void) => React.ReactNode); align?: "left" | "right"; label?: string }) {
+export function Dropdown({ trigger, children, align = "right", label }: { trigger: (p: { onClick: () => void; "aria-expanded": boolean; "aria-haspopup": "menu" }) => React.ReactNode; children: React.ReactNode | ((close: () => void) => React.ReactNode); align?: "left" | "right" | "responsive"; label?: string }) {
   const [open, setOpen] = React.useState(false);
   const ref = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -31,7 +31,7 @@ export function Dropdown({ trigger, children, align = "right", label }: { trigge
     <div className="relative" ref={ref}>
       {trigger({ onClick: () => setOpen((o) => !o), "aria-expanded": open, "aria-haspopup": "menu" })}
       {open && (
-        <div role="menu" aria-label={label} className={cn("absolute z-50 mt-2 min-w-[14rem] animate-fade-in rounded-lg border border-border bg-card p-1 shadow-pop", align === "right" ? "right-0" : "left-0")}>
+        <div role="menu" aria-label={label} className={cn("absolute z-50 mt-2 min-w-[14rem] animate-fade-in rounded-lg border border-border bg-card p-1 shadow-pop", align === "right" ? "right-0" : align === "responsive" ? "left-0 sm:left-auto sm:right-0" : "left-0")}>
           {typeof children === "function" ? children(close) : children}
         </div>
       )}

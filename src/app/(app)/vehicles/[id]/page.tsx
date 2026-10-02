@@ -77,7 +77,7 @@ export default function VehiclePage() {
   ];
   return (
     <div className="space-y-4">
-      <section className="hero-card overflow-hidden rounded-2xl">
+      <section className="hero-card relative z-10 rounded-2xl">
         <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
           <div className="relative flex h-28 w-full shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white/10 sm:w-44">
             {v.photoUrl ? <img src={v.photoUrl} alt={`${v.nickname}`} className="h-full w-full object-cover" /> : <Car className="h-12 w-12 opacity-50" aria-hidden />}
@@ -92,7 +92,7 @@ export default function VehiclePage() {
             <div className="flex flex-wrap gap-2 sm:flex-col">
               <Button variant="secondary" onClick={() => open("mileage", { vehicleId: v.id })}><Gauge className="h-4 w-4" /> Update mileage</Button>
               <Link href={`/service-history/new?vehicleId=${v.id}`}><Button className="w-full"><Wrench className="h-4 w-4" /> Log service</Button></Link>
-              {p.manageAccess && <Dropdown label="More" trigger={(x) => <Button variant="secondary" {...x}>More…</Button>}>{(close) => <><MenuItem href={`/reports?vehicleId=${v.id}`} onClick={close}>Reports & exports</MenuItem><MenuItem danger icon={<Trash2 className="h-4 w-4" />} onClick={() => { close(); void del(); }}>Delete vehicle</MenuItem></>}</Dropdown>}
+              {p.manageAccess && <Dropdown label="More" align="responsive" trigger={(x) => <Button variant="secondary" {...x}>More…</Button>}>{(close) => <><MenuItem href={`/reports?vehicleId=${v.id}`} onClick={close}>Reports & exports</MenuItem><MenuItem danger icon={<Trash2 className="h-4 w-4" />} onClick={() => { close(); void del(); }}>Delete vehicle</MenuItem></>}</Dropdown>}
             </div>
           )}
         </div>
