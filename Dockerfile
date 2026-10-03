@@ -27,7 +27,7 @@ COPY --from=build --chown=familyfinance /app/prisma ./prisma
 COPY --from=build --chown=familyfinance /app/src ./src
 COPY --from=build --chown=familyfinance /app/package.json /app/next.config.mjs /app/tsconfig.json ./
 COPY --chown=familyfinance docker/entrypoint.sh /app/entrypoint.sh
-RUN chmod +x /app/entrypoint.sh
+RUN sed -i "s/\r$//" /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 USER familyfinance
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
