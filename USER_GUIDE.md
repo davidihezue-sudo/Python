@@ -63,5 +63,11 @@ Everyone signs in with their own account. An administrator invites each person b
 - **Debt**: the Repayment strategies tab is the what-if tool (try an extra monthly amount). A debt that reaches zero shows a "Paid off" banner.
 - **Year in review** and **Monthly review** (Tools): a look back with highlights. The monthly review can be emailed to you on demand, or each month if you turn it on. It is off by default and covers only records you own. The monthly email needs the background worker (or ENABLE_INPROCESS_JOBS=true) and email settings.
 
+## 9e. More for vehicles
+- **Fuel in your finances:** when you add fuel, choose "Also record in my finances" and the cost becomes an expense in the account you pay from, tagged with the vehicle. Editing or deleting the fill-up updates the ledger row, unless you have reconciled it. The vehicle module keeps its own fuel records for economy statistics, and the two are never added together.
+- **Keep or replace:** compares the cost of keeping your vehicle (loss in value, repairs, fuel, insurance) with selling it and buying another (including loan interest), starting from what the vehicle really cost over the last year.
+- **Mileage log:** log business trips and see the business share of your driving and two ways to estimate a claim. The per-kilometre rates are reference values: confirm them with the CRA. Anyone with access to the vehicle can see its trips.
+- **Document expiry:** vehicle documents with an expiry date appear on the money calendar for people who have access to that vehicle.
+
 ## 10. Demo data
 Demo records are labelled and can be removed in Household, Data, Remove demo data. This deletes only the demo household.

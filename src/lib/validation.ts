@@ -398,6 +398,8 @@ export const expenseSchema = z.object({
 export const expenseUpdateSchema = expenseSchema.omit({ vehicleId: true, idempotencyKey: true }).partial();
 export const fuelSchema = z.object({
   vehicleId: id,
+  /** also record this fill-up as an expense in this finance account */
+  ledgerAccountId: id.nullish(),
   date: isoDate,
   odometerKm: km,
   quantity: z.coerce.number().positive().max(2000),

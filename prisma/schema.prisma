@@ -652,6 +652,7 @@ model Vehicle {
   installedParts InstalledPart[]
   expenses       Expense[]
   fuelEntries    FuelEntry[]
+  mileageTrips   MileageTrip[]
   reminders      Reminder[]
   notifications  Notification[]
   documents      Document[]
@@ -1139,33 +1140,39 @@ model Expense {
 }
 
 model FuelEntry {
-  id              String     @id @default(cuid())
-  vehicleId       String
-  date            DateTime   @db.Date
-  odometerKm      Decimal    @db.Decimal(10, 1)
-  quantityL       Decimal    @db.Decimal(10, 3)
-  enteredQuantity Decimal    @db.Decimal(10, 3)
-  enteredUnit     VolumeUnit @default(L)
-  pricePerL       Decimal?   @db.Decimal(10, 4)
-  totalCost       Decimal    @db.Decimal(12, 2)
-  currency        String     @default("CAD")
-  fuelType        FuelType   @default(PETROL)
-  station         String?
-  fullTank        Boolean    @default(true)
+  id                  String     @id @default(cuid())
+  vehicleId           String
+  date                DateTime   @db.Date
+  odometerKm          Decimal    @db.Decimal(10, 1)
+  quantityL           Decimal    @db.Decimal(10, 3)
+  enteredQuantity     Decimal    @db.Decimal(10, 3)
+  enteredUnit         VolumeUnit @default(L)
+  pricePerL           Decimal?   @db.Decimal(10, 4)
+  totalCost           Decimal    @db.Decimal(12, 2)
+  currency            String     @default("CAD")
+  fuelType            FuelType   @default(PETROL)
+  station             String?
+  fullTank            Boolean    @default(true)
   // True when an earlier fill-up was not recorded; economy is not computed across the gap.
-  missedPrevious  Boolean    @default(false)
-  notes           String?
-  idempotencyKey  String?    @unique
-  createdById     String?
-  createdAt       DateTime   @default(now()) @db.Timestamptz
-  updatedAt       DateTime   @updatedAt @db.Timestamptz
-  deletedAt       DateTime?  @db.Timestamptz
+  missedPrevious      Boolean    @default(false)
+  notes               String?
+  idempotencyKey      String?    @unique
+  /**
+   * the ledger expense this fill-up was recorded as, when the person chose to record it in their finances
+   */
+  ledgerTransactionId String?
+  createdById         String?
+  createdAt           DateTime   @default(now()) @db.Timestamptz
+  updatedAt           DateTime   @updatedAt @db.Timestamptz
+  deletedAt           DateTime?  @db.Timestamptz
 
-  vehicle         Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  expense         Expense?
-  odometerEntries OdometerEntry[]
+  vehicle           Vehicle         @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  ledgerTransaction FinTransaction? @relation(fields: [ledgerTransactionId], references: [id], onDelete: SetNull)
+  expense           Expense?
+  odometerEntries   OdometerEntry[]
 
   @@index([vehicleId, date])
+  @@index([ledgerTransactionId])
 }
 
 model Budget {
@@ -1775,6 +1782,7 @@ model FinTransaction {
   merchant  FinMerchant? @relation(fields: [merchantId], references: [id], onDelete: SetNull)
 
   allocations TransactionAllocation[]
+  fuelEntries FuelEntry[]
 
   @@index([householdId, date])
   @@index([householdId, ownerMemberId, date])
@@ -2388,7 +2396,9 @@ model FinAlertSetting {
   frequency           AlertFrequency @default(IMMEDIATE)
   inApp               Boolean        @default(true)
   email               Boolean        @default(false)
-  /** opt-in monthly money review by email, and the month (YYYY-MM) last sent so it is never sent twice */
+  /**
+   * opt-in monthly money review by email, and the month (YYYY-MM) last sent so it is never sent twice
+   */
   monthlyReview       Boolean        @default(false)
   lastMonthlyReview   String?
   updatedAt           DateTime       @updatedAt @db.Timestamptz
@@ -2476,4 +2486,24 @@ model RegisteredRoom {
 
   @@unique([memberId, kind, year])
   @@index([householdId])
+}
+
+// ───────────────────────── Mileage log (business use, for tax) ─────────────────────────
+
+model MileageTrip {
+  id          String    @id @default(cuid())
+  vehicleId   String
+  date        DateTime  @db.Date
+  km          Decimal   @db.Decimal(10, 1)
+  business    Boolean   @default(true)
+  purpose     String?
+  fromPlace   String?
+  toPlace     String?
+  createdById String?
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  deletedAt   DateTime? @db.Timestamptz
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+
+  @@index([vehicleId, date])
 }

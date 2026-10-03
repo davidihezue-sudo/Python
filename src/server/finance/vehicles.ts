@@ -106,6 +106,9 @@ export async function vehicleObligations(ctx: FinCtx, from: string, to: string) 
       const date = d ? d.toISOString().slice(0, 10) : null;
       if (date && date >= from && date <= to) out.push({ key: `vehren:${v.id}:${label}`, date, kind: "VEHICLE_RENEWAL", title: `${name}: ${label.toLowerCase()}`, amount: null, direction: "neutral", sourceType: "vehicle", sourceId: v.id, ownerMemberId: null, completed: false });
     }
+    // Documents with an expiry date (insurance slip, registration, warranty). Financial categories stay hidden from members without cost access.
+    const docs = await db.document.findMany({ where: { vehicleId: v.id, deletedAt: null, expiresOn: { gte: new Date(`${from}T00:00:00Z`), lte: new Date(`${to}T00:00:00Z`) }, ...(s.fin ? {} : { category: { notIn: ["MAINTENANCE_INVOICE", "REPAIR_RECEIPT", "PURCHASE", "INSURANCE", "PARTS_RECEIPT"] } }) }, select: { id: true, title: true, expiresOn: true } });
+    for (const d of docs) { const date = (d.expiresOn as Date).toISOString().slice(0, 10); out.push({ key: `vehdoc:${d.id}`, date, kind: "VEHICLE_RENEWAL", title: `${name}: ${d.title} expires`, amount: null, direction: "neutral", sourceType: "vehicle", sourceId: v.id, ownerMemberId: null, completed: false } as never); }
   }
   return out;
 }

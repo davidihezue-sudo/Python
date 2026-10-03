@@ -36,6 +36,8 @@ import * as Tags from "./tags";
 import * as Safe from "./safe";
 import * as Reg from "./registered";
 import * as Insight from "./insight";
+import * as Mile from "./mileage";
+import * as FuelPost from "./fuelpost";
 import * as Pay from "./payday";
 import * as Demo from "./demo";
 import { analyticsQuery, getAnalytics, auditHistory, fxSchema, listFx, saveFx, deleteFx, exportMyData } from "./misc";
@@ -215,6 +217,14 @@ export const ROUTES: Def[] = [
   { method: "PATCH", path: "/payday-plans/:id", need: "write", body: Pay.planPatchSchema, h: ({ ctx, params, body }) => Pay.updatePlan(ctx, params.id, body) },
   { method: "DELETE", path: "/payday-plans/:id", need: "write", h: ({ ctx, params }) => Pay.deletePlan(ctx, params.id) },
   { method: "POST", path: "/payday-plans/:id/run", need: "write", body: Pay.runSchema, h: ({ ctx, params, body }) => Pay.runPlan(ctx, params.id, body) },
+  // vehicles: mileage log, keep or replace, fuel to ledger
+  { method: "GET", path: "/mileage/trips", query: Mile.tripQuery, h: ({ ctx, query }) => Mile.listTrips(ctx, query) },
+  { method: "POST", path: "/mileage/trips", need: "write", body: Mile.tripSchema, status: 201, h: ({ ctx, body }) => Mile.createTrip(ctx, body) },
+  { method: "DELETE", path: "/mileage/trips/:id", need: "write", h: ({ ctx, params }) => Mile.deleteTrip(ctx, params.id) },
+  { method: "GET", path: "/mileage/report", query: Mile.tripQuery, h: ({ ctx, query }) => Mile.mileageReport(ctx, query) },
+  { method: "POST", path: "/vehicles/keep-or-replace", body: Mile.keepReplaceSchema, h: ({ ctx, body }) => Mile.keepReplace(ctx, body) },
+  { method: "GET", path: "/vehicles/:id/replace-defaults", h: ({ ctx, params }) => Mile.keepReplaceDefaults(ctx, params.id) },
+  { method: "POST", path: "/fuel/:id/post-to-ledger", need: "write", body: z.object({ accountId: z.string().min(5).max(40) }), status: 201, h: ({ actor, params, body }) => FuelPost.postFuelToLedger(actor, params.id, body.accountId) },
   // planning and insight
   { method: "GET", path: "/retirement/defaults", h: ({ ctx }) => Insight.retirementDefaults(ctx) },
   { method: "POST", path: "/retirement/project", body: Insight.retirementSchema, h: ({ ctx, body }) => Insight.projectRetirementNow(ctx, body) },

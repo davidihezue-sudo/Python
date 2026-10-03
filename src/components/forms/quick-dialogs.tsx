@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Controller } from "react-hook-form";
 import { Gauge, Fuel, Receipt, AlertTriangle, FileUp, Wrench, ClipboardPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -118,6 +118,18 @@ export function MileageDialog({ preset, onClose }: { preset: QuickPreset; onClos
   );
 }
 
+/** Optional: also record this cost as an expense in one of the member's finance accounts, tagged with the vehicle. */
+function LedgerAccountPick({ householdId, value, onChange }: { householdId?: string; value: string; onChange: (v: string) => void }) {
+  const { data } = useQuery({ queryKey: ["fuel-ledger-accounts", householdId], enabled: !!householdId, queryFn: () => api<{ items: { id: string; name: string; status: string; mine: boolean; joint: boolean; currency: string }[] }>(`/api/finance/${householdId}/accounts?view=my`) });
+  const list = (data?.items ?? []).filter((a) => a.status === "ACTIVE" && (a.mine || a.joint));
+  if (!householdId || !list.length) return null;
+  return (
+    <Field label="Also record in my finances (optional)" hint="Adds this cost as an expense in the account you pay from, tagged with the vehicle, so your budgets and reports include it.">
+      {(p) => <Select {...p} value={value} onChange={(e) => onChange(e.target.value)}><option value="">Do not record in finances</option>{list.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select>}
+    </Field>
+  );
+}
+
 // ───────────── Fuel
 export function FuelDialog({ preset, onClose }: { preset: QuickPreset; onClose: () => void }) {
   const f = useFormat();
@@ -163,6 +175,7 @@ export function FuelDialog({ preset, onClose }: { preset: QuickPreset; onClose: 
           <Field label="Fuel type">{(p) => <Select {...p} {...form.register("fuelType")}>{["PETROL", "DIESEL", "HYBRID", "PLUGIN_HYBRID", "ELECTRIC", "OTHER"].map((x) => <option key={x} value={x}>{label(x)}</option>)}</Select>}</Field>
         </div>
         <Field label="Station (optional)">{(p) => <Input {...p} {...form.register("station")} />}</Field>
+        <LedgerAccountPick householdId={vehicles?.find((x) => x.id === vid)?.householdId} value={form.watch("ledgerAccountId") ?? ""} onChange={(v) => form.setValue("ledgerAccountId", v || null)} />
         <div className="space-y-2">
           <Checkbox label="Full tank (filled to the top)" {...form.register("fullTank")} />
           <Checkbox label="I missed recording an earlier fill-up (skip economy for this one)" {...form.register("missedPrevious")} />

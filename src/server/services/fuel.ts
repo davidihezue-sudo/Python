@@ -12,6 +12,7 @@ import { requireVehicle, scopeVehicles } from "./access";
 import { audit } from "./audit";
 import { recordReading, syncVehicleOdometer } from "./odometer";
 import { refreshVehicleSchedules } from "./schedules";
+import { checkLedgerAccount, postFuelToLedger, removeFuelLedger, syncFuelLedger } from "../finance/fuelpost";
 
 async function applyDerived(tx: Db, actor: Actor, vehicle: { id: string; householdId: string; currency: string }, fuelId: string, confirm: boolean) {
   const f = await tx.fuelEntry.findUniqueOrThrow({ where: { id: fuelId } });
@@ -35,6 +36,7 @@ export async function createFuel(actor: Actor, input: z.infer<typeof fuelSchema>
       return { id: dup.id, idempotentReplay: true };
     }
   }
+  if (input.ledgerAccountId) await checkLedgerAccount(actor, vehicle.householdId, input.ledgerAccountId, input.currency ?? vehicle.currency);
   const litres = unitToLitres(input.quantity, input.unit);
   const total = input.totalCost > 0 ? input.totalCost : input.pricePerUnit ? Math.round(input.pricePerUnit * input.quantity * 100) / 100 : 0;
   const id = await db.$transaction(async (tx) => {
@@ -45,7 +47,9 @@ export async function createFuel(actor: Actor, input: z.infer<typeof fuelSchema>
     await audit(tx, actor, { entity: "FuelEntry", entityId: f.id, action: "create", vehicleId: vehicle.id, householdId: vehicle.householdId, after: { litres, total } });
     return f.id;
   });
-  return { id, idempotentReplay: false };
+  let ledgerTransactionId: string | null = null;
+  if (input.ledgerAccountId) ledgerTransactionId = (await postFuelToLedger(actor, id, input.ledgerAccountId)).transactionId;
+  return { id, idempotentReplay: false, ledgerTransactionId };
 }
 
 export async function updateFuel(actor: Actor, id: string, input: z.infer<typeof fuelUpdateSchema>) {
@@ -78,6 +82,7 @@ export async function updateFuel(actor: Actor, id: string, input: z.infer<typeof
     await applyDerived(tx, actor, vehicle, id, !!input.confirmOdometerCorrection);
     await audit(tx, actor, { entity: "FuelEntry", entityId: id, action: "update", vehicleId: vehicle.id, householdId: vehicle.householdId });
   });
+  await syncFuelLedger(actor, id);
   return { id };
 }
 
@@ -85,6 +90,7 @@ export async function deleteFuel(actor: Actor, id: string) {
   const f = await db.fuelEntry.findFirst({ where: { id, deletedAt: null } });
   if (!f) throw notFound("Fuel entry");
   const { vehicle } = await requireVehicle(actor, f.vehicleId, "write");
+  await removeFuelLedger(actor, id);
   await db.$transaction(async (tx) => {
     await tx.odometerEntry.updateMany({ where: { fuelEntryId: id, deletedAt: null }, data: { deletedAt: new Date() } });
     await tx.expense.updateMany({ where: { fuelEntryId: id, deletedAt: null }, data: { deletedAt: new Date() } });
