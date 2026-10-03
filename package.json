@@ -25,7 +25,8 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:e2e": "playwright test",
-    "test:all": "npm run typecheck && npm run lint && npm run test:unit && npm run test:integration && npm run test:e2e"
+    "test:all": "npm run typecheck && npm run lint && npm run test:unit && npm run test:integration && npm run test:e2e",
+    "vapid": "web-push generate-vapid-keys"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1145.0",

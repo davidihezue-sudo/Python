@@ -6,7 +6,7 @@ import { diffDays, todayInTz, dateToIso } from "@/lib/dates";
 import { formatMoney } from "@/lib/money";
 import { can } from "@/lib/permissions";
 import { notificationMessage, sendEmail } from "@/lib/email";
-import { notFound } from "@/lib/errors";
+import { AppError, notFound } from "@/lib/errors";
 import { pushSubSchema } from "@/lib/validation";
 import type { z } from "zod";
 import type { Actor, Prefs } from "../context";
@@ -199,6 +199,23 @@ export async function updateNotifications(actor: Actor, input: { ids?: string[];
 export async function savePushSubscription(actor: Actor, input: z.infer<typeof pushSubSchema>, userAgent?: string | null) {
   const s = await db.pushSubscription.upsert({ where: { endpoint: input.endpoint }, create: { userId: actor.id, endpoint: input.endpoint, p256dh: input.keys.p256dh, auth: input.keys.auth, userAgent: userAgent?.slice(0, 200) ?? null }, update: { userId: actor.id, p256dh: input.keys.p256dh, auth: input.keys.auth } });
   return { id: s.id };
+}
+/** Sends one test notification to every device this person has turned push on for, so they can see it working. */
+export async function sendTestPush(actor: Actor) {
+  if (!initPush()) throw new AppError("BAD_REQUEST", "Push notifications are not set up on this server yet (the VAPID keys are missing).");
+  const subs = await db.pushSubscription.findMany({ where: { userId: actor.id } });
+  if (!subs.length) throw new AppError("BAD_REQUEST", "This device is not subscribed yet. Turn on push notifications first.");
+  let sent = 0, removed = 0;
+  for (const sub of subs) {
+    try {
+      await webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify({ title: "Family Finance Hub", body: "Notifications are working.", url: "/notifications", tag: `test-${Date.now()}` }));
+      sent++;
+    } catch (e: any) {
+      if (e.statusCode === 404 || e.statusCode === 410) { await db.pushSubscription.delete({ where: { id: sub.id } }).catch(() => undefined); removed++; }
+      else logger.warn({ err: e.message }, "test push failed");
+    }
+  }
+  return { devices: subs.length, sent, removed };
 }
 export async function removePushSubscription(actor: Actor, endpoint: string) {
   await db.pushSubscription.deleteMany({ where: { endpoint, userId: actor.id } });

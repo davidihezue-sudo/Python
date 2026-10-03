@@ -108,3 +108,27 @@ Notes
 
 - **Whole database (administrator):** `npm run backup` (or `pg_dump -Fc`) writes a dump; restore it into an empty database with `pg_restore`. Back up the `uploads` volume (or your S3 bucket) too, because receipts and documents are files, not database rows. There is no in-app restore.
 - **Per person:** Tools, Backup and history downloads everything that member can see as JSON.
+
+## Install on a phone and push notifications
+
+**Install (no store, no fees).** Open the app's `https://` address in the phone's browser and add it to the Home Screen.
+- iPhone: use **Safari**, tap Share, then **Add to Home Screen**.
+- Android: in Chrome, menu, **Install app** (or Add to Home screen).
+Settings, then App shows the current install state and the steps.
+
+**Push notifications (optional, free).** They need HTTPS, so use the Tailscale or Caddy setup above, and a pair of VAPID keys.
+1. Generate the keys once, on the machine where you have the project: `npm run vapid`. It prints a public and a private key.
+2. Add them to `.env`:
+   ```
+   VAPID_PUBLIC_KEY=<public key>
+   VAPID_PRIVATE_KEY=<private key>
+   VAPID_SUBJECT=mailto:you@example.com
+   ```
+3. Recreate the containers so they read it: `docker compose up -d --force-recreate web worker`.
+4. On the phone, open the app **from the Home Screen icon** (iPhone requires this, on iOS 16.4 or later), go to Settings, Notifications, turn on Web push, allow the prompt, then tap **Send a test notification**.
+
+Notes
+- Keep the same keys. Changing them stops every device that already turned push on, and each person must switch it off and on again.
+- The server only needs outbound internet to reach Apple's and Google's push services. The phone does not need Tailscale to receive the alert, but it does to open the app.
+- Alerts come from the background job, so keep `ENABLE_INPROCESS_JOBS=true` or run the worker.
+- A notification can show on a locked screen. If that matters, leave push off.

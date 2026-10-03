@@ -1,13 +1,13 @@
-/* AutoVault service worker.
+/* Family Finance Hub service worker.
  * - Static assets: cache-first.
  * - API GETs: network-first with cache fallback so previously loaded vehicles/records stay readable offline.
  * - Navigations: network-first, fall back to the last cached page, then /offline.
  * - Offline writes are queued in IndexedDB by the page; this worker only wakes pages to flush (Background Sync where supported).
  * Private data is cleared on logout/login via postMessage. */
-const VERSION = "v1";
-const STATIC = `av-static-${VERSION}`;
-const API = `av-api-${VERSION}`;
-const PAGES = `av-pages-${VERSION}`;
+const VERSION = "v2";
+const STATIC = `ffh-static-${VERSION}`;
+const API = `ffh-api-${VERSION}`;
+const PAGES = `ffh-pages-${VERSION}`;
 const NEVER_CACHE_API = [/^\/api\/auth\//, /^\/api\/admin\//, /^\/api\/users\/me\/export/, /^\/api\/documents\/[^/]+\/file/, /^\/api\/reports\//, /^\/api\/cron\//, /^\/api\/health/, /^\/api\/integrations\/obd/];
 
 self.addEventListener("install", (event) => {
@@ -91,9 +91,9 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: "AutoVault", body: event.data ? event.data.text() : "" };
+    data = { title: "Family Finance Hub", body: event.data ? event.data.text() : "" };
   }
-  event.waitUntil(self.registration.showNotification(data.title || "AutoVault", { body: data.body || "", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: data.tag, data: { url: data.url || "/dashboard" } }));
+  event.waitUntil(self.registration.showNotification(data.title || "Family Finance Hub", { body: data.body || "", icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: data.tag, data: { url: data.url || "/dashboard" } }));
 });
 
 self.addEventListener("notificationclick", (event) => {

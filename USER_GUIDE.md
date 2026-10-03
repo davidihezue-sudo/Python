@@ -81,5 +81,8 @@ Everyone signs in with their own account. An administrator invites each person b
 - **Backup and history:** download everything you can see as a JSON file, and see a list of your own changes. Administrators also see membership and settings changes. Server backups and restore are in DEPLOYMENT.md.
 - **HTTPS:** DEPLOYMENT.md explains how to serve the app over HTTPS with the included Caddy setup.
 
+## 9h. Install on your phone and alerts
+Add the app to your Home Screen (Safari on iPhone, Share, Add to Home Screen) so it opens full screen with its own icon. Then turn on Web push in Settings, Notifications, and tap "Send a test notification". The server needs a one-time key setup, described in DEPLOYMENT.md. On iPhone, push only works when the app is opened from the Home Screen icon.
+
 ## 10. Demo data
 Demo records are labelled and can be removed in Household, Data, Remove demo data. This deletes only the demo household.

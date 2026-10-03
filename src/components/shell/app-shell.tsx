@@ -117,6 +117,28 @@ function SharingPrompt() {
   );
 }
 
+/** One small, dismissible nudge on the dashboard for people using the app in a phone browser instead of from the home screen. */
+function InstallBanner() {
+  const path = usePathname();
+  const [show, setShow] = React.useState(false);
+  React.useEffect(() => {
+    try {
+      const phone = /iphone|ipad|ipod|android/i.test(navigator.userAgent);
+      const installed = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone === true;
+      setShow(phone && !installed && localStorage.getItem("ffh:install-dismissed") !== "1");
+    } catch { setShow(false); }
+  }, []);
+  if (!show || path !== "/dashboard") return null;
+  return (
+    <div role="status" className="border-b border-primary/20 bg-primary/5 px-3.5 py-1.5 text-[13px] sm:hidden">
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate">Add this app to your Home Screen</span>
+        <span className="flex shrink-0 items-center gap-3"><Link href="/settings?tab=app" className="font-semibold text-primary underline underline-offset-2">How</Link><button aria-label="Dismiss" className="text-muted-foreground" onClick={() => { try { localStorage.setItem("ffh:install-dismissed", "1"); } catch { /* storage unavailable */ } setShow(false); }}>x</button></span>
+      </div>
+    </div>
+  );
+}
+
 function Logo({ className }: { className?: string }) {
   return (
     <span className={cn("flex items-center gap-2.5", className)}>
@@ -214,6 +236,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <OfflineBanner />
         <DemoBanner />
         <SharingPrompt />
+        <InstallBanner />
         {!me.emailVerified && <VerifyBanner />}
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl px-3.5 pb-28 pt-3 outline-none sm:px-6 sm:pb-36 sm:pt-6 lg:pb-12">
           {children}

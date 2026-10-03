@@ -138,6 +138,7 @@ function Notifications() {
         <Switch label="Email" description="Sent to your verified address by the background job." checked={p.notifyEmail} onChange={(v) => save({ notifyEmail: v })} />
         <div>
           <Switch label="Web push" description="Delivered even when the app is closed, where your browser supports it." checked={p.notifyPush} onChange={(v) => (v ? enablePush() : save({ notifyPush: false }))} />
+          {p.notifyPush && <div className="mt-2"><Button size="sm" variant="outline" onClick={async () => { try { const r = await api<{ devices: number; sent: number }>("/api/notifications/push-test", { method: "POST" }); toast({ title: r.sent ? "Test sent" : "Nothing was delivered", description: r.sent ? "It should appear on your phone in a few seconds." : "Turn push off and on again on this device.", variant: r.sent ? "success" : "error" }); } catch (e) { toast({ title: "Test failed", description: (e as Error).message, variant: "error" }); } }}>Send a test notification</Button></div>}
           <p className="mt-1 text-xs text-muted-foreground">Detected: service worker {caps.serviceWorker ? "✓" : "✗"} · push API {caps.push ? "✓" : "✗"} · server keys {push?.serverSupport ? "✓" : "✗ (not configured)"}. Push is optional; in-app and email always work.</p>
         </div>
       </CardBody></Card>
