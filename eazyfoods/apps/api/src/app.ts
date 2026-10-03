@@ -9,6 +9,7 @@ import { config } from './config.js';
 import { AppError } from './errors.js';
 import { loadAuth, type AuthCtx } from './lib/auth.js';
 import { actorFrom, type Actor } from './lib/audit.js';
+import { limits } from './lib/limits.js';
 import { registerAllJobs } from './jobs-registry.js';
 import { startEventBridge } from './lib/events.js';
 import { authRoutes } from './routes/auth.js';
@@ -30,6 +31,7 @@ export const CART_COOKIE = 'ez_cart';
 
 export async function buildApp(opts: { strictLimits?: boolean; bridge?: boolean } = {}): Promise<FastifyInstance> {
   registerAllJobs();
+  limits.strict = !!opts.strictLimits;
   const app = Fastify({
     logger: config.logLevel === 'silent' ? false : { level: config.logLevel, redact: ['req.headers.authorization', 'req.headers.cookie', 'body.password', 'body.paymentToken'] },
     genReqId: () => randomUUID(),
@@ -72,6 +74,7 @@ export async function buildApp(opts: { strictLimits?: boolean; bridge?: boolean 
       return reply.status(err.status).send({ error: { code: err.code, message: err.message, details: err.details } });
     }
     if (err.code === 'FST_ERR_CTP_BODY_TOO_LARGE' || err.statusCode === 413) return reply.status(413).send({ error: { code: 'TOO_LARGE', message: 'That upload is too large.' } });
+    if (err.statusCode === 415) return reply.status(415).send({ error: { code: 'UNSUPPORTED', message: 'That type of request is not supported.' } });
     if (err.statusCode === 429) return reply.status(429).send({ error: { code: 'RATE_LIMITED', message: 'You are doing that too quickly. Please wait a moment and try again.' } });
     if (err.validation || err.statusCode === 400) return reply.status(400).send({ error: { code: 'VALIDATION', message: 'Something in your request was not valid. Please check it and try again.' } });
     // Postgres constraint failures never reach customers verbatim.

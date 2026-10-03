@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { rl } from '../lib/limits.js';
 import { parse, id, pagination } from '../lib/util.js';
 import { query, one } from '../db.js';
 import { requireUser } from '../lib/rbac.js';
@@ -59,7 +60,7 @@ export async function driverRoutes(app: FastifyInstance) {
     const { a } = await driver(req);
     return setAvailability(a.user.id, parse(z.object({ online: z.boolean() }), req.body).online);
   });
-  app.post('/me/location', { config: { rateLimit: { max: 120, timeWindow: '1 minute' } } }, async (req) => {
+  app.post('/me/location', rl(120), async (req) => {
     const { a } = await approved(req);
     const b = parse(z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180), heading: z.number().optional(), speed_kmh: z.number().optional() }), req.body);
     await updateDriverLocation(a.user.id, b.lat, b.lng, b.heading, b.speed_kmh);

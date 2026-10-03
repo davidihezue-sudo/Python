@@ -1,5 +1,5 @@
 // Delivery batching: decide whether jobs can share a driver and compute the stop sequence with ETAs.
-import { haversineKm, minutesFor, roadKm, type LatLng } from '../lib/geo.js';
+import { haversineKm, roadKm, type LatLng } from '../lib/geo.js';
 
 export interface BatchJob {
   id: string; pickup: LatLng; dropoff: LatLng; needsCold: boolean; readyAt: Date | null; picked: boolean;
@@ -12,8 +12,9 @@ function permutations<T>(a: T[]): T[][] {
   return a.flatMap((x, i) => permutations([...a.slice(0, i), ...a.slice(i + 1)]).map((p) => [x, ...p]));
 }
 
-/** Best stop order by total travel time, pickups before their own dropoffs. Exact for the small batch sizes allowed. */
-export function planRoute(start: LatLng, jobs: BatchJob[], speedKmh: number): { stops: Stop[]; totalMinutes: number } {
+/** Best stop order by total travel time, pickups before their own dropoffs. Exact for the small batch sizes allowed.
+ *  An optional predicate rejects orders that would break a constraint (for example, too much delay for one customer). */
+export function planRoute(start: LatLng, jobs: BatchJob[], speedKmh: number, accept?: (stops: Stop[]) => boolean): { stops: Stop[]; totalMinutes: number } {
   const stops: { type: 'pickup' | 'dropoff'; job: BatchJob }[] = [];
   for (const j of jobs) { if (!j.picked) stops.push({ type: 'pickup', job: j }); stops.push({ type: 'dropoff', job: j }); }
   let best: { stops: Stop[]; total: number } | null = null;
@@ -29,10 +30,11 @@ export function planRoute(start: LatLng, jobs: BatchJob[], speedKmh: number): { 
     const out: Stop[] = [];
     for (const s of perm) {
       const p = s.type === 'pickup' ? s.job.pickup : s.job.dropoff;
-      t += minutesFor(roadKm(pos, p), speedKmh) + (s.type === 'pickup' ? 2 : 3); // handover time at each stop
+      t += Math.max(1, Math.round((roadKm(pos, p) / Math.max(speedKmh, 5)) * 60)) + (s.type === 'pickup' ? 2 : 3); // travel plus handover time at each stop
       out.push({ type: s.type, jobId: s.job.id, lat: p.lat, lng: p.lng, etaMinutes: t });
       pos = p;
     }
+    if (accept && !accept(out)) continue;
     if (!best || t < best.total) best = { stops: out, total: t };
   }
   return { stops: best?.stops ?? [], totalMinutes: best?.total ?? 0 };
@@ -47,7 +49,7 @@ export function canBatch(driverPos: LatLng, jobs: BatchJob[], cfg: BatchCfg, spe
     return { ok: true, route: r.stops, totalMinutes: r.totalMinutes };
   }
   if (!cfg.enabled) return { ok: false, reason: 'Batching is disabled' };
-  if (jobs.length > cfg.max_batch) return { ok: false, reason: 'Too many orders in one batch' };
+  if (jobs.length > Math.min(cfg.max_batch, 4)) return { ok: false, reason: 'Too many orders in one batch' };
   for (let i = 0; i < jobs.length; i++) {
     for (let k = i + 1; k < jobs.length; k++) {
       const a = jobs[i], b = jobs[k];
@@ -56,13 +58,18 @@ export function canBatch(driverPos: LatLng, jobs: BatchJob[], cfg: BatchCfg, spe
       if (a.readyAt && b.readyAt && Math.abs(a.readyAt.getTime() - b.readyAt.getTime()) / 60000 > cfg.max_ready_gap_minutes) return { ok: false, reason: 'Orders are not ready at similar times' };
     }
   }
-  const batch = planRoute(driverPos, jobs, speedKmh);
-  // Detour: each drop off may be later than if delivered alone, but only by the configured limit.
-  for (const j of jobs) {
-    const solo = planRoute(driverPos, [j], speedKmh).stops.find((s) => s.type === 'dropoff' && s.jobId === j.id)!.etaMinutes;
-    const inBatch = batch.stops.find((s) => s.type === 'dropoff' && s.jobId === j.id)!.etaMinutes;
-    if (inBatch - solo > cfg.max_detour_minutes) return { ok: false, reason: 'The detour would delay an order too much' };
-    if (j.needsCold && inBatch > cfg.cold_max_minutes) return { ok: false, reason: 'Cold items would be in transit too long' };
+  const solo = new Map(jobs.map((j) => [j.id, planRoute(driverPos, [j], speedKmh).stops.find((s) => s.type === 'dropoff')!.etaMinutes]));
+  // Among all legal sequences, pick the quickest one where no customer is delayed beyond the limit and cold items stay cold.
+  const withinLimits = (stops: Stop[]) => jobs.every((j) => {
+    const eta = stops.find((s) => s.type === 'dropoff' && s.jobId === j.id)!.etaMinutes;
+    return eta - solo.get(j.id)! <= cfg.max_detour_minutes && (!j.needsCold || eta <= cfg.cold_max_minutes);
+  });
+  const batch = planRoute(driverPos, jobs, speedKmh, withinLimits);
+  if (!batch.stops.length) {
+    const anyCold = jobs.some((j) => j.needsCold);
+    const unconstrained = planRoute(driverPos, jobs, speedKmh);
+    const coldOnly = anyCold && jobs.every((j) => (unconstrained.stops.find((s) => s.type === 'dropoff' && s.jobId === j.id)!.etaMinutes - solo.get(j.id)!) <= cfg.max_detour_minutes);
+    return { ok: false, reason: coldOnly ? 'Cold items would be in transit too long' : 'The detour would delay an order too much' };
   }
   return { ok: true, route: batch.stops, totalMinutes: batch.totalMinutes };
 }

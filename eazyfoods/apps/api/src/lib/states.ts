@@ -67,7 +67,7 @@ export function assertDeliveryTransition(from: DeliveryStatus, to: DeliveryStatu
 export type VendorVerification = 'draft' | 'submitted' | 'under_review' | 'info_required' | 'approved' | 'rejected' | 'suspended';
 export const VERIFICATION_TRANSITIONS: Record<VendorVerification, VendorVerification[]> = {
   draft: ['submitted'],
-  submitted: ['under_review', 'info_required', 'approved', 'rejected'],
+  submitted: ['under_review', 'info_required', 'rejected'],       // approval always goes through an explicit review step
   under_review: ['info_required', 'approved', 'rejected'],
   info_required: ['submitted'],
   approved: ['suspended'],

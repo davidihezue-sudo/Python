@@ -111,7 +111,7 @@ export async function campaignMetrics(campaignId: string) {
                                FROM analytics_events WHERE campaign_id = $1`, [campaignId]);
   const sales = c.promotion_id ? await one<any>(
     `SELECT count(DISTINCT r.order_id)::int AS orders, coalesce(sum(o.total),0) AS revenue, coalesce(sum(r.amount),0) AS discount_cost
-       FROM promotion_redemptions r JOIN orders o ON o.id = r.order_id WHERE r.promotion_id = $1 AND r.status = 'active' AND o.placed_at >= coalesce($2, '-infinity')`, [c.promotion_id, c.starts_at]) : { orders: 0, revenue: 0, discount_cost: 0 };
+       FROM promotion_redemptions r JOIN orders o ON o.id = r.order_id WHERE r.promotion_id = $1 AND r.status = 'active' AND o.placed_at >= coalesce($2::timestamptz, '-infinity'::timestamptz)`, [c.promotion_id, c.starts_at]) : { orders: 0, revenue: 0, discount_cost: 0 };
   const interactions = ev.clicks + ev.landing_views;
   return {
     campaign: c, impressions: ev.impressions, clicks: ev.clicks, landing_views: ev.landing_views, orders: sales.orders, revenue: Number(sales.revenue), discount_cost: Number(sales.discount_cost),
@@ -121,9 +121,10 @@ export async function campaignMetrics(campaignId: string) {
 }
 
 // ---------------- advertising ----------------
-const SAFE_URL = /^(\/[A-Za-z0-9/_\-.?=&%#]*|https:\/\/[A-Za-z0-9.-]+(\/[^\s]*)?)$/;
+// Same-site paths (never protocol relative) or https links. Blocks javascript: and //host open redirects.
+const SAFE_URL = /^(\/(?!\/)[A-Za-z0-9/_\-.?=&%#]*|https:\/\/[A-Za-z0-9.-]+(\/[^\s]*)?)$/;
 export async function saveAd(data: any, id: string | undefined, actor: Actor) {
-  if (!SAFE_URL.test(data.click_url ?? '')) throw badRequest('VALIDATION', 'Use a path on this site (starting with /) or an https link.');
+  if ((!id || data.click_url !== undefined) && !SAFE_URL.test(data.click_url ?? '')) throw badRequest('VALIDATION', 'Use a path on this site (starting with /) or an https link.');
   if (data.starts_at && data.ends_at && new Date(data.ends_at) <= new Date(data.starts_at)) throw badRequest('VALIDATION', 'The end date must be after the start date.');
   const cols = ['placement_key', 'campaign_id', 'advertiser_type', 'advertiser_vendor_id', 'advertiser_name', 'title', 'subtitle', 'image_url', 'cta_label', 'click_url', 'product_id', 'segment_id', 'cost_model', 'rate', 'budget', 'starts_at', 'ends_at', 'position', 'status'];
   if (id) {

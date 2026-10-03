@@ -142,9 +142,11 @@ export async function checkout(userId: string, input: CheckoutInput, actor: Acto
   return { orderId };
 }
 
+const SAFE_REASON: Record<string, string> = { card_declined: 'declined', insufficient_funds: 'insufficient_funds', expired_card: 'expired_card', processing_error: 'processing_error', invalid_token: 'invalid_card' };
 export class PaymentFailed extends AppError {
   constructor(public orderId: string, internal: string, code: string) {
-    super('PAYMENT_FAILED', 402, 'Your payment could not be completed and your card was not charged. Please check your card details or try another card.', { orderId, reason: code }, internal);
+    // The processor's own code stays in logs. Customers get a short category they can act on.
+    super('PAYMENT_FAILED', 402, 'Your payment could not be completed and your card was not charged. Please check your card details or try another card.', { orderId, reason: SAFE_REASON[code] ?? 'declined' }, `${code}: ${internal}`);
   }
 }
 
@@ -157,6 +159,7 @@ export async function payOrder(userId: string, orderId: string, token: string, a
     await advisoryLock(c, `pay:${orderId}`);
     const order = await one<any>('SELECT * FROM orders WHERE id = $1 FOR UPDATE', [orderId], c);
     if (!order || order.user_id !== userId) throw notFound('That order');
+    if (order.status === 'cancelled') throw conflict('ORDER_CANCELLED', 'This order was cancelled, so it can not be paid. Your items were released, so please start a new checkout.');
     if (order.status !== 'pending_payment') return { already: true, status: order.status };
     if (order.payment_deadline && new Date(order.payment_deadline) < new Date()) throw conflict('ORDER_EXPIRED', 'This order timed out before payment. Your items were released, so please start a new checkout.');
     const amount = toCents(order.amount_charged);

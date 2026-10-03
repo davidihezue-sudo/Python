@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { rl } from '../lib/limits.js';
 import { parse, id } from '../lib/util.js';
 import { query, one, tx } from '../db.js';
 import { requireUser } from '../lib/rbac.js';
@@ -27,7 +28,9 @@ const driver = z.object({
   licence_number: z.string().max(40).optional(), licence_expiry: z.string().optional(),
   vehicle: z.object({ vehicle_type: z.enum(['car', 'bike', 'ebike', 'scooter', 'van']), make: z.string().optional(), model: z.string().optional(), year: z.number().int().optional(), colour: z.string().optional(), plate: z.string().optional(), insurance_expiry: z.string().optional(), has_cold_storage: z.boolean().optional() }).optional(),
 });
-const tight = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } };
+
+
+const tight = rl(10);
 
 export async function authRoutes(app: FastifyInstance) {
   const finish = async (req: any, reply: any, userId: string) => {

@@ -43,7 +43,7 @@ export async function login(email: string, password: string, meta: { ip?: string
   if (user.locked_until && new Date(user.locked_until) > new Date()) throw new AppError('LOCKED', 429, 'Too many attempts. Please wait a few minutes or reset your password.');
   if (!(await verifyPassword(password, user.password_hash))) {
     const fails = user.failed_logins + 1;
-    await query('UPDATE users SET failed_logins = $2, locked_until = CASE WHEN $2 >= $3 THEN now() + interval \'15 minutes\' END WHERE id = $1', [user.id, fails, MAX_FAILS]);
+    await query('UPDATE users SET failed_logins = $2::int, locked_until = CASE WHEN $2::int >= $3::int THEN now() + interval \'15 minutes\' END WHERE id = $1', [user.id, fails, MAX_FAILS]);
     throw generic;
   }
   if (user.status !== 'active') throw new AppError('SUSPENDED', 403, 'This account is not active. Please contact support.');

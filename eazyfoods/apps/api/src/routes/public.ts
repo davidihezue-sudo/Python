@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { randomBytes } from 'node:crypto';
+import { rl } from '../lib/limits.js';
 import { parse } from '../lib/util.js';
 import { query, one } from '../db.js';
 import { searchProducts, searchParams, facets, autocomplete, logSearch, categoryTree, getProduct, listVendors, getStorefront, cuisinesAndCountries, vendorsDeliveringTo } from '../modules/discovery.js';
@@ -100,7 +101,7 @@ export async function publicRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
-  app.post('/locate', { config: { rateLimit: { max: 60, timeWindow: '1 minute' } } }, async (req) => {
+  app.post('/locate', rl(60), async (req) => {
     const b = parse(z.object({ postal_code: z.string().max(12).optional(), city: z.string().max(80).optional(), line1: z.string().max(200).optional(), region: z.string().max(10).optional() }), req.body);
     if (!b.postal_code && !b.city) throw badRequest('VALIDATION', 'Enter a postal code or city.');
     const g = await geocode({ ...b, country: 'CA' });

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { rl } from '../lib/limits.js';
 import { parse, id } from '../lib/util.js';
 import { query, one } from '../db.js';
 import { requireUser } from '../lib/rbac.js';
@@ -60,7 +61,10 @@ export async function customerRoutes(app: FastifyInstance) {
   app.patch('/carts/options', async (req, reply) => {
     const b = parse(z.object({ addressId: id.nullable().optional(), couponCodes: z.array(z.string().max(30)).max(5).optional(), tip: z.coerce.number().min(0).max(500).optional(), fulfillment: fulfillmentSchema.optional(), useCredit: z.boolean().optional() }), req.body);
     const cart = await cartFor(req, reply);
-    if (b.addressId) { requireUser(req.auth); }
+    if (b.addressId) {
+      const a = requireUser(req.auth);
+      if (!(await one('SELECT 1 FROM addresses WHERE id = $1 AND user_id = $2 AND deleted_at IS NULL', [b.addressId, a.user.id]))) throw notFound('That address');
+    }
     const updated = await updateCartOptions(cart.id, b);
     return { cart: await cartView(req.auth?.user.id ?? null, updated) };
   });
@@ -72,11 +76,14 @@ export async function customerRoutes(app: FastifyInstance) {
   });
 
   // -------- checkout and orders --------
-  app.post('/checkout', { config: { rateLimit: { max: 30, timeWindow: '1 minute' } } }, async (req, reply) => {
+  app.post('/checkout', rl(30), async (req, reply) => {
     const a = requireUser(req.auth);
     const b = parse(z.object({
       idempotencyKey: z.string().min(8).max(100), paymentToken: z.string().max(200).optional(), expectedTotal: z.number().optional(), contact: z.object({ name: z.string().max(120).optional(), phone: z.string().max(30).optional() }).optional(), note: z.string().max(500).optional(),
     }), req.body);
+    // A repeated request with the same key returns the original order even after the cart was converted.
+    const prior = await one<any>('SELECT id, status, payment_status FROM orders WHERE user_id = $1 AND idempotency_key = $2', [a.user.id, b.idempotencyKey]);
+    if (prior) return { orderId: prior.id, reused: true };
     const cart = await findCart(a.user.id, null);
     if (!cart) throw badRequest('EMPTY_CART', 'Your cart is empty.');
     const items = await query<any>('SELECT variant_id, quantity FROM cart_items WHERE cart_id = $1', [cart.id]);
@@ -88,7 +95,7 @@ export async function customerRoutes(app: FastifyInstance) {
     reply.status(201);
     return out;
   });
-  app.post('/orders/:id/pay', { config: { rateLimit: { max: 20, timeWindow: '1 minute' } } }, async (req) => {
+  app.post('/orders/:id/pay', rl(20), async (req) => {
     const a = requireUser(req.auth);
     const { id: orderId } = parse(z.object({ id }), req.params);
     const b = parse(z.object({ paymentToken: z.string().min(3).max(200) }), req.body);

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { parse, id } from '../lib/util.js';
+import { parse, id, provided } from '../lib/util.js';
 import { query, one, tx } from '../db.js';
 import { requirePerm } from '../lib/rbac.js';
 import { badRequest, notFound } from '../errors.js';
@@ -84,14 +84,14 @@ export async function marketingRoutes(app: FastifyInstance) {
   });
   app.get('/ads', async (req) => { requirePerm(req.auth, 'ads.manage', 'marketing.manage'); return { ads: await query('SELECT a.*, c.name AS campaign_name FROM ads a LEFT JOIN campaigns c ON c.id = a.campaign_id ORDER BY a.created_at DESC'), placements: await query('SELECT * FROM ad_placements ORDER BY key') }; });
   app.post('/ads', async (req, reply) => { requirePerm(req.auth, 'ads.manage'); reply.status(201); return { ad: await saveAd(parse(adBody, req.body), undefined, req.actor) }; });
-  app.put('/ads/:id', async (req) => { requirePerm(req.auth, 'ads.manage'); return { ad: await saveAd(parse(adBody.partial(), req.body), parse(z.object({ id }), req.params).id, req.actor) }; });
+  app.put('/ads/:id', async (req) => { requirePerm(req.auth, 'ads.manage'); return { ad: await saveAd(provided(parse(adBody.partial(), req.body), req.body), parse(z.object({ id }), req.params).id, req.actor) }; });
 
   // ---- homepage sections ----
   app.get('/homepage', async (req) => { requirePerm(req.auth, 'marketing.manage'); return { sections: await query('SELECT h.*, s.name AS segment_name FROM homepage_sections h LEFT JOIN segments s ON s.id = h.segment_id ORDER BY position, updated_at') }; });
   app.get('/homepage/preview', async (req) => { requirePerm(req.auth, 'marketing.manage'); return { sections: await buildHomepage(null, {}) }; });
   const sectionBody = z.object({ kind: z.enum(['hero', 'search', 'category_rail', 'product_rail', 'vendor_rail', 'chef_rail', 'cuisine_grid', 'country_grid', 'collection', 'banner', 'editorial', 'shop_modes']), title: z.string().max(120).optional().nullable(), subtitle: z.string().max(240).optional().nullable(), config: z.record(z.string(), z.any()).default({}), position: z.number().int().default(0), is_active: z.boolean().default(true), starts_at: z.coerce.date().optional().nullable(), ends_at: z.coerce.date().optional().nullable(), segment_id: id.optional().nullable() });
   app.post('/homepage', async (req, reply) => { requirePerm(req.auth, 'marketing.manage'); reply.status(201); return { section: await saveHomepageSection(parse(sectionBody, req.body), undefined, req.actor) }; });
-  app.put('/homepage/:id', async (req) => { requirePerm(req.auth, 'marketing.manage'); return { section: await saveHomepageSection(parse(sectionBody.partial(), req.body), parse(z.object({ id }), req.params).id, req.actor) }; });
+  app.put('/homepage/:id', async (req) => { requirePerm(req.auth, 'marketing.manage'); return { section: await saveHomepageSection(provided(parse(sectionBody.partial(), req.body), req.body), parse(z.object({ id }), req.params).id, req.actor) }; });
   app.delete('/homepage/:id', async (req) => { requirePerm(req.auth, 'marketing.manage'); const hid = parse(z.object({ id }), req.params).id; await query('DELETE FROM homepage_sections WHERE id = $1', [hid]); await audit(req.actor, 'homepage.deleted', 'homepage_section', hid); return { ok: true }; });
   app.post('/homepage/reorder', async (req) => {
     requirePerm(req.auth, 'marketing.manage');

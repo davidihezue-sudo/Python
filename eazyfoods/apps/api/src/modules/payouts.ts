@@ -89,12 +89,13 @@ export async function processPayout(payoutId: string, actor: Actor) {
     ? (await one<any>('SELECT payout_account_ref FROM vendors WHERE id = $1', [claimed.payee_id]))?.payout_account_ref
     : (await one<any>('SELECT payout_account_ref FROM driver_profiles WHERE user_id = $1', [claimed.payee_id]))?.payout_account_ref;
   const res = await getProvider().transfer(dest ?? null, toCents(claimed.net), `EAZyfoods payout ${payoutId}`, `payout:${payoutId}`);
-  return tx(async (c) => {
+  // A failed transfer must be recorded and committed, so the failure is returned and thrown after the transaction.
+  const outcome = await tx(async (c) => {
     if (!res.ok) {
       await query("UPDATE payouts SET status = 'failed', failure_reason = $2 WHERE id = $1", [payoutId, res.failureInternal ?? 'Transfer failed'], c);
       await audit(actor, 'payout.failed', 'payout', payoutId, { reason: res.failureInternal }, c);
       if (claimed.payee_type === 'vendor') await notifyVendor(claimed.payee_id, { kind: 'payout', title: 'Payout could not be sent', body: 'We could not send your payout. Please check your payout account details or contact support.', data: { payoutId } }, c);
-      throw new AppError('PAYOUT_FAILED', 502, 'The payout could not be sent. It was marked failed so it can be retried.', undefined, res.failureInternal);
+      return { failed: true as const };
     }
     await query("UPDATE payouts SET status = 'paid', paid_at = now(), provider_ref = $2, failure_reason = NULL WHERE id = $1", [payoutId, res.ref], c);
     await postPayout(c, { payoutId, payeeType: claimed.payee_type, payeeId: claimed.payee_id, amount: toCents(claimed.net) });
@@ -102,8 +103,10 @@ export async function processPayout(payoutId: string, actor: Actor) {
     const body = `A payout of $${Number(claimed.net).toFixed(2)} was sent.`;
     if (claimed.payee_type === 'vendor') await notifyVendor(claimed.payee_id, { kind: 'payout', title: 'Payout sent', body, data: { payoutId } }, c);
     else await notify({ userId: claimed.payee_id, kind: 'payout', title: 'Payout sent', body, data: { payoutId } }, c);
-    return one('SELECT * FROM payouts WHERE id = $1', [payoutId], c);
+    return { failed: false as const, payout: await one('SELECT * FROM payouts WHERE id = $1', [payoutId], c) };
   });
+  if (outcome.failed) throw new AppError('PAYOUT_FAILED', 502, 'The payout could not be sent. It was marked failed so it can be retried.', undefined, res.failureInternal);
+  return outcome.payout;
 }
 
 export async function holdPayout(payoutId: string, reason: string, actor: Actor) {

@@ -77,7 +77,7 @@ export const SETTING_DEFS = {
       offer_timeout_seconds: 45, max_pickup_km: 10, max_active_jobs: 3, location_fresh_minutes: 15,
       retry_seconds: 30, alert_after_minutes: 15,
       weights: { distance: 1, load: 2, acceptance: 3 },
-      batching: { enabled: true, max_batch: 3, max_pickup_gap_km: 2, max_dropoff_gap_km: 4, max_detour_minutes: 12, max_ready_gap_minutes: 10, cold_max_minutes: 30 },
+      batching: { enabled: true, max_batch: 3, max_pickup_gap_km: 2, max_dropoff_gap_km: 4, max_detour_minutes: 15, max_ready_gap_minutes: 10, cold_max_minutes: 30 },
     },
   },
   privacy: {

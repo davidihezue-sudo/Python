@@ -44,3 +44,9 @@ export async function patch(table: string, idCol: string, idVal: any, data: Reco
 
 export const randomDigits = (n: number) => Array.from({ length: n }, () => Math.floor(Math.random() * 10)).join('');
 export const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
+/** For PATCH style updates: keep only the keys the client actually sent, so schema defaults never overwrite stored values. */
+export function provided<T extends Record<string, any>>(parsed: T, raw: unknown): Partial<T> {
+  const keys = new Set(Object.keys((raw ?? {}) as object));
+  return Object.fromEntries(Object.entries(parsed).filter(([k]) => keys.has(k))) as Partial<T>;
+}

@@ -45,7 +45,7 @@ async function synonymGroups(tokens: string[], db: Db) {
   });
 }
 
-const DIST = (latP: string, lngP: string) => `(2 * 6371 * asin(sqrt(power(sin(radians(v.lat - ${latP}) / 2), 2) + cos(radians(${latP})) * cos(radians(v.lat)) * power(sin(radians(v.lng - ${lngP}) / 2), 2))))`;
+const DIST = (latP: string, lngP: string) => `(2 * 6371 * asin(sqrt(power(sin(radians(v.lat - ${latP}::float8) / 2), 2) + cos(radians(${latP}::float8)) * cos(radians(v.lat)) * power(sin(radians(v.lng - ${lngP}::float8) / 2), 2))))`;
 
 /** Vendors that can deliver to a point, using the same zone logic as the quote. */
 export async function vendorsDeliveringTo(lat: number, lng: number, db: Db = pool): Promise<Map<string, number>> {
@@ -112,6 +112,7 @@ export async function searchProducts(p: SearchParams, userId: string | null = nu
   if (hasLoc) {
     const la = add(p.lat), ln = add(p.lng);
     distSelect = `CASE WHEN v.lat IS NULL THEN NULL ELSE ${DIST(la, ln)} END`;
+    where.push(`${la}::float8 IS NOT NULL AND ${ln}::float8 IS NOT NULL`);   // keeps the count query's parameters in use
     if (p.max_km != null) where.push(`v.lat IS NOT NULL AND ${DIST(la, ln)} <= ${add(p.max_km)}`);
     if (p.deliverable) {
       deliverable = await vendorsDeliveringTo(p.lat!, p.lng!, db);
@@ -212,7 +213,7 @@ export async function getProduct(slug: string, db: Db = pool) {
     query<any>(`SELECT r.id, r.rating, r.title, r.body, r.created_at, r.vendor_response, u.full_name FROM reviews r JOIN users u ON u.id = r.user_id
                  WHERE r.subject_type = 'product' AND r.subject_id = $1 AND r.status = 'published' ORDER BY r.created_at DESC LIMIT 10`, [p.id], db),
   ]);
-  delete p.search_tsv;
+  for (const internal of ['search_tsv', 'created_by', 'deleted_at', 'popularity']) delete p[internal];
   return {
     ...p, price: undefined,
     variants: variants.map((v) => ({ ...v, price: Number(v.price), sale_price: v.sale_price != null ? Number(v.sale_price) : null })), images,
@@ -234,6 +235,7 @@ export async function listVendors(p: { kind?: 'chef' | 'store'; q?: string; cuis
   if (p.lat != null && p.lng != null) {
     const la = add(p.lat), ln = add(p.lng);
     dist = `CASE WHEN v.lat IS NULL THEN NULL ELSE ${DIST(la, ln)} END`;
+    where.push(`${la}::float8 IS NOT NULL AND ${ln}::float8 IS NOT NULL`);
     if (p.deliverable) {
       const ids = [...(await vendorsDeliveringTo(p.lat, p.lng, db)).keys()];
       where.push(`v.id = ANY(${add(ids)}::uuid[])`);

@@ -161,8 +161,8 @@ export async function seed(opts: { force?: boolean; orders?: number } = {}) {
       if (d.status !== 'submitted') await reviewDocument(doc.id, 'verified', undefined, admin);
     }
     if (d.status !== 'draft') await submitDriver(u.id, { userId: u.id, role: 'driver' });
-    if (d.status === 'approved') await reviewDriver(u.id, 'approve', undefined, admin);
-    if (d.status === 'suspended') { await reviewDriver(u.id, 'approve', undefined, admin); await reviewDriver(u.id, 'suspend', 'Repeated late deliveries pending review', admin); }
+    if (d.status === 'approved') { await reviewDriver(u.id, 'start_review', undefined, admin); await reviewDriver(u.id, 'approve', undefined, admin); }
+    if (d.status === 'suspended') { await reviewDriver(u.id, 'start_review', undefined, admin); await reviewDriver(u.id, 'approve', undefined, admin); await reviewDriver(u.id, 'suspend', 'Repeated late deliveries pending review', admin); }
     await query('UPDATE driver_profiles SET rating_avg = $2, rating_count = $3 WHERE user_id = $1', [u.id, d.status === 'approved' ? (4.5 + rand() * 0.5).toFixed(2) : 0, d.status === 'approved' ? between(12, 80) : 0]);
     if (d.online) { await query("UPDATE driver_profiles SET availability = 'online' WHERE user_id = $1", [u.id]); }
     await updateDriverLocation(u.id, d.lat, d.lng);

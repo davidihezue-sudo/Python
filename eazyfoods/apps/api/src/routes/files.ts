@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { rl } from '../lib/limits.js';
 import { parse, id } from '../lib/util.js';
 import { requireUser } from '../lib/rbac.js';
 import { saveUpload, readUpload } from '../lib/storage.js';
@@ -7,7 +8,7 @@ import { badRequest, notFound, forbidden } from '../errors.js';
 
 const PRIVATE_PURPOSES = ['document', 'proof', 'signature'];
 export async function fileRoutes(app: FastifyInstance) {
-  app.post('/files', { config: { rateLimit: { max: 40, timeWindow: '1 minute' } } }, async (req, reply) => {
+  app.post('/files', rl(40), async (req, reply) => {
     const a = requireUser(req.auth);
     const file = await req.file();
     if (!file) throw badRequest('UPLOAD_EMPTY', 'Choose a file to upload.');

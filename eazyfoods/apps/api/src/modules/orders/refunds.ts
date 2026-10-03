@@ -69,7 +69,8 @@ export async function refundSuborder(c: C, req: RefundRequest, actor: Actor) {
     const f = Math.min(1, want / remainingNet);
     const rem = (total: Cents, p: Cents) => Math.max(0, total - p);
     const itemTotals = (fn: (i: any) => Cents) => items.reduce((sum, i) => sum + fn(i), 0);
-    b.items = Math.min(want, remainingNet);
+    if (want > remainingNet) throw badRequest('REFUND_TOO_LARGE', `You can refund up to $${(remainingNet / 100).toFixed(2)} of item value on this order.`);
+    b.items = want;
     b.tax = Math.round(rem(itemTotals((i) => toCents(i.tax_amount)), prior.tax) * f);
     b.gross_vendor = Math.round(rem(itemTotals((i) => toCents(i.line_subtotal) - toCents(i.discount_vendor)), prior.gross_vendor) * f);
     b.platform_discount = Math.round(rem(itemTotals((i) => toCents(i.discount_platform)), prior.platform_discount) * f);
