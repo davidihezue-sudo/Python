@@ -14,6 +14,7 @@ import { visibilityCondition } from '../modules/vendors.js';
 import { getSetting } from '../lib/settings.js';
 import { config } from '../config.js';
 import { loadAuth } from '../lib/auth.js';
+import { isSandbox } from '../payments/providers.js';
 
 const ANON = 'ez_anon';
 const anonId = (req: any, reply: any) => {
@@ -118,6 +119,9 @@ export async function publicRoutes(app: FastifyInstance) {
     const del = await getSetting('delivery');
     return { stores: rows.map((r) => ({ ...r, min_order: Number(r.min_order), distance_km: map.get(r.id), eta_minutes: r.default_prep_minutes + 8 + Math.round(((map.get(r.id) ?? 0) / del.avg_speed_kmh.car) * 60) })).sort((a, b) => a.distance_km - b.distance_km) };
   });
+
+  // Non secret settings the browser needs: whether card payments are in test mode, and the tip choices.
+  app.get('/config', async () => ({ payments: { mode: isSandbox() ? 'test' : 'live', publishableKey: process.env.STRIPE_PUBLISHABLE_KEY ?? null }, currency: 'CAD', tipPresets: [0, 10, 15, 20] }));
 
   app.get('/seo/sitemap', async (_req, reply) => {
     reply.header('Cache-Control', 'public, max-age=300');

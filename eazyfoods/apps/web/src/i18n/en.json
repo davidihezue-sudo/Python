@@ -1,0 +1,54 @@
+{
+  "brand": { "name": "EAZyfoods", "tagline": "African and multicultural food, delivered from the people who make it." },
+  "nav": {
+    "shop": "Shop", "stores": "Stores", "chefs": "Chefs", "recipes": "Recipes", "deals": "Deals", "search": "Search groceries, meals, stores and chefs",
+    "signIn": "Sign in", "register": "Create account", "account": "Account", "orders": "Orders", "cart": "Cart", "signOut": "Sign out", "sell": "Sell on EAZyfoods", "deliverTo": "Deliver to",
+    "setLocation": "Set location", "skip": "Skip to main content", "help": "Help and support"
+  },
+  "common": {
+    "add": "Add", "addToCart": "Add to cart", "save": "Save", "cancel": "Cancel", "close": "Close", "remove": "Remove", "edit": "Edit", "delete": "Delete", "back": "Back", "next": "Next", "previous": "Previous",
+    "loading": "Loading", "retry": "Try again", "search": "Search", "filter": "Filter", "filters": "Filters", "sort": "Sort", "clear": "Clear", "apply": "Apply", "continue": "Continue", "confirm": "Confirm", "view": "View",
+    "viewAll": "View all", "free": "Free", "total": "Total", "subtotal": "Subtotal", "tax": "Tax", "tip": "Tip", "discount": "Discount", "delivery": "Delivery", "pickup": "Pickup", "serviceFee": "Service fee",
+    "yes": "Yes", "no": "No", "optional": "Optional", "required": "Required", "status": "Status", "actions": "Actions", "name": "Name", "email": "Email", "phone": "Phone", "password": "Password", "address": "Address",
+    "noResults": "Nothing matched that search.", "somethingWrong": "Something went wrong. Please try again.", "saved": "Saved", "sponsored": "Sponsored", "testMode": "Test mode"
+  },
+  "product": {
+    "inStock": "In stock", "outOfStock": "Out of stock", "lowStock": "Only {n} left", "sale": "Sale", "from": "From", "soldBy": "Sold by", "ingredients": "Ingredients", "allergens": "Allergens", "dietary": "Dietary information",
+    "dietaryNote": "Declared by the seller. A badge says Verified only when EAZyfoods staff have seen supporting evidence.", "storage": "Storage", "shelfLife": "Shelf life", "origin": "Origin", "prep": "Ready in about {n} minutes",
+    "choose": "Choose an option", "quantity": "Quantity", "reviews": "Reviews", "related": "More like this", "boughtTogether": "Often bought together", "recipes": "Recipes that use this", "verified": "Verified", "declared": "Seller declared"
+  },
+  "home": { "shopGroceries": "Shop groceries", "shopMeals": "Order ready meals", "shopGroceriesSub": "Staples, fresh produce and frozen proteins from African, Caribbean and specialty stores.", "shopMealsSub": "Hot meals from restaurants and independent chefs, made to order." },
+  "cart": {
+    "title": "Your cart", "empty": "Your cart is empty", "emptySub": "Add groceries or meals and they will appear here, grouped by store.", "checkout": "Go to checkout", "promo": "Promo code", "applyCode": "Apply code",
+    "deliveryOptions": "Delivery options", "chooseAddress": "Choose a delivery address", "estimated": "Estimated", "minutes": "{n} min", "store": "Store", "removeUnavailable": "Remove unavailable items", "creditAvailable": "Use my store credit ({amount})",
+    "storeCredit": "Store credit", "minOrderShort": "Add {amount} more to meet this store's minimum.", "pickupAt": "Pick up at the store", "deliverToMe": "Deliver to me", "schedule": "Schedule for later", "asap": "As soon as possible"
+  },
+  "checkout": {
+    "title": "Checkout", "review": "Review your cart", "address": "Delivery address", "fulfillment": "Delivery or pickup", "window": "Delivery time", "promo": "Promotions", "fees": "Fees and totals", "tipTitle": "Add a tip for your driver", "payment": "Payment", "confirm": "Confirmation",
+    "placeOrder": "Place order and pay", "paying": "Taking payment", "testBanner": "Payments run in test mode. No real money moves. Use the test cards below.", "card": "Card number", "expiry": "Expiry", "cvc": "CVC", "name": "Name on card",
+    "payTotal": "Pay {amount}", "ok": "Your order is confirmed", "declined": "Your payment could not be completed and your card was not charged. Check your card or try another.", "quoteChanged": "Prices or fees changed while you were checking out. Please review the updated total.",
+    "noHiddenFees": "Every fee is shown here. There are no hidden charges.", "tipNone": "No tip", "tipCustom": "Custom"
+  },
+  "order": {
+    "track": "Track order", "placed": "Order placed", "paid": "Payment confirmed", "accepted": "Store confirmed", "preparing": "Preparing", "ready": "Ready", "driver": "Driver assigned", "pickedup": "Driver picked up", "approaching": "On the way", "delivered": "Delivered",
+    "pin": "Delivery PIN", "pinHelp": "Give this code to your driver when they arrive.", "pickupCode": "Pickup code", "reorder": "Reorder", "cancel": "Cancel order", "report": "Report a problem", "review": "Rate your order", "support": "Contact support", "driverLive": "Your driver", "messageStore": "Message the store"
+  },
+  "auth": {
+    "signInTitle": "Welcome back", "registerTitle": "Create your account", "forgot": "Forgot your password?", "reset": "Reset password", "sendLink": "Send reset link", "haveAccount": "Already have an account?", "noAccount": "New to EAZyfoods?",
+    "passwordHelp": "Use at least 10 characters with letters and numbers.", "marketingOptIn": "Email me deals and new arrivals", "referral": "Referral code (optional)", "resetSent": "If an account exists for that email, we sent a reset link."
+  },
+  "portal": {
+    "vendor": "Vendor portal", "chef": "Chef portal", "driver": "Driver", "admin": "Operations", "marketing": "Marketing", "dashboard": "Dashboard", "products": "Products", "inventory": "Inventory", "orders": "Orders", "promotions": "Promotions",
+    "payouts": "Payouts", "analytics": "Analytics", "reviews": "Reviews", "settings": "Store settings", "team": "Team", "support": "Support", "kitchen": "Kitchen", "capacity": "Capacity", "earnings": "Earnings", "documents": "Documents",
+    "notApproved": "Your application is not approved yet. You can set up your profile and upload documents now, and you can sell once the team approves you.", "signInRequired": "Sign in with an account that has access to this area.", "noAccess": "Your account does not have access to this area."
+  },
+  "status": {
+    "pending_payment": "Awaiting payment", "confirmed": "Placed", "vendor_accepted": "Accepted", "preparing": "Preparing", "ready_for_pickup": "Ready", "driver_assigned": "Driver assigned", "driver_arriving": "Driver arriving", "picked_up": "Picked up",
+    "in_transit": "On the way", "delivered": "Delivered", "completed": "Completed", "cancelled": "Cancelled", "refunded": "Refunded", "partially_refunded": "Partly refunded", "disputed": "In dispute", "in_progress": "In progress",
+    "draft": "Draft", "submitted": "Submitted", "under_review": "Under review", "info_required": "Information needed", "approved": "Approved", "rejected": "Rejected", "suspended": "Suspended", "active": "Active", "paused": "Paused",
+    "open": "Open", "assigned": "Assigned", "waiting_customer": "Waiting for customer", "waiting_vendor": "Waiting for store", "waiting_driver": "Waiting for driver", "resolved": "Resolved", "closed": "Closed",
+    "pending": "Pending", "processing": "Processing", "paid": "Paid", "failed": "Failed", "held": "Held", "reversed": "Reversed", "verified": "Verified", "expired": "Expired", "offered": "Offered", "awaiting_driver": "Finding a driver",
+    "waiting_for_ready": "Waiting for the store", "assigned_job": "Assigned", "at_pickup": "At the store"
+  },
+  "seo": { "siteTitle": "EAZyfoods: African and multicultural groceries and meals, delivered", "siteDescription": "Shop African, Caribbean and specialty groceries and order meals from independent chefs and restaurants. Delivery or pickup from neighbourhood stores." }
+}
