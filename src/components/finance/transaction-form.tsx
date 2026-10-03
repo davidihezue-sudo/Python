@@ -5,8 +5,8 @@ import { z } from "zod";
 import { Alert, Button, Checkbox, Field, Input, Select, Textarea } from "@/components/ui/primitives";
 import { Modal } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/client/api";
-import { useFin, useFinMutation, useFinQuery } from "./provider";
-import { AccountSelect, CategorySelect, MemberSelect, VehicleSelect, VisibilityField, useAccounts, useMembers, useVehicleOptions } from "./ui";
+import { finApi, useFin, useFinMutation, useFinQuery } from "./provider";
+import { AccountSelect, CategorySelect, FREQ_OPTIONS, MemberSelect, VehicleSelect, VisibilityField, useAccounts, useMembers, useVehicleOptions } from "./ui";
 
 export type TxKind = "EXPENSE" | "INCOME" | "REFUND" | "REIMBURSEMENT" | "TRANSFER";
 interface Preset { kind?: TxKind; accountId?: string; categoryId?: string; description?: string; amount?: string; id?: string; initial?: any }
@@ -38,7 +38,7 @@ export function TxDialogProvider({ children }: { children: React.ReactNode }) {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose: () => void }) {
-  const { profile, fmt } = useFin();
+  const { profile, fmt, hid } = useFin();
   const { members } = useMembers();
   const vehicles = useVehicleOptions();
   const { accounts } = useAccounts();
@@ -48,6 +48,7 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
   const [v, setV] = React.useState<Record<string, any>>(() => ({
     accountId: init?.accountId ?? preset.accountId ?? "", toAccountId: "", amount: init ? String(Math.abs(Number(init.amount))) : preset.amount ?? "", toAmount: "", date: init?.date ?? profile?.today ?? today(), description: init?.description ?? preset.description ?? "", categoryId: init?.categoryId ?? preset.categoryId ?? "", merchant: init?.merchant ?? "", vehicleId: init?.vehicleId ?? "", notes: init?.notes ?? "",
     status: init?.status ?? "POSTED", assignTo: "", payer: init ? (init.paidByHousehold ? "HOUSEHOLD" : init.payer?.id ?? "") : "", allocMode: init?.allocationMode ?? "", allocMember: init?.allocations?.[0]?.memberId ?? "", splitKind: init?.allocationMode === "SPLIT" ? (init.allocations.every((a: any) => a.percent && Number(a.percent) !== 100 && false) ? "percent" : "amount") : "equal",
+    repeat: "", repeatEnd: "", autoPost: true,
     splits: init?.allocationMode === "SPLIT" ? init.allocations.map((a: any) => ({ memberId: a.memberId, percent: a.percent ?? "", amount: a.amount })) : [], visibility: init?.visibility ?? undefined, sharedWithMemberIds: init?.sharedWithMemberIds ?? [],
   }));
   const [errors, setErrors] = React.useState<Record<string, string[]>>({});
@@ -88,7 +89,11 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
         if (v.assignTo) body.assignToMemberId = v.assignTo;
         if (v.payer) body.payer = v.payer;
         if (editing) await patch.mutateAsync({ ...body, type: undefined, force: undefined });
-        else await create.mutateAsync(body);
+        else if (v.repeat && (kind === "INCOME" || kind === "EXPENSE")) {
+          // The rule starts from this entry (marked as already posted), so the first one is not duplicated and later ones follow the schedule.
+          const rule = await finApi<{ id: string }>(hid as string, "/recurring", { method: "POST", body: { type: kind, description: v.description, amount: v.amount, accountId: v.accountId, categoryId: v.categoryId || null, merchantName: v.merchant || null, frequency: v.repeat, startDate: v.date, endDate: v.repeatEnd || null, autoPost: !!v.autoPost, lastPostedOn: v.date, visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined } });
+          try { await create.mutateAsync({ ...body, recurringRuleId: rule.id }); } catch (e) { await finApi(hid as string, `/recurring/${rule.id}`, { method: "DELETE" }).catch(() => undefined); throw e; }
+        } else await create.mutateAsync(body);
       }
       onClose();
     } catch (x) {
@@ -118,6 +123,13 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
         )}
         <Field label="Amount" required error={err("amount")}>{(p) => <Input {...p} inputMode="decimal" autoFocus autoComplete="off" value={v.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0.00" className="money text-right text-lg" />}</Field>
         <Field label="Date" required error={err("date")}>{(p) => <Input {...p} type="date" value={v.date} onChange={(e) => set("date", e.target.value)} />}</Field>
+        {!editing && (kind === "INCOME" || kind === "EXPENSE") && (
+          <>
+            <Field label="Repeats" hint="For rent, salary, subscriptions and other regular payments.">{(p) => <Select {...p} value={v.repeat} onChange={(e) => set("repeat", e.target.value)}><option value="">Does not repeat</option>{FREQ_OPTIONS.filter(([k]) => k !== "ONE_TIME" && k !== "IRREGULAR").map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select>}</Field>
+            {v.repeat && <Field label="Stops on (optional)">{(p) => <Input {...p} type="date" value={v.repeatEnd} onChange={(e) => set("repeatEnd", e.target.value)} />}</Field>}
+            {v.repeat && <div className="sm:col-span-2"><Checkbox checked={!!v.autoPost} onChange={(e) => set("autoPost", e.target.checked)} label="Record the future ones automatically on their dates" /><p className="mt-1 text-xs text-muted-foreground">Future entries use the same account, category and amount. If you turn this off they show up as due and you post them with one click under Expenses, Recurring.</p></div>}
+          </>
+        )}
         {kind === "TRANSFER" ? (
           <>
             <Field label="From account" required error={err("fromAccountId")}>{(p) => <AccountSelect id={p.id} value={v.accountId} onChange={(x) => set("accountId", x)} />}</Field>

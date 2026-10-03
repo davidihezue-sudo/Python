@@ -258,12 +258,12 @@ export function DataTable<T extends { id?: string }>({ cols, rows, empty, onRow,
       <ul className="divide-y divide-border md:hidden" aria-label={caption}>
         {rows.map((r, i) => (
           <li key={key(r, i)}>
-            <button type="button" disabled={!onRow} onClick={onRow ? () => onRow(r) : undefined} className="block w-full px-4 py-3 text-left disabled:cursor-default">
+            <div role={onRow ? "button" : undefined} tabIndex={onRow ? 0 : undefined} onClick={onRow ? () => onRow(r) : undefined} onKeyDown={onRow ? (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onRow(r); } } : undefined} className={cn("block w-full px-4 py-3 text-left", onRow && "cursor-pointer")}>
               <div className="flex items-start justify-between gap-3"><div className="min-w-0 font-medium">{primary.cell(r)}</div></div>
               <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                 {cols.filter((c) => c !== primary && !c.hideOnMobile).map((c) => <div key={c.key} className={cn("min-w-0", c.align === "right" && "text-right")}><dt className="text-muted-foreground">{c.header}</dt><dd className="truncate text-sm text-foreground">{c.cell(r)}</dd></div>)}
               </dl>
-            </button>
+            </div>
           </li>
         ))}
       </ul>

@@ -216,7 +216,7 @@ export async function deleteInsurance(ctx: FinCtx, polId: string) {
 
 // ───────────────────────── Recurring rules (auto posted transactions)
 export const recurringSchema = z.object({
-  type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]), description: text(200), amount: posMoney, accountId: id, toAccountId: id.nullish(), categoryId: id.nullish(), merchantName: optText(100), frequency: frequency, startDate: isoDate, endDate: isoDate.nullish(), autoPost: z.boolean().default(false), notes: optText(500), ...meta,
+  type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]), description: text(200), amount: posMoney, accountId: id, toAccountId: id.nullish(), categoryId: id.nullish(), merchantName: optText(100), frequency: frequency, startDate: isoDate, endDate: isoDate.nullish(), autoPost: z.boolean().default(false), lastPostedOn: isoDate.nullish(), notes: optText(500), ...meta,
 });
 export const recurringPatchSchema = recurringSchema.partial().extend({ active: z.boolean().optional() });
 export async function listRecurring(ctx: FinCtx, view: View | "all" = "all") {
@@ -228,7 +228,7 @@ export async function createRecurring(ctx: FinCtx, input: z.infer<typeof recurri
   await requireAccount(ctx, input.accountId, { write: true });
   if (input.type === "TRANSFER" && !input.toAccountId) throw new AppError("VALIDATION_ERROR", "Choose the account to transfer into");
   if (input.toAccountId) await requireAccount(ctx, input.toAccountId, { write: true });
-  const r = await db.recurringRule.create({ data: { householdId: ctx.householdId, ...newRecordMeta(ctx, input, "other"), type: input.type, description: input.description, amount: input.amount, accountId: input.accountId, toAccountId: input.toAccountId ?? null, categoryId: input.categoryId ?? null, merchantName: input.merchantName ?? null, frequency: input.frequency, startDate: toDate(input.startDate), endDate: input.endDate ? toDate(input.endDate) : null, autoPost: input.autoPost, notes: input.notes ?? null, currency: ctx.base } });
+  const r = await db.recurringRule.create({ data: { householdId: ctx.householdId, ...newRecordMeta(ctx, input, "other"), type: input.type, description: input.description, amount: input.amount, accountId: input.accountId, toAccountId: input.toAccountId ?? null, categoryId: input.categoryId ?? null, merchantName: input.merchantName ?? null, frequency: input.frequency, startDate: toDate(input.startDate), endDate: input.endDate ? toDate(input.endDate) : null, autoPost: input.autoPost, lastPostedOn: input.lastPostedOn ? toDate(input.lastPostedOn) : null, notes: input.notes ?? null, currency: ctx.base } });
   await audit(null, ctx.actor, { entity: "RecurringRule", entityId: r.id, action: "create", householdId: ctx.householdId });
   return { id: r.id };
 }
