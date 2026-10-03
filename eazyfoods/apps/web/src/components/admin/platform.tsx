@@ -9,7 +9,7 @@ import { ZoneForm } from '../vendor/zones';
 import { dateTime, label, money, date } from '@/lib/format';
 
 /* ---------- generic editor for a JSON settings object ---------- */
-function Fields({ value, onChange, path = '' }: { value: any; onChange: (v: any) => void; path?: string }) {
+export function Fields({ value, onChange, path = '' }: { value: any; onChange: (v: any) => void; path?: string }) {
   if (value == null || typeof value !== 'object' || Array.isArray(value)) return null;
   return (
     <div className="form-grid">
