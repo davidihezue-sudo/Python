@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { activeMember } from "@/server/services/access";
 import { prefsSchema, profileSchema } from "@/lib/validation";
 import type { z } from "zod";
 import { actorFromUser, type Actor } from "../context";
@@ -9,7 +10,7 @@ import { googleEnabled } from "@/lib/env";
 
 export async function getMe(actor: Actor) {
   const u = await db.user.findUniqueOrThrow({ where: { id: actor.id }, include: { preference: true, accounts: true } });
-  const hh = await db.householdMember.findMany({ where: { userId: actor.id, household: { deletedAt: null } }, include: { household: true }, orderBy: { createdAt: "asc" } });
+  const hh = await db.householdMember.findMany({ where: { userId: actor.id, household: { deletedAt: null }, ...activeMember() }, include: { household: true }, orderBy: { createdAt: "asc" } });
   return {
     id: u.id,
     email: u.email,

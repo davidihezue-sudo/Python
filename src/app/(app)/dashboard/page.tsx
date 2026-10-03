@@ -31,8 +31,11 @@ function Dashboard() {
   const [to, setTo] = React.useState("");
   const [open, setOpen] = React.useState<string | null>(null);
   React.useEffect(() => { if (profile && !profile.onboarded && !profile.isDemo) router.replace("/onboarding"); }, [profile, router]);
+  // Children and accountants have no household dashboard: send them to the page their role is for.
+  React.useEffect(() => { if (profile?.myRole === "CHILD") router.replace("/goals"); else if (profile?.myRole === "ACCOUNTANT") router.replace("/transactions"); }, [profile, router]);
   const params = { view, range, ...(range === "custom" && from && to ? { from, to } : {}) };
-  const { data: d, isLoading, error } = useFinQuery<any>("/dashboard", params, { enabled: range !== "custom" || (!!from && !!to) });
+  const limited = profile?.myRole === "CHILD" || profile?.myRole === "ACCOUNTANT";
+  const { data: d, isLoading, error } = useFinQuery<any>("/dashboard", params, { enabled: !limited && (range !== "custom" || (!!from && !!to)) });
   const first = me.name.split(" ")[0];
 
   if (error) return <EmptyState title="The dashboard could not load" description={(error as Error).message} />;

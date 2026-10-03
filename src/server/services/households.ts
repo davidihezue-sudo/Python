@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { activeMember } from "@/server/services/access";
 import { AppError, conflict, forbidden, notFound } from "@/lib/errors";
 import { randomToken, sha256 } from "@/lib/crypto";
 import { inviteMessage, sendEmail } from "@/lib/email";
@@ -12,7 +13,7 @@ import { audit } from "./audit";
 import { describeEntitlements, requireFeature } from "./entitlements";
 
 export async function listHouseholds(actor: Actor) {
-  const ms = await db.householdMember.findMany({ where: { userId: actor.id, household: { deletedAt: null } }, include: { household: { include: { members: { include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } }, vehicles: { where: { deletedAt: null }, select: { id: true, nickname: true } }, invites: { where: { acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } } } } }, orderBy: { createdAt: "asc" } });
+  const ms = await db.householdMember.findMany({ where: { userId: actor.id, household: { deletedAt: null }, ...activeMember() }, include: { household: { include: { members: { include: { user: { select: { id: true, name: true, email: true } } }, orderBy: { createdAt: "asc" } }, vehicles: { where: { deletedAt: null }, select: { id: true, nickname: true } }, invites: { where: { acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } } } } }, orderBy: { createdAt: "asc" } });
   const out = [];
   for (const m of ms) {
     const isAdmin = m.role === "ADMIN";
@@ -61,10 +62,12 @@ export async function createInvite(actor: Actor, householdId: string, input: z.i
     const ok = await db.vehicle.count({ where: { id: { in: input.vehicleAccess.map((v) => v.vehicleId) }, householdId, deletedAt: null } });
     if (ok !== new Set(input.vehicleAccess.map((v) => v.vehicleId)).size) throw new AppError("VALIDATION_ERROR", "One of the selected vehicles does not belong to this household");
   }
+  const until = input.accessUntil ? new Date(`${input.accessUntil}T23:59:59Z`) : null;
+  if (until && until.getTime() <= Date.now()) throw new AppError("VALIDATION_ERROR", "The access end date must be in the future", { fieldErrors: { accessUntil: ["Choose a date in the future"] } });
   await db.householdInvite.updateMany({ where: { householdId, email, acceptedAt: null, revokedAt: null }, data: { revokedAt: new Date() } });
   const token = randomToken(32);
   const invite = await db.householdInvite.create({
-    data: { householdId, email, role: input.role, tokenHash: sha256(token), vehicleAccess: input.vehicleAccess.map((v) => ({ ...v, canViewFinancials: v.canViewFinancials ?? LEVEL_DEFAULT_FINANCIALS[v.level] })), invitedById: actor.id, expiresAt: new Date(Date.now() + 7 * 86400_000) },
+    data: { householdId, email, role: input.role, accessExpiresAt: until, tokenHash: sha256(token), vehicleAccess: input.vehicleAccess.map((v) => ({ ...v, canViewFinancials: v.canViewFinancials ?? LEVEL_DEFAULT_FINANCIALS[v.level] })), invitedById: actor.id, expiresAt: new Date(Date.now() + 7 * 86400_000) },
   });
   const m = inviteMessage(actor.name, hh.name, token);
   await sendEmail(email, m.subject, m.text, m.html);
@@ -94,7 +97,7 @@ export async function acceptInvite(actor: Actor, token: string) {
   if (!actor.emailVerified) throw forbidden("Verify your email address before accepting an invitation.");
   const grants = (inv.vehicleAccess as unknown as { vehicleId: string; level: any; canViewFinancials: boolean }[]) ?? [];
   await db.$transaction(async (tx) => {
-    await tx.householdMember.upsert({ where: { householdId_userId: { householdId: inv.householdId, userId: actor.id } }, create: { householdId: inv.householdId, userId: actor.id, role: inv.role }, update: {} });
+    await tx.householdMember.upsert({ where: { householdId_userId: { householdId: inv.householdId, userId: actor.id } }, create: { householdId: inv.householdId, userId: actor.id, role: inv.role, accessExpiresAt: inv.accessExpiresAt }, update: {} });
     for (const g of grants) {
       const v = await tx.vehicle.findFirst({ where: { id: g.vehicleId, householdId: inv.householdId, deletedAt: null } });
       if (!v) continue;
@@ -106,7 +109,7 @@ export async function acceptInvite(actor: Actor, token: string) {
   return { householdId: inv.householdId };
 }
 
-export async function updateMember(actor: Actor, householdId: string, userId: string, input: { role?: "ADMIN" | "MEMBER" | "READ_ONLY" }) {
+export async function updateMember(actor: Actor, householdId: string, userId: string, input: { role?: "ADMIN" | "MEMBER" | "READ_ONLY" | "CHILD" | "ACCOUNTANT" }) {
   await requireHouseholdAdmin(actor, householdId);
   const m = await db.householdMember.findUnique({ where: { householdId_userId: { householdId, userId } } });
   if (!m) throw notFound("Member");

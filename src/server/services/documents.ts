@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { activeMember } from "@/server/services/access";
 import { randomUUID } from "node:crypto";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
@@ -180,7 +181,7 @@ export async function listDocuments(actor: Actor, q: { vehicleId?: string; categ
   const scope = await scopeVehicles(actor, q.vehicleId, "view");
   const allowedVehicle = scope.map((s) => s.vehicle.id);
   const noFin = scope.filter((s) => !s.fin).map((s) => s.vehicle.id);
-  const memberships = q.vehicleId && q.vehicleId !== "all" ? [] : (await db.householdMember.findMany({ where: { userId: actor.id } })).map((m) => m.householdId);
+  const memberships = q.vehicleId && q.vehicleId !== "all" ? [] : (await db.householdMember.findMany({ where: { userId: actor.id, ...activeMember() } })).map((m) => m.householdId);
   const where: Prisma.DocumentWhereInput = {
     deletedAt: null,
     OR: [{ vehicleId: { in: allowedVehicle } }, ...(memberships.length ? [{ vehicleId: null, finEntity: null, householdId: { in: memberships } }] : [])],

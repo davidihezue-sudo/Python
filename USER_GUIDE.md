@@ -69,5 +69,11 @@ Everyone signs in with their own account. An administrator invites each person b
 - **Mileage log:** log business trips and see the business share of your driving and two ways to estimate a claim. The per-kilometre rates are reference values: confirm them with the CRA. Anyone with access to the vehicle can see its trips.
 - **Document expiry:** vehicle documents with an expiry date appear on the money calendar for people who have access to that vehicle.
 
+## 9f. Children, accountants, wish list and API access
+- **Roles:** besides Administrator, Member and Read-only, you can invite a **Child** or an **Accountant**, and set a last day of access. A child sees only their own records and anything you share with them by name. What a child records is always visible to the adults. An accountant has read-only access to tax-related areas (transactions, income, tax, reports, documents, accounts and similar), sees only what the household shares, and can leave comments. Access ends automatically at the end of the chosen day.
+- **Comments:** open a transaction and leave a note for the others. Only people who can see that transaction can see or write comments on it.
+- **Wish list:** a child (or anyone) adds something they would like. Another adult approves or declines it with a note, and the requester is notified. You cannot approve your own wish.
+- **API access:** read-only tokens for spreadsheets and scripts. See API.md.
+
 ## 10. Demo data
 Demo records are labelled and can be removed in Household, Data, Remove demo data. This deletes only the demo household.

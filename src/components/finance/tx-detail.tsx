@@ -4,6 +4,7 @@ import { Copy, Paperclip, Pencil, Trash2 } from "lucide-react";
 import { api } from "@/lib/client/api";
 import { Alert, Badge, Button } from "@/components/ui/primitives";
 import { Modal } from "@/components/ui/dialog";
+import { CommentsPanel } from "./comments";
 import { useConfirm } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { useFin, useFinMutation, useFinQuery } from "./provider";
@@ -68,6 +69,7 @@ export function TransactionDetail({ id, onClose }: { id: string; onClose: () => 
             <p className="mb-1.5 text-sm font-medium">Receipts and documents</p>
             {t.documents.length ? <ul className="space-y-1">{t.documents.map((d: any) => <li key={d.id}><a className="text-sm text-primary hover:underline" href={`/api/documents/${d.id}/file`} target="_blank" rel="noreferrer">{d.title}</a> <span className="text-xs text-muted-foreground">({Math.round(d.sizeBytes / 1024)} KB)</span></li>)}</ul> : <p className="text-sm text-muted-foreground">None attached.</p>}
           </div>
+          <CommentsPanel entity="transaction" entityId={t.id} />
           <div>
             <p className="mb-1.5 text-sm font-medium">History</p>
             <ol className="space-y-1.5 border-l border-border pl-4">

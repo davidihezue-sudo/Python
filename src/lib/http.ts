@@ -31,6 +31,8 @@ export interface RouteOptions<QS extends ZodTypeAny | undefined, BS extends ZodT
   maxBody?: number;
   /** Allow requests without browser origin checks (token-authenticated machine endpoints). */
   machine?: boolean;
+  /** Optional bearer-token authentication. Resolves to undefined when no token was sent, null when one was sent and is not valid. */
+  bearer?: (req: NextRequest) => Promise<Actor | null | undefined>;
   /** Success status code (default 200). */
   status?: number;
   /** Return a raw Response instead of JSON. */
@@ -98,6 +100,7 @@ export function route<QS extends ZodTypeAny | undefined = undefined, BS extends 
         const s = await resolveSession(token);
         if (s) actor = actorFromUser(s.user as any, ip);
       }
+      if (opts.bearer) { const b = await opts.bearer(req); if (b !== undefined) actor = b; }
       if ((opts.auth ?? true) && !actor) throw new AppError("UNAUTHENTICATED", "Please sign in to continue");
 
       const lim = opts.rate ?? { limit: 240, windowSec: 60 };

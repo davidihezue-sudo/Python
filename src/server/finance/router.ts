@@ -6,7 +6,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { route } from "@/lib/http";
 import { AppError } from "@/lib/errors";
 import type { Actor } from "../context";
-import { finCtx, type FinCtx, type Need } from "./access";
+import { assertAreaAllowed, finCtx, type FinCtx, type Need } from "./access";
 import { pageQ, id, isoDate } from "./common";
 import * as H from "./household";
 import * as A from "./accounts";
@@ -38,6 +38,8 @@ import * as Reg from "./registered";
 import * as Insight from "./insight";
 import * as Mile from "./mileage";
 import * as FuelPost from "./fuelpost";
+import * as People from "./people";
+import * as Tok from "./tokens";
 import * as Pay from "./payday";
 import * as Demo from "./demo";
 import { analyticsQuery, getAnalytics, auditHistory, fxSchema, listFx, saveFx, deleteFx, exportMyData } from "./misc";
@@ -225,6 +227,18 @@ export const ROUTES: Def[] = [
   { method: "POST", path: "/vehicles/keep-or-replace", body: Mile.keepReplaceSchema, h: ({ ctx, body }) => Mile.keepReplace(ctx, body) },
   { method: "GET", path: "/vehicles/:id/replace-defaults", h: ({ ctx, params }) => Mile.keepReplaceDefaults(ctx, params.id) },
   { method: "POST", path: "/fuel/:id/post-to-ledger", need: "write", body: z.object({ accountId: z.string().min(5).max(40) }), status: 201, h: ({ actor, params, body }) => FuelPost.postFuelToLedger(actor, params.id, body.accountId) },
+  // people: comments, wish list, read-only API tokens
+  { method: "GET", path: "/comments", query: People.commentQuery, h: ({ ctx, query }) => People.listComments(ctx, query) },
+  { method: "POST", path: "/comments", body: People.commentSchema, status: 201, h: ({ ctx, body }) => People.addComment(ctx, body) },
+  { method: "DELETE", path: "/comments/:id", h: ({ ctx, params }) => People.deleteComment(ctx, params.id) },
+  { method: "GET", path: "/wishlist", h: ({ ctx }) => People.listWishes(ctx) },
+  { method: "POST", path: "/wishlist", body: People.wishSchema, status: 201, h: ({ ctx, body }) => People.createWish(ctx, body) },
+  { method: "POST", path: "/wishlist/:id/decision", body: People.decisionSchema, h: ({ ctx, params, body }) => People.decideWish(ctx, params.id, body) },
+  { method: "POST", path: "/wishlist/:id/purchased", h: ({ ctx, params }) => People.updateWishStatus(ctx, params.id, "PURCHASED") },
+  { method: "POST", path: "/wishlist/:id/cancel", h: ({ ctx, params }) => People.updateWishStatus(ctx, params.id, "CANCELLED") },
+  { method: "GET", path: "/api-tokens", h: ({ ctx }) => Tok.listTokens(ctx) },
+  { method: "POST", path: "/api-tokens", need: "write", body: Tok.tokenSchema, status: 201, h: ({ ctx, body }) => Tok.createToken(ctx, body) },
+  { method: "DELETE", path: "/api-tokens/:id", need: "write", h: ({ ctx, params }) => Tok.revokeToken(ctx, params.id) },
   // planning and insight
   { method: "GET", path: "/retirement/defaults", h: ({ ctx }) => Insight.retirementDefaults(ctx) },
   { method: "POST", path: "/retirement/project", body: Insight.retirementSchema, h: ({ ctx, body }) => Insight.projectRetirementNow(ctx, body) },
@@ -313,8 +327,12 @@ export async function dispatch(req: NextRequest, segments: string[], method: Def
   const def = ROUTES.map((d) => ({ d, p: match(d.path, rest) })).find((x) => x.d.method === method && x.p);
   if (!hid || !def) return NextResponse.json({ error: { code: "NOT_FOUND", message: "Unknown endpoint" } }, { status: 404 });
   const { d, p } = def;
-  return route(opts(d), async ({ actor, body, query }) => {
+  // A read-only token may only read, and may not manage tokens.
+  const usesToken = !!req.headers.get("authorization");
+  if (usesToken && (method !== "GET" || rest[0] === "api-tokens")) return NextResponse.json({ error: { code: "FORBIDDEN", message: "API tokens are read-only" } }, { status: 403 });
+  return route({ ...(opts(d) as object), bearer: (r: NextRequest) => Tok.authenticateBearer(r, hid) } as never, async ({ actor, body, query }) => {
     const ctx = await finCtx(actor, hid, d.need ?? "read");
+    assertAreaAllowed(ctx.me.role, method, rest[0]);
     return d.h({ ctx, actor, query, body, params: p as Record<string, string>, req });
   })(req, { params: Promise.resolve(p as Record<string, string>) });
 }

@@ -15,8 +15,12 @@ export async function getAccess(actor: Pick<Actor, "id">, vehicle: Pick<Vehicle,
     client.vehicleAccess.findUnique({ where: { vehicleId_userId: { vehicleId: vehicle.id, userId: actor.id } } }),
   ]);
   if (!member) return null;
+  if (member.accessExpiresAt && member.accessExpiresAt.getTime() <= Date.now()) return null;
   return { householdRole: member.role, vehicleLevel: va?.level ?? null, canViewFinancials: va?.canViewFinancials ?? false };
 }
+
+/** Members whose time-limited access has not ended. */
+export const activeMember = () => ({ OR: [{ accessExpiresAt: null }, { accessExpiresAt: { gt: new Date() } }] });
 
 export async function requireVehicle(actor: Pick<Actor, "id">, vehicleId: string, cap: Capability = "view", client: Db = db) {
   if (typeof vehicleId !== "string" || vehicleId.length < 5 || vehicleId.length > 40) throw notFound("Vehicle");
@@ -40,7 +44,7 @@ export interface VehicleScope {
 
 /** All non-deleted vehicles the actor may access with the capability. */
 export async function accessibleVehicles(actor: Pick<Actor, "id">, cap: Capability = "view", opts: { householdId?: string; vehicleId?: string } = {}, client: Db = db): Promise<VehicleScope[]> {
-  const memberships = await client.householdMember.findMany({ where: { userId: actor.id, ...(opts.householdId ? { householdId: opts.householdId } : {}) } });
+  const memberships = await client.householdMember.findMany({ where: { userId: actor.id, ...(opts.householdId ? { householdId: opts.householdId } : {}), ...activeMember() } });
   if (!memberships.length) return [];
   const roleByHh = new Map(memberships.map((m) => [m.householdId, m.role]));
   const vehicles = await client.vehicle.findMany({
@@ -70,6 +74,7 @@ export async function scopeVehicles(actor: Pick<Actor, "id">, vehicleId: string 
 export async function requireHouseholdMember(actor: Pick<Actor, "id">, householdId: string, client: Db = db) {
   const m = await client.householdMember.findUnique({ where: { householdId_userId: { householdId, userId: actor.id } }, include: { household: true } });
   if (!m || m.household.deletedAt) throw notFound("Household");
+  if (m.accessExpiresAt && m.accessExpiresAt.getTime() <= Date.now()) throw forbidden("Your access to this household has ended");
   return m;
 }
 

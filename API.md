@@ -24,6 +24,7 @@ Query parameter `view` is `my`, `household` (or `all` where noted). Dates are `Y
 | Money tools | `/rules` (GET, POST, PATCH, DELETE), `POST /rules/preview`, `POST /rules/apply`, `GET /tags`, `GET /tags/summary`, `/saved-views` (private to the member), `GET /safe-to-spend?view=&buffer=`, `GET,PUT /registered-room?year=` (the caller's own room only), `GET /registered-room/rrsp-helper`, `/payday-plans` (owner only) and `POST /payday-plans/:id/run`. `POST /transactions` also returns `nudge` when the entry brings a budget to 80 percent or more. |
 | Planning and insight | `GET /retirement/defaults`, `POST /retirement/project`, `POST /resp/plan` (stateless calculators), `GET /sinking-funds`, `GET /subscriptions/watch`, `GET /year-in-review?year=&view=`, `GET /monthly-review?month=&view=`, `POST /monthly-review/email` (to the caller only), `GET,PUT /monthly-review/settings` (opt-in) |
 | Vehicle tools | `GET,POST /mileage/trips`, `DELETE /mileage/trips/:id`, `GET /mileage/report?year=`, `POST /vehicles/keep-or-replace` (stateless), `GET /vehicles/:id/replace-defaults`, `POST /fuel/:id/post-to-ledger`. `POST /api/fuel` accepts `ledgerAccountId` to also record the fill-up as a vehicle-tagged ledger expense. |
+| People | `GET,POST /comments`, `DELETE /comments/:id` (comments follow the visibility of their record), `/wishlist` (GET, POST), `POST /wishlist/:id/decision`, `/purchased`, `/cancel`, `GET,POST /api-tokens`, `DELETE /api-tokens/:id` |
 | Insight | `GET /dashboard`, `GET /analytics`, `GET /calendar`, `/calendar/events`, `GET /alerts`, `POST /alerts/refresh`, `/alert-settings` |
 | Reports and data | `GET /reports`, `GET /reports/run?type=&format=pdf|xlsx|csv|json`, `GET /export/:entity`, `GET /export-all`, `/import/preview`, `/import/analyze`, `/import/commit`, `/import/batches`, `POST /import/batches/:id/undo` |
 | Documents | `GET,POST /documents` (multipart), `DELETE /documents/:id`; download through `/api/documents/:id/file` |
@@ -44,3 +45,12 @@ Household membership and invitations use `/api/households`, `/api/households/:id
 ```
 
 `memberId: null` in a split means the household. Modes are OWNER, MEMBER (with `memberId`), HOUSEHOLD and SPLIT. Percentages must sum to 100 and fixed amounts must sum to the transaction total, otherwise the API returns 400.
+
+## Read-only API tokens
+
+Create a token under Tools, API access (or `POST /api-tokens`). Send it as `Authorization: Bearer ffh_...` to `/api/finance/{householdId}/...`.
+
+- Tokens work only for `GET`. Any other method returns 403.
+- A token is tied to one household and one member. It reads exactly what that member can read, never more. It follows the member's role, so an accountant's token is limited the same way as the accountant.
+- Tokens cannot list or manage tokens, and stop working when they expire, are revoked, or the member loses access.
+- Only a SHA-256 hash is stored. The token is shown once.

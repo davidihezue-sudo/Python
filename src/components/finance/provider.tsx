@@ -6,12 +6,12 @@ import { api, qs, ApiError } from "@/lib/client/api";
 import { useToast } from "@/components/ui/toast";
 
 export type FinView = "my" | "household";
-export interface FinHousehold { id: string; name: string; role: "ADMIN" | "MEMBER" | "READ_ONLY"; onboarded: boolean; isDemo: boolean; currency: string; countryCode: string }
+export interface FinHousehold { id: string; name: string; role: "ADMIN" | "MEMBER" | "READ_ONLY" | "CHILD" | "ACCOUNTANT"; onboarded: boolean; isDemo: boolean; currency: string; countryCode: string }
 export interface FinProfile {
   id: string; name: string; countryCode: string; region: string | null; city: string | null; currency: string; timezone: string; fiscalYearStartMonth: number; dateFormat: string; numberLocale: string; structure: string | null;
-  goalsPreference: string[]; budgetPeriod: string; dashboardLayout: { id: string; visible: boolean }[] | null; onboarded: boolean; isDemo: boolean; myRole: "ADMIN" | "MEMBER" | "READ_ONLY"; myMemberId: string; sharingReviewed: boolean; memberCount: number; canWrite: boolean; today: string; hiddenAccountCount: number;
+  goalsPreference: string[]; budgetPeriod: string; dashboardLayout: { id: string; visible: boolean }[] | null; onboarded: boolean; isDemo: boolean; myRole: "ADMIN" | "MEMBER" | "READ_ONLY" | "CHILD" | "ACCOUNTANT"; myMemberId: string; sharingReviewed: boolean; memberCount: number; canWrite: boolean; today: string; hiddenAccountCount: number;
 }
-export interface Member { id: string; userId: string; name: string; email: string | null; role: string; avatarColor: string | null; responsibilities: string | null; isMe: boolean; sharingDefaults?: Record<string, string> }
+export interface Member { id: string; userId: string; name: string; email: string | null; role: string; accessUntil?: string | null; avatarColor: string | null; responsibilities: string | null; isMe: boolean; sharingDefaults?: Record<string, string> }
 export interface MemberRef { id: string; name: string; color: string | null }
 
 export function makeFmt(p: { currency: string; numberLocale: string; dateFormat: string }) {

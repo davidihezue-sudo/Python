@@ -17,7 +17,7 @@ export interface Me {
   hasPassword: boolean;
   linkedProviders: string[];
   preferences: any;
-  households: { id: string; name: string; role: "ADMIN" | "MEMBER" | "READ_ONLY" }[];
+  households: { id: string; name: string; role: "ADMIN" | "MEMBER" | "READ_ONLY" | "CHILD" | "ACCOUNTANT" }[];
   googleEnabled: boolean;
 }
 

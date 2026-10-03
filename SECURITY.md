@@ -34,3 +34,12 @@ Export your own data as JSON at any time. Demo data is flagged and removable. Ba
 ## Reporting issues
 
 Do not open a public issue for a vulnerability. Contact the maintainer privately.
+
+
+## Limited roles, expiry and API tokens
+
+- **Child:** record visibility excludes household-shared records for a child: only their own records and records shared with them by name are returned, enforced in the shared visibility helpers (`canSee`, `visWhere`). A child cannot assign records to adults and cannot make records personal. Only a short list of API areas is reachable.
+- **Accountant:** never able to write. Only tax-related areas are reachable, and only GET (plus posting comments).
+- **Expiry:** `accessExpiresAt` is checked when the finance context is built and in the vehicle and household access helpers. Expired members also disappear from the household list.
+- **API tokens:** hashed at rest, read-only, one household, GET only, revocable, expiring. They never reach the token management endpoints.
+- Both limited roles are covered by isolation tests in `tests/integration/finance/phase4.test.ts`.

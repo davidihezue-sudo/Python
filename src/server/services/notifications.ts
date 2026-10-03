@@ -26,7 +26,7 @@ async function recipientsFor(vehicleId: string, householdId: string) {
     db.householdMember.findMany({ where: { householdId, role: "ADMIN" }, include: { user: { include: { preference: true } } } }),
     db.vehicleAccess.findMany({ where: { vehicleId }, include: { user: { include: { preference: true } } } }),
   ]);
-  const map = new Map<string, { user: (typeof admins)[number]["user"]; role: "ADMIN" | "MEMBER" | "READ_ONLY"; level: any; fin: boolean }>();
+  const map = new Map<string, { user: (typeof admins)[number]["user"]; role: "ADMIN" | "MEMBER" | "READ_ONLY" | "CHILD" | "ACCOUNTANT"; level: any; fin: boolean }>();
   for (const a of admins) map.set(a.userId, { user: a.user, role: "ADMIN", level: null, fin: true });
   for (const g of grants) {
     const member = await db.householdMember.findUnique({ where: { householdId_userId: { householdId, userId: g.userId } } });

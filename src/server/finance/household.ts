@@ -1,5 +1,7 @@
 // Household setup, profile, members and privacy.
 import { z } from "zod";
+import { isoDate } from "./common";
+import { activeMember } from "@/server/services/access";
 import { db, type Db } from "@/lib/db";
 import { AppError, forbidden, notFound } from "@/lib/errors";
 import { isValidTimezone } from "@/lib/dates";
@@ -74,7 +76,9 @@ export async function updateProfile(ctx: FinCtx, input: Partial<z.infer<typeof p
 }
 
 export const memberPatchSchema = z.object({
-  role: z.enum(["ADMIN", "MEMBER", "READ_ONLY"]).optional(),
+  role: z.enum(["ADMIN", "MEMBER", "READ_ONLY", "CHILD", "ACCOUNTANT"]).optional(),
+  /** last day of access; null removes the limit. Administrators only. */
+  accessUntil: isoDate.nullish(),
   responsibilities: optText(300),
   avatarColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullish(),
 });
@@ -90,7 +94,7 @@ export const sharingSchema = z.object({
 export async function listMembers(ctx: FinCtx) {
   const invites = ctx.isAdmin ? await db.householdInvite.findMany({ where: { householdId: ctx.householdId, acceptedAt: null, revokedAt: null, expiresAt: { gt: new Date() } } }) : [];
   return {
-    members: ctx.members.map((m) => ({ id: m.id, userId: m.userId, name: m.name, email: ctx.isAdmin || m.userId === ctx.actor.id ? m.email : null, role: m.role, avatarColor: m.avatarColor, responsibilities: m.responsibilities, isMe: m.userId === ctx.actor.id, sharingDefaults: m.userId === ctx.actor.id ? m.defaults : undefined })),
+    members: ctx.members.map((m) => ({ id: m.id, userId: m.userId, name: m.name, email: ctx.isAdmin || m.userId === ctx.actor.id ? m.email : null, role: m.role, accessUntil: ctx.isAdmin || m.userId === ctx.actor.id ? (m.accessExpiresAt ? m.accessExpiresAt.toISOString().slice(0, 10) : null) : null, avatarColor: m.avatarColor, responsibilities: m.responsibilities, isMe: m.userId === ctx.actor.id, sharingDefaults: m.userId === ctx.actor.id ? m.defaults : undefined })),
     invites: invites.map((i) => ({ id: i.id, email: i.email, role: i.role, expiresAt: i.expiresAt.toISOString() })),
   };
 }
@@ -100,10 +104,11 @@ export async function updateMember(ctx: FinCtx, memberId: string, patch: z.infer
   const target = ctx.members.find((m) => m.id === memberId);
   if (!target) throw notFound("Member");
   const self = target.userId === ctx.actor.id;
-  if (patch.role !== undefined && !ctx.isAdmin) throw forbidden("Only household administrators can change roles");
+  if ((patch.role !== undefined || patch.accessUntil !== undefined) && !ctx.isAdmin) throw forbidden("Only household administrators can change roles or access dates");
+  if (patch.accessUntil && new Date(`${patch.accessUntil}T23:59:59Z`).getTime() <= Date.now()) throw new AppError("VALIDATION_ERROR", "The access end date must be in the future", { fieldErrors: { accessUntil: ["Choose a date in the future"] } });
   if (!self && !ctx.isAdmin) throw forbidden("You can only edit your own profile");
   if (patch.role && patch.role !== "ADMIN" && target.role === "ADMIN" && ctx.members.filter((m) => m.role === "ADMIN").length <= 1) throw new AppError("CONFLICT", "A household needs at least one administrator");
-  await db.householdMember.update({ where: { id: memberId }, data: { ...(patch.role ? { role: patch.role } : {}), ...(patch.responsibilities !== undefined ? { responsibilities: patch.responsibilities } : {}), ...(patch.avatarColor !== undefined ? { avatarColor: patch.avatarColor } : {}) } });
+  await db.householdMember.update({ where: { id: memberId }, data: { ...(patch.role ? { role: patch.role } : {}), ...(patch.accessUntil !== undefined ? { accessExpiresAt: patch.accessUntil ? new Date(`${patch.accessUntil}T23:59:59Z`) : null } : {}), ...(patch.responsibilities !== undefined ? { responsibilities: patch.responsibilities } : {}), ...(patch.avatarColor !== undefined ? { avatarColor: patch.avatarColor } : {}) } });
   await audit(null, ctx.actor, { entity: "HouseholdMember", entityId: memberId, action: "update", householdId: ctx.householdId, after: patch });
   return { ok: true };
 }
@@ -133,7 +138,7 @@ export async function ensureFinanceSetup(householdId: string) {
 }
 
 export async function listFinanceHouseholds(actor: Actor) {
-  const ms = await db.householdMember.findMany({ where: { userId: actor.id, household: { deletedAt: null } }, include: { household: true }, orderBy: { createdAt: "asc" } });
+  const ms = await db.householdMember.findMany({ where: { userId: actor.id, household: { deletedAt: null }, ...activeMember() }, include: { household: true }, orderBy: { createdAt: "asc" } });
   for (const m of ms) await ensureFinanceSetup(m.householdId);
   return ms.map((m) => ({ id: m.householdId, name: m.household.name, role: m.role, onboarded: !!m.household.onboardedAt, isDemo: m.household.isDemo, currency: m.household.currency, countryCode: m.household.countryCode }));
 }

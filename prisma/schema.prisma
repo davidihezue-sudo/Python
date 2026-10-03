@@ -25,6 +25,10 @@ enum HouseholdRole {
   ADMIN
   MEMBER
   READ_ONLY
+  /// a child: sees only their own records and what is shared with them, and can ask for things on the wish list
+  CHILD
+  /// an accountant: read-only access to tax-relevant records, usually for a limited time
+  ACCOUNTANT
 }
 
 enum VehicleAccessLevel {
@@ -396,6 +400,7 @@ model User {
 
   accounts          Account[]
   sessions          Session[]
+  apiTokens         ApiToken[]
   tokens            VerificationToken[]
   preference        UserPreference?
   memberships       HouseholdMember[]
@@ -546,6 +551,9 @@ model Household {
   settlements        Settlement[]
   finRules           FinRule[]
   savedViews         SavedView[]
+  wishItems          WishItem[]
+  finComments        FinComment[]
+  apiTokens          ApiToken[]
   paydayPlans        PaydayPlan[]
   registeredRooms    RegisteredRoom[]
 
@@ -558,6 +566,7 @@ model Household {
   integrations Integration[]
   subscription Subscription?
   auditLogs    AuditLog[]
+  legacyPlans  LegacyPlan[]
 }
 
 model HouseholdMember {
@@ -567,6 +576,8 @@ model HouseholdMember {
   role             HouseholdRole  @default(MEMBER)
   avatarColor      String?
   responsibilities String?
+  /// access ends at this moment (accountants and children are usually given a time limit)
+  accessExpiresAt  DateTime?      @db.Timestamptz
   createdAt        DateTime       @default(now()) @db.Timestamptz
   household        Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
   user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -577,20 +588,21 @@ model HouseholdMember {
 }
 
 model HouseholdInvite {
-  id            String        @id @default(cuid())
-  householdId   String
-  email         String
-  role          HouseholdRole @default(MEMBER)
-  tokenHash     String        @unique
+  id              String        @id @default(cuid())
+  householdId     String
+  email           String
+  role            HouseholdRole @default(MEMBER)
+  tokenHash       String        @unique
   // [{ vehicleId, level, canViewFinancials }]
-  vehicleAccess Json          @default("[]")
-  invitedById   String
-  expiresAt     DateTime      @db.Timestamptz
-  acceptedAt    DateTime?     @db.Timestamptz
-  revokedAt     DateTime?     @db.Timestamptz
-  createdAt     DateTime      @default(now()) @db.Timestamptz
-  household     Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
-  invitedBy     User          @relation(fields: [invitedById], references: [id])
+  vehicleAccess   Json          @default("[]")
+  accessExpiresAt DateTime?     @db.Timestamptz
+  invitedById     String
+  expiresAt       DateTime      @db.Timestamptz
+  acceptedAt      DateTime?     @db.Timestamptz
+  revokedAt       DateTime?     @db.Timestamptz
+  createdAt       DateTime      @default(now()) @db.Timestamptz
+  household       Household     @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  invitedBy       User          @relation(fields: [invitedById], references: [id])
 
   @@index([householdId])
   @@index([email])
@@ -2506,4 +2518,88 @@ model MileageTrip {
   vehicle Vehicle @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
 
   @@index([vehicleId, date])
+}
+
+// ───────────────────────── People: wish list, comments, read-only API tokens ─────────────────────────
+
+enum WishStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  PURCHASED
+  CANCELLED
+}
+
+model WishItem {
+  id                  String     @id @default(cuid())
+  householdId         String
+  requestedByMemberId String
+  name                String
+  estimatedCost       Decimal    @db.Decimal(14, 2)
+  url                 String?
+  note                String?
+  status              WishStatus @default(PENDING)
+  decidedByMemberId   String?
+  decidedAt           DateTime?  @db.Timestamptz
+  decisionNote        String?
+  createdAt           DateTime   @default(now()) @db.Timestamptz
+  updatedAt           DateTime   @updatedAt @db.Timestamptz
+  deletedAt           DateTime?  @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, status])
+}
+
+model FinComment {
+  id             String    @id @default(cuid())
+  householdId    String
+  entity         String
+  entityId       String
+  authorMemberId String
+  body           String
+  createdAt      DateTime  @default(now()) @db.Timestamptz
+  deletedAt      DateTime? @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, entity, entityId])
+}
+
+/// Read-only access for scripts and spreadsheets. Only a hash is stored. A token sees exactly what its owner can read, in one household, and can never write.
+model ApiToken {
+  id          String    @id @default(cuid())
+  userId      String
+  householdId String
+  name        String
+  tokenHash   String    @unique
+  prefix      String
+  expiresAt   DateTime  @db.Timestamptz
+  lastUsedAt  DateTime? @db.Timestamptz
+  revokedAt   DateTime? @db.Timestamptz
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, householdId])
+}
+
+// ───────────────────────── "If something happens to me" ─────────────────────────
+
+/// A member's own page for the people they trust: where things are, who to call, plus an automatic list of the records they own.
+/// Only the owner can edit it. Only the members the owner names can read it, and every view by someone else is recorded and notified.
+model LegacyPlan {
+  id               String   @id @default(cuid())
+  householdId      String
+  memberId         String
+  sections         Json     @default("[]")
+  trustedMemberIds String[] @default([])
+  includeBalances  Boolean  @default(false)
+  updatedAt        DateTime @updatedAt @db.Timestamptz
+  createdAt        DateTime @default(now()) @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, memberId])
 }

@@ -25,6 +25,7 @@ export interface MemberInfo {
   name: string;
   email: string;
   role: HouseholdRole;
+  accessExpiresAt: Date | null;
   avatarColor: string | null;
   responsibilities: string | null;
   defaults: Defaults;
@@ -55,7 +56,8 @@ export interface Shareable {
 /** Can the actor read this record? Roles never widen this: a PERSONAL record is only ever readable by its owner. */
 export function canSee(ctx: Pick<FinCtx, "me">, r: Shareable): boolean {
   if (r.ownerMemberId === ctx.me.id) return true;
-  if (r.visibility === "HOUSEHOLD") return true;
+  // A child only sees their own records and what has been shared with them by name, never the household's shared books.
+  if (r.visibility === "HOUSEHOLD") return ctx.me.role !== "CHILD";
   if (r.visibility === "SELECTED") return r.sharedWithMemberIds.includes(ctx.me.id);
   return false;
 }
@@ -71,7 +73,8 @@ export const canEdit = (ctx: FinCtx, r: Shareable) => ctx.canWrite && canSee(ctx
 /** Prisma filter for records visible in a scope. `all` = everything the actor may read. Combine with householdId at the call site. */
 export function visWhere(ctx: Pick<FinCtx, "me">, scope: View | "all" | { member: string }) {
   const me = ctx.me.id;
-  const shared = [{ visibility: "HOUSEHOLD" as const }, { visibility: "SELECTED" as const, sharedWithMemberIds: { has: me } }];
+  const named = { visibility: "SELECTED" as const, sharedWithMemberIds: { has: me } };
+  const shared = ctx.me.role === "CHILD" ? [named] : [{ visibility: "HOUSEHOLD" as const }, named];
   if (scope === "my") return { ownerMemberId: me };
   if (scope === "household") return { OR: [...shared, { visibility: "SELECTED" as const, ownerMemberId: me }] };
   if (scope === "all") return { OR: [{ ownerMemberId: me }, ...shared] };
@@ -83,13 +86,14 @@ export async function finCtx(actor: Actor, householdId: string, need: Need = "re
   const rows = await db.householdMember.findMany({ where: { householdId, household: { deletedAt: null } }, include: { household: true, user: { select: { name: true, email: true } }, privacy: true }, orderBy: { createdAt: "asc" } });
   const meRow = rows.find((r) => r.userId === actor.id);
   if (!meRow) throw notFound("Household"); // never reveal that the household exists
+  if (meRow.accessExpiresAt && meRow.accessExpiresAt.getTime() <= Date.now()) throw forbidden("Your access to this household has ended");
   const members: MemberInfo[] = rows.map((r) => ({
-    id: r.id, userId: r.userId, name: r.user.name, email: r.user.email, role: r.role, avatarColor: r.avatarColor, responsibilities: r.responsibilities,
+    id: r.id, userId: r.userId, name: r.user.name, email: r.user.email, role: r.role, accessExpiresAt: r.accessExpiresAt, avatarColor: r.avatarColor, responsibilities: r.responsibilities,
     defaults: r.privacy ? { income: r.privacy.incomeDefault, accounts: r.privacy.accountsDefault, transactions: r.privacy.transactionsDefault, savings: r.privacy.savingsDefault, debts: r.privacy.debtsDefault, other: r.privacy.otherDefault } : { ...DEFAULT_SHARING },
   }));
   const me = members.find((m) => m.userId === actor.id) as MemberInfo;
   const isAdmin = me.role === "ADMIN";
-  const canWrite = me.role !== "READ_ONLY";
+  const canWrite = me.role !== "READ_ONLY" && me.role !== "ACCOUNTANT";
   if (need === "write" && !canWrite) throw forbidden("Your access to this household is read-only");
   if (need === "admin" && !isAdmin) throw forbidden("Only household administrators can do that");
   const accounts = await db.finAccount.findMany({ where: { householdId, deletedAt: null }, select: { id: true, ownerMemberId: true, visibility: true, sharedWithMemberIds: true } });
@@ -114,6 +118,8 @@ export interface VisInput {
 /** Validates and normalises a visibility choice. SELECTED needs at least one other household member; other levels clear the list. */
 export function resolveVisibility(ctx: FinCtx, input: VisInput, kind: SharingKind, opts: { joint?: boolean; current?: Shareable } = {}): { visibility: Vis; sharedWithMemberIds: string[] } {
   if (opts.joint) return { visibility: "HOUSEHOLD", sharedWithMemberIds: [] };
+  // What a child records stays visible to the household's adults, so a child cannot hide things from them.
+  if (ctx.me.role === "CHILD") return { visibility: "HOUSEHOLD", sharedWithMemberIds: [] };
   const visibility = input.visibility ?? opts.current?.visibility ?? ctx.me.defaults[kind];
   if (visibility !== "SELECTED") return { visibility, sharedWithMemberIds: [] };
   const list = [...new Set(input.sharedWithMemberIds ?? opts.current?.sharedWithMemberIds ?? [])].filter((m) => m !== ctx.me.id);
@@ -144,7 +150,7 @@ export function requireMember(ctx: FinCtx, memberId: string | null | undefined) 
 export function ownerFor(ctx: FinCtx, assignTo?: string | null) {
   if (!assignTo || assignTo === ctx.me.id) return ctx.me.id;
   requireMember(ctx, assignTo);
-  if (ctx.me.role === "READ_ONLY") throw forbidden();
+  if (ctx.me.role !== "ADMIN" && ctx.me.role !== "MEMBER") throw forbidden();
   return assignTo;
 }
 
@@ -200,3 +206,16 @@ export function metaView(ctx: FinCtx, row: Shareable & { createdById?: string | 
 export const requireAdminOnly = (ctx: FinCtx) => {
   if (!ctx.isAdmin) throw forbidden("Only household administrators can do that");
 };
+
+
+// ───── what each limited role may reach. The check runs on the server before any handler.
+const CHILD_AREAS = new Set(["profile", "members", "accounts", "transactions", "transfers", "categories", "merchants", "goals", "wishlist", "comments", "tags", "saved-views"]);
+const ACCOUNTANT_AREAS = new Set(["profile", "members", "accounts", "transactions", "categories", "merchants", "income", "tax", "reports", "export", "export-all", "documents", "assets", "investments", "debts", "networth", "bills", "subscriptions", "insurance", "comments", "tags"]);
+/** Throws unless the member's role may use this part of the API. Adults and read-only members are limited only by record visibility. */
+export function assertAreaAllowed(role: HouseholdRole, method: string, area: string | undefined) {
+  if (role === "CHILD" && !CHILD_AREAS.has(area ?? "")) throw forbidden("This part of the app is not available for your role");
+  if (role === "ACCOUNTANT") {
+    if (!ACCOUNTANT_AREAS.has(area ?? "")) throw forbidden("This part of the app is not available for your role");
+    if (method !== "GET" && !(area === "comments" && method === "POST")) throw forbidden("Your access to this household is read-only");
+  }
+}

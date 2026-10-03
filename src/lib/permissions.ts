@@ -1,6 +1,6 @@
 // Pure permission rules. Server code must call these (via services/access.ts) on every protected operation.
 export type VehicleLevel = "OWNER" | "CO_OWNER" | "MAINTENANCE_MANAGER" | "VIEWER";
-export type HouseholdRoleT = "ADMIN" | "MEMBER" | "READ_ONLY";
+export type HouseholdRoleT = "ADMIN" | "MEMBER" | "READ_ONLY" | "CHILD" | "ACCOUNTANT";
 export type Capability = "view" | "write" | "viewFinancials" | "editVehicle" | "manageAccess" | "delete";
 
 export interface AccessInfo {
@@ -14,7 +14,7 @@ export function can(a: AccessInfo | null, cap: Capability): boolean {
   if (a.householdRole === "ADMIN") return true;
   if (a.householdRole === null) return false;
   // Read-only members can look at what has been shared with them but can never change anything.
-  if (a.householdRole === "READ_ONLY") {
+  if (a.householdRole === "READ_ONLY" || a.householdRole === "CHILD" || a.householdRole === "ACCOUNTANT") {
     if (!a.vehicleLevel) return false;
     return cap === "view" || (cap === "viewFinancials" && a.canViewFinancials);
   }

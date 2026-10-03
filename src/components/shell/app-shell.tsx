@@ -19,10 +19,10 @@ import { useMe, VehicleProvider } from "./providers";
 type NavItem = { href: string; label: string; icon: React.ElementType };
 export const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   { title: "Overview", items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }, { href: "/household", label: "Household", icon: Users }] },
-  { title: "Money", items: [{ href: "/transactions", label: "Transactions", icon: ArrowLeftRight }, { href: "/spending", label: "Expenses", icon: Receipt }, { href: "/income", label: "Income", icon: HandCoins }, { href: "/accounts", label: "Accounts", icon: Landmark }, { href: "/budgets", label: "Budgets", icon: Wallet }, { href: "/bills", label: "Bills", icon: FileText }, { href: "/payday", label: "Pay day plan", icon: HandCoins }, { href: "/calendar", label: "Calendar", icon: CalendarDays }] },
+  { title: "Money", items: [{ href: "/transactions", label: "Transactions", icon: ArrowLeftRight }, { href: "/spending", label: "Expenses", icon: Receipt }, { href: "/income", label: "Income", icon: HandCoins }, { href: "/accounts", label: "Accounts", icon: Landmark }, { href: "/budgets", label: "Budgets", icon: Wallet }, { href: "/bills", label: "Bills", icon: FileText }, { href: "/payday", label: "Pay day plan", icon: HandCoins }, { href: "/wishlist", label: "Wish list", icon: Sparkles }, { href: "/calendar", label: "Calendar", icon: CalendarDays }] },
   { title: "Plan", items: [{ href: "/goals", label: "Savings and goals", icon: PiggyBank }, { href: "/debts", label: "Debt", icon: CreditCard }, { href: "/forecast", label: "Forecast", icon: TrendingUp }, { href: "/simulator", label: "What if", icon: SlidersHorizontal }, { href: "/planner", label: "Home planner", icon: Home }, { href: "/retirement", label: "Retirement", icon: LineChart }, { href: "/resp", label: "RESP planner", icon: PiggyBank }, { href: "/sinking-funds", label: "Sinking funds", icon: Repeat }] },
   { title: "Wealth", items: [{ href: "/networth", label: "Net worth", icon: LineChart }, { href: "/investments", label: "Investments", icon: Coins }, { href: "/registered-accounts", label: "RRSP, TFSA, FHSA", icon: Landmark }, { href: "/insurance", label: "Insurance", icon: Shield }, { href: "/subscriptions", label: "Subscriptions", icon: Repeat }, { href: "/tax", label: "Tax", icon: Building2 }] },
-  { title: "Tools", items: [{ href: "/reports", label: "Reports", icon: BarChart3 }, { href: "/monthly-review", label: "Monthly review", icon: CalendarDays }, { href: "/year-in-review", label: "Year in review", icon: BarChart3 }, { href: "/rules", label: "Auto rules", icon: SlidersHorizontal }, { href: "/import", label: "Import and export", icon: Upload }, { href: "/finance-documents", label: "Receipts", icon: FileSpreadsheet }, { href: "/assistant", label: "Assistant", icon: Sparkles }] },
+  { title: "Tools", items: [{ href: "/reports", label: "Reports", icon: BarChart3 }, { href: "/monthly-review", label: "Monthly review", icon: CalendarDays }, { href: "/year-in-review", label: "Year in review", icon: BarChart3 }, { href: "/rules", label: "Auto rules", icon: SlidersHorizontal }, { href: "/api-access", label: "API access", icon: Shield }, { href: "/import", label: "Import and export", icon: Upload }, { href: "/finance-documents", label: "Receipts", icon: FileSpreadsheet }, { href: "/assistant", label: "Assistant", icon: Sparkles }] },
   { title: "Vehicles", items: [{ href: "/vehicle-dashboard", label: "Vehicle overview", icon: LayoutDashboard }, { href: "/vehicles", label: "My vehicles", icon: Car }, { href: "/maintenance", label: "Maintenance", icon: Wrench }, { href: "/service-history", label: "Service history", icon: Gauge }, { href: "/repairs", label: "Repairs", icon: Hammer }, { href: "/parts", label: "Parts", icon: Package }, { href: "/reminders", label: "Reminders", icon: Bell }, { href: "/documents", label: "Vehicle documents", icon: FolderOpen }, { href: "/vehicle-costs", label: "Running costs", icon: Receipt }, { href: "/mileage", label: "Mileage log", icon: Gauge }, { href: "/keep-or-replace", label: "Keep or replace", icon: Car }, { href: "/expenses", label: "Vehicle expenses", icon: Receipt }] },
 ];
 export const NAV = NAV_GROUPS.flatMap((g) => g.items);
@@ -31,7 +31,18 @@ const VEHICLE_HREFS = NAV_GROUPS.filter((g) => g.title === VEHICLE_GROUP).flatMa
 /** Pages that exist once but are useful from both sections. In the Vehicles section they are listed under Tools. */
 const VEHICLE_EXTRA: NavItem[] = [{ href: "/reports?tab=vehicles", label: "Vehicle reports", icon: BarChart3 }, { href: "/assistant", label: "Assistant", icon: Sparkles }, { href: "/notifications", label: "Notifications", icon: Bell }];
 type Area = "finance" | "vehicles";
-export const areaGroups = (area: Area) => (area === "vehicles" ? [...NAV_GROUPS.filter((g) => g.title === VEHICLE_GROUP), { title: "Tools", items: VEHICLE_EXTRA }] : NAV_GROUPS.filter((g) => g.title !== VEHICLE_GROUP));
+/** Limited roles only see the pages their role may use. The server enforces the same list; this just hides the dead ends. */
+const ROLE_HREFS: Record<string, string[]> = {
+  CHILD: ["/transactions", "/accounts", "/goals", "/wishlist", "/notifications"],
+  ACCOUNTANT: ["/household", "/transactions", "/accounts", "/income", "/tax", "/reports", "/finance-documents", "/investments", "/networth", "/debts", "/bills", "/subscriptions", "/insurance", "/notifications"],
+};
+export const limitedRole = (role?: string) => role === "CHILD" || role === "ACCOUNTANT";
+export const areaGroups = (area: Area, role?: string) => {
+  const all = area === "vehicles" ? [...NAV_GROUPS.filter((g) => g.title === VEHICLE_GROUP), { title: "Tools", items: VEHICLE_EXTRA }] : NAV_GROUPS.filter((g) => g.title !== VEHICLE_GROUP);
+  const allow = role ? ROLE_HREFS[role] : undefined;
+  if (!allow) return all;
+  return all.map((g) => ({ ...g, items: g.items.filter((i) => allow.includes(i.href.split("?")[0])) })).filter((g) => g.items.length);
+};
 const FINANCE_HREFS = NAV_GROUPS.filter((g) => g.title !== VEHICLE_GROUP).flatMap((g) => g.items.map((i) => i.href));
 const isActive = (path: string, href: string) => { const h = href.split("?")[0]; return path === h || path.startsWith(h + "/"); };
 
@@ -135,6 +146,7 @@ async function signOut() {
 function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const me = useMe();
+  const { profile } = useFin();
   const [more, setMore] = React.useState(false);
   const [searchOpen, setSearchOpen] = React.useState(false);
   React.useEffect(() => {
@@ -174,8 +186,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-sidebar text-sidebar-foreground lg:flex" aria-label="Primary">
         <div className="px-5 pb-4 pt-6 text-white"><Logo /></div>
         <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Main navigation">
-          <AreaSwitch area={area} variant="sidebar" />
-          {areaGroups(area).map((g) => (
+          {!limitedRole(profile?.myRole) && <AreaSwitch area={area} variant="sidebar" />}
+          {areaGroups(area, profile?.myRole).map((g) => (
             <div key={g.title} className="mb-3">
               <p className="px-3 pb-1 pt-2 text-[10px] font-medium uppercase tracking-[0.18em] text-white/40">{g.title}</p>
               <div className="space-y-px">
@@ -209,7 +221,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pt-1.5 backdrop-blur lg:hidden safe-bottom" aria-label="Mobile navigation">
-        <div className="mx-auto max-w-lg"><AreaSwitch area={area} variant="bar" /></div>
+        {!limitedRole(profile?.myRole) && <div className="mx-auto max-w-lg"><AreaSwitch area={area} variant="bar" /></div>}
         <ul className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pt-0.5">
           {area === "finance" ? (
             <>
@@ -257,7 +269,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       </Modal>
       <Modal open={more} onClose={() => setMore(false)} title={area === "vehicles" ? "Vehicles" : "Finance"} size="sm">
         <div className="space-y-4">
-          {areaGroups(area).map((g) => (
+          {areaGroups(area, profile?.myRole).map((g) => (
             <div key={g.title}>
               <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">{g.title}</p>
               <ul className="grid grid-cols-2 gap-2">
