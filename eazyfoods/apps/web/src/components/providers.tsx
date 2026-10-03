@@ -57,7 +57,7 @@ function Inner({ children }: { children: ReactNode }) {
 
   const auth = useMemo(() => ({
     me, ready, refresh,
-    logout: async () => { await post('/auth/logout'); setMe(null); setCart(null); await refreshCart(); window.location.href = '/'; },
+    logout: async () => { try { await post('/auth/logout'); } catch { /* the session is dropped in the browser either way */ } setMe(null); setCart(null); window.location.href = '/'; },
     can: (p: string) => !!me?.permissions?.includes(p),
   }), [me, ready, refresh, refreshCart]);
   const cartV = useMemo(() => ({ cart, count: cart?.itemCount ?? 0, busy, refresh: refreshCart, add, setQty, options, open, setOpen }), [cart, busy, refreshCart, add, setQty, options, open]);
