@@ -1,5 +1,6 @@
 # One-click update for the home server. Right-click, "Run with PowerShell", or run:  .\scripts\update.ps1
 # It makes a database backup first, pulls the newest code, rebuilds, restarts and checks the app came up.
+param([switch]$NoPause)   # use -NoPause when running over SSH or from a scheduled task
 $ErrorActionPreference = "Stop"
 $proj   = Split-Path -Parent $PSScriptRoot
 $branch = "claude/clever-edison-281ogi"
@@ -30,4 +31,4 @@ for ($i = 0; $i -lt 40; $i++) {
 docker compose ps
 if ($ok) { Write-Host "Updated and running." -ForegroundColor Green }
 else { Write-Host "The app did not answer. Last log lines:" -ForegroundColor Red; docker compose logs web --tail 40 }
-Read-Host "Press Enter to close"
+if (-not $NoPause) { Read-Host "Press Enter to close" }
