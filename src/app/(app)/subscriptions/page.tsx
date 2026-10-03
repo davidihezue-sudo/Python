@@ -3,6 +3,7 @@ import * as React from "react";
 import { Alert, Badge, Button } from "@/components/ui/primitives";
 import { useConfirm } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty";
+import { SubscriptionWatch } from "@/components/finance/sub-watch";
 import { useFin, useFinMutation, useFinQuery } from "@/components/finance/provider";
 import { Add, DataTable, FormModal, Figure, MemberChip, Money, NeedsHousehold, PageHeader, Section, ViewNote, VisibilityBadge, humanize, type Col, type FieldDef } from "@/components/finance/ui";
 
@@ -43,6 +44,7 @@ function Inner() {
       <PageHeader eyebrow="Subscriptions" title="Subscriptions" description="Recurring services, with their monthly and annual cost. Price increases and subscriptions not reviewed in six months are flagged." actions={<Add label="Add subscription" onClick={() => setEdit("new")} />} />
       <ViewNote />
       {data && <section className="mb-5 grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-5 sm:grid-cols-4" aria-label="Subscription totals"><Figure label="Per month" value={data.totals.monthly} /><Figure label="Per year" value={data.totals.annual} /><Figure label="Active" value={<span className="text-2xl">{data.totals.activeCount}</span>} /><Figure label="Next 30 days" value={<span className="text-2xl">{data.upcoming.length}</span>} hint="charges" /></section>}
+      <div className="mb-5"><SubscriptionWatch /></div>
       <Section flush><DataTable cols={cols} rows={data?.items} loading={isLoading} caption="Subscriptions" onRow={(r) => r.canEdit && setEdit(r)} empty={<EmptyState title="No subscriptions" description="Add streaming, software and memberships to see what they cost over a year." action={canWrite ? <Button onClick={() => setEdit("new")}>Add subscription</Button> : undefined} />} /></Section>
       <FormModal open={!!edit} onClose={() => setEdit(null)} title={edit === "new" ? "Add a subscription" : `Edit ${edit?.name ?? ""}`} fields={fields} visibility initial={edit && edit !== "new" ? { ...edit, accountId: edit.accountId ?? "" } : { category: "Streaming", frequency: "MONTHLY" }}
         footerExtra={edit && edit !== "new" && edit.canEdit ? <><Button variant="ghost" className="mr-auto text-danger" onClick={async () => { if (await confirm({ title: "Remove this subscription?", confirmLabel: "Remove", tone: "danger" })) { del.mutate({ id: edit.id }); setEdit(null); } }}>Remove</Button><Button variant="outline" onClick={() => { upd.mutate({ id: edit.id, markReviewed: true }); setEdit(null); }}>Mark reviewed</Button><Button variant="outline" onClick={() => { upd.mutate({ id: edit.id, active: !edit.active }); setEdit(null); }}>{edit.active ? "Cancel" : "Reactivate"}</Button><Button variant="outline" onClick={() => { setCharge(edit); setEdit(null); }}>Record a charge</Button></> : undefined}

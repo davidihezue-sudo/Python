@@ -55,5 +55,13 @@ Everyone signs in with their own account. An administrator invites each person b
 - **Pay day plan** (Money): split a paycheck into transfers to accounts and goals. Running it creates ordinary transfers, and a plan refuses to run twice for the same date unless you confirm.
 - **Budget nudge:** saving an expense that takes a budget to 80 percent or more shows a short message.
 
+## 9d. Planning and insight
+- **Retirement** (Plan): enter your ages, savings, yearly return and the spending you want. It shows the independence number, what you are on track for, when money would run out and the monthly saving needed. Figures are in today's dollars. Nothing is stored.
+- **RESP planner** (Plan): shows the Canada Education Savings Grant on top of your contributions and the grant money you would miss by contributing less. Rates are reference values: confirm them at canada.ca.
+- **Sinking funds** (Plan): dated costs such as insurance or gifts, turned into "set aside this much a month". Each is a savings goal with a due date.
+- **Subscription watch** (Subscriptions): flags price increases, possible duplicates and regular charges that are not on your list. It only looks at records you can see.
+- **Debt**: the Repayment strategies tab is the what-if tool (try an extra monthly amount). A debt that reaches zero shows a "Paid off" banner.
+- **Year in review** and **Monthly review** (Tools): a look back with highlights. The monthly review can be emailed to you on demand, or each month if you turn it on. It is off by default and covers only records you own. The monthly email needs the background worker (or ENABLE_INPROCESS_JOBS=true) and email settings.
+
 ## 10. Demo data
 Demo records are labelled and can be removed in Household, Data, Remove demo data. This deletes only the demo household.

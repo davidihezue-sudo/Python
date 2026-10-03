@@ -2388,6 +2388,9 @@ model FinAlertSetting {
   frequency           AlertFrequency @default(IMMEDIATE)
   inApp               Boolean        @default(true)
   email               Boolean        @default(false)
+  /** opt-in monthly money review by email, and the month (YYYY-MM) last sent so it is never sent twice */
+  monthlyReview       Boolean        @default(false)
+  lastMonthlyReview   String?
   updatedAt           DateTime       @updatedAt @db.Timestamptz
 
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)

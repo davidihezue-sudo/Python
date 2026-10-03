@@ -8,6 +8,7 @@ import { actorFromUser } from "../context";
 import { finCtx } from "../finance/access";
 import { refreshAlertNotifications } from "../finance/alerts";
 import { postDueRecurring } from "../finance/bills";
+import { sendDueMonthlyReviews } from "../finance/insight";
 
 export interface JobDef {
   name: string;
@@ -66,6 +67,8 @@ export const JOBS: JobDef[] = [
       return { rules: rules.length, posted, failed };
     },
   },
+  // Opt-in only: emails last month's review on the first days of a month, once per person.
+  { name: "finance.monthly-review", everyMs: 6 * 3600_000, run: async () => ({ ...(await sendDueMonthlyReviews()) }) },
   { name: "email.flush", everyMs: 5 * 60_000, run: async () => ({ ...(await flushOutbox()) }) },
   {
     name: "cleanup",

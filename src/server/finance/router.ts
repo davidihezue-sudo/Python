@@ -35,6 +35,7 @@ import * as Rules from "./rules";
 import * as Tags from "./tags";
 import * as Safe from "./safe";
 import * as Reg from "./registered";
+import * as Insight from "./insight";
 import * as Pay from "./payday";
 import * as Demo from "./demo";
 import { analyticsQuery, getAnalytics, auditHistory, fxSchema, listFx, saveFx, deleteFx, exportMyData } from "./misc";
@@ -214,6 +215,17 @@ export const ROUTES: Def[] = [
   { method: "PATCH", path: "/payday-plans/:id", need: "write", body: Pay.planPatchSchema, h: ({ ctx, params, body }) => Pay.updatePlan(ctx, params.id, body) },
   { method: "DELETE", path: "/payday-plans/:id", need: "write", h: ({ ctx, params }) => Pay.deletePlan(ctx, params.id) },
   { method: "POST", path: "/payday-plans/:id/run", need: "write", body: Pay.runSchema, h: ({ ctx, params, body }) => Pay.runPlan(ctx, params.id, body) },
+  // planning and insight
+  { method: "GET", path: "/retirement/defaults", h: ({ ctx }) => Insight.retirementDefaults(ctx) },
+  { method: "POST", path: "/retirement/project", body: Insight.retirementSchema, h: ({ ctx, body }) => Insight.projectRetirementNow(ctx, body) },
+  { method: "POST", path: "/resp/plan", body: Insight.respSchema, h: ({ ctx, body }) => Insight.planRespNow(ctx, body) },
+  { method: "GET", path: "/sinking-funds", query: Insight.viewQ, h: ({ ctx, query }) => Insight.sinkingFunds(ctx, query) },
+  { method: "GET", path: "/subscriptions/watch", query: Insight.viewQ, h: ({ ctx, query }) => Insight.subscriptionWatch(ctx, query) },
+  { method: "GET", path: "/year-in-review", query: Insight.yearQ, h: ({ ctx, query }) => Insight.yearInReview(ctx, query) },
+  { method: "GET", path: "/monthly-review", query: Insight.reviewQ, h: ({ ctx, query }) => Insight.monthlyReview(ctx, query) },
+  { method: "POST", path: "/monthly-review/email", query: Insight.reviewQ, h: ({ ctx, query }) => Insight.emailMonthlyReview(ctx, query) },
+  { method: "GET", path: "/monthly-review/settings", h: ({ ctx }) => Insight.getReviewSettings(ctx) },
+  { method: "PUT", path: "/monthly-review/settings", body: Insight.reviewSettingsSchema, h: ({ ctx, body }) => Insight.updateReviewSettings(ctx, body) },
   // ───── vehicles (cost of ownership from the ledger, maintenance from the vehicle module)
   { method: "GET", path: "/vehicles/options", h: ({ ctx }) => Veh.vehicleOptions(ctx) },
   { method: "GET", path: "/vehicles/overview", query: Veh.vehicleOverviewQuery, h: ({ ctx, query }) => Veh.vehicleOverview(ctx, query) },
