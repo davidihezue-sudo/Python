@@ -183,3 +183,4 @@ fieldset { border: 1.5px solid var(--line); border-radius: var(--radius); paddin
 .driver-nav button { display: grid; place-items: center; gap: 2px; padding: 10px 0; min-height: 56px; font-size: 0.78rem; font-weight: 700; font-family: var(--font-display); color: var(--muted); cursor: pointer; }
 .driver-nav button[aria-current='page'] { color: var(--ember); }
 .chip.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tbl th.right { text-align: right; }
