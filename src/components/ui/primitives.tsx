@@ -161,7 +161,7 @@ export function ProgressBar({ value, tone = "primary", label }: { value: number;
 export function Alert({ tone = "info", title, children, className }: { tone?: "info" | "warning" | "danger" | "success"; title?: string; children?: React.ReactNode; className?: string }) {
   const c = { info: "border-info/30 bg-info/10", warning: "border-warning/40 bg-warning/10", danger: "border-danger/40 bg-danger/10", success: "border-success/30 bg-success/10" }[tone];
   return (
-    <div role={tone === "danger" || tone === "warning" ? "alert" : "status"} className={cn("rounded-lg border p-3 text-sm", c, className)}>
+    <div role={tone === "danger" || tone === "warning" ? "alert" : "status"} className={cn("rounded-lg border px-3 py-2 text-[13px] leading-snug sm:p-3 sm:text-sm", c, className)}>
       {title && <p className="font-medium">{title}</p>}
       {children && <div className={cn(title && "mt-0.5 text-muted-foreground")}>{children}</div>}
     </div>

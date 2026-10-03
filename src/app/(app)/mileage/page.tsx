@@ -32,7 +32,7 @@ function Inner() {
     { key: "x", header: "", align: "right", cell: (r) => canWrite ? <Button size="sm" variant="ghost" className="text-danger" onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: "Remove this trip?", confirmLabel: "Remove", tone: "danger" })) del.mutate({ id: r.id }); }}>Remove</Button> : null },
   ];
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Vehicles" title="Mileage log" description="Log business trips so you have what you need at tax time. Distance is in kilometres." actions={<div className="flex flex-wrap gap-2"><Select aria-label="Year" value={year} onChange={(e) => setYear(Number(e.target.value))} className="h-10 w-auto">{[0, 1, 2, 3].map((i) => <option key={i}>{thisYear - i}</option>)}</Select>{canWrite && <Add label="Log a trip" onClick={() => setAdd(true)} />}<Button variant="outline" onClick={csv} disabled={!trips?.items.length}>Download CSV</Button></div>} />
       {rep?.vehicles.map((v: any) => (
         <Section key={v.vehicleId} title={v.name} description={`${v.trips} trips in ${year}`}>

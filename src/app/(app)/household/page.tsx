@@ -50,7 +50,7 @@ function Members() {
   const qc = useQC();
   const qcInvalidate = () => qc.invalidateQueries({ queryKey: ["fin", hid] });
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Notice>Roles control what a member can change. They never widen what a member can see: a record marked Personal is visible only to its owner, including to household administrators.</Notice>
       <Notice title="How each person uses it">Everyone signs in with their own account and keeps their own books: their accounts, income and spending go in under My finances. For each record they choose Personal (only them), Household (everyone, included in household totals) or Selected people. The Household view then combines only what has been shared, so nobody has to merge anything by hand.</Notice>
       <Section title="Members" description="Each person has their own login and enters their own records." action={isAdmin ? <Button onClick={() => { setLink(""); setInvite(true); }}>Invite a member</Button> : undefined} flush>
@@ -128,7 +128,7 @@ function Contributions() {
     { name: "percentOfNet", label: "Target % of net income (optional)", kind: "number" as const, half: true, show: (x: any) => x.arrangement === "INCOME_BASED" },
   ];
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-wrap items-end gap-3"><Field label="From">{(p) => <Input {...p} type="date" value={from} onChange={(e) => setR([e.target.value, to])} className="h-9" />}</Field><Field label="To">{(p) => <Input {...p} type="date" value={to} onChange={(e) => setR([from, e.target.value])} className="h-9" />}</Field></div>
       <Notice>Paid is who made the payment. Allocated is who the cost belongs to. An expense is counted once in household totals however it is shared. Only records shared with the household are included, so everyone sees the same figures.</Notice>
       {isLoading || !data ? <div className="skeleton h-48 w-full" /> : (

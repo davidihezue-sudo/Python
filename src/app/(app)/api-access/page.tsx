@@ -22,7 +22,7 @@ function Inner() {
   const revoke = useFinMutation<any, any>("DELETE", (b) => `/api-tokens/${b.id}`, { success: "Token revoked" });
   const base = typeof window === "undefined" ? "" : window.location.origin;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Tools" title="API access" description="Read-only tokens for spreadsheets and scripts. A token can read exactly what you can read in this household, and can never change anything." actions={canWrite ? <Add label="New token" onClick={() => setAdd(true)} /> : undefined} />
       <Alert tone="info">Tokens only work for GET requests, for this household, and stop working when they expire or you revoke them. Anyone with a token can read your data, so treat it like a password.</Alert>
       <Section title="Example"><code className="block overflow-x-auto whitespace-pre rounded-md border border-border bg-muted p-3 text-xs">{`curl -H "Authorization: Bearer ffh_..." \\\n  ${base}/api/finance/${hid}/accounts`}</code></Section>

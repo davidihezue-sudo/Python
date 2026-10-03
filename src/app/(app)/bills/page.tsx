@@ -53,7 +53,7 @@ function Inner() {
     <div>
       <PageHeader eyebrow="Bills" title="Bills and payments" description="Track what is due, record payments and see everything on the calendar. Paying a bill creates one expense, attributed to whoever paid." actions={<><Add label="Add bill" onClick={() => setEdit("new")} /><Link href="/calendar" className="inline-flex h-10 items-center rounded-md border border-input bg-card px-4 text-sm font-medium hover:bg-muted">Calendar</Link></>} />
       <ViewNote />
-      <section className="mb-5 grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-5 sm:grid-cols-4" aria-label="Bill summary">
+      <section className="mb-5 grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-4 sm:p-5 sm:grid-cols-4" aria-label="Bill summary">
         <Figure label="Overdue" value={<span className={`text-2xl ${counts("OVERDUE") ? "text-danger" : ""}`}>{counts("OVERDUE")}</span>} /><Figure label="Due soon" value={<span className="text-2xl">{counts("UNPAID") + counts("PARTIAL")}</span>} /><Figure label="Upcoming" value={<span className="text-2xl">{counts("UPCOMING")}</span>} /><Figure label="Paid this cycle" value={<span className="text-2xl">{counts("PAID")}</span>} />
       </section>
       <div className="mb-3 flex flex-wrap gap-1.5" role="group" aria-label="Filter by status">{["ALL", "OVERDUE", "UNPAID", "PARTIAL", "UPCOMING", "PAID"].map((s) => <button key={s} onClick={() => setFilter(s)} aria-pressed={filter === s} className={`rounded-full border px-3 py-1 text-xs font-medium ${filter === s ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}>{s === "ALL" ? "All" : s === "UNPAID" ? "Due soon" : humanize(s)}</button>)}</div>

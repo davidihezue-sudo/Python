@@ -53,7 +53,7 @@ function Inner() {
     <div>
       <PageHeader eyebrow="Plan" title="What if" description="Change an assumption and see how your finances respond. Scenarios run on a copy: your real records are never altered." actions={<ViewSwitch className="lg:hidden" />} />
       <ViewNote />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,26rem)_1fr]">
+      <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,26rem)_1fr]">
         <div className="space-y-4">
           <Section title="Assumptions" description="Each one is applied to the baseline. Months count from today (0 is this month).">
             <ul className="space-y-4">
@@ -85,11 +85,11 @@ function Inner() {
             <ul className="mt-3 divide-y divide-border">{(saved ?? []).map((s) => <li key={s.id} className="flex items-center gap-2 py-2 text-sm"><input type="checkbox" aria-label={`Compare ${s.name}`} checked={cmp.includes(s.id)} onChange={(e) => setCmp((c) => (e.target.checked ? [...c, s.id] : c.filter((x) => x !== s.id)))} /><button className="min-w-0 flex-1 truncate text-left font-medium hover:underline" onClick={() => { setItems((s.assumptions as A[]).length ? (s.assumptions as A[]) : [blank("BONUS")]); setMonths(s.horizonMonths); }}>{s.name}</button><span className="text-xs text-muted-foreground">{s.view === "my" ? "personal" : "household"}</span><Button size="sm" variant="ghost" aria-label={`Delete ${s.name}`} onClick={async () => { if (await confirm({ title: `Delete ${s.name}?`, confirmLabel: "Delete", tone: "danger" })) del.mutate({ id: s.id }); }}><X className="h-4 w-4" /></Button></li>)}{!saved?.length && <li className="py-2 text-sm text-muted-foreground">Nothing saved yet.</li>}</ul>
           </Section>
         </div>
-        <div className="min-w-0 space-y-6" aria-live="polite" aria-busy={busy}>
+        <div className="min-w-0 space-y-4 sm:space-y-6" aria-live="polite" aria-busy={busy}>
           {error && <Alert tone="danger">{error}</Alert>}
           {!result ? <div className="skeleton h-72 w-full" /> : (
             <>
-              <section className="rounded-xl border border-border bg-card p-5" aria-label="Scenario result">
+              <section className="rounded-xl border border-border bg-card p-4 sm:p-5" aria-label="Scenario result">
                 <p className="mb-3 text-xs text-muted-foreground">Real records changed: <strong>none</strong>. {result.notes.join(" ")}</p>
                 <div className="grid gap-5 sm:grid-cols-3">
                   <Compare label="Net worth" now={result.current.end.netWorth} sim={result.simulated.end.netWorth} diff={d.netWorth} />

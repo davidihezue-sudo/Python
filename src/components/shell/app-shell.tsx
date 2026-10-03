@@ -64,9 +64,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 function AreaSwitch({ area, variant }: { area: Area; variant: "sidebar" | "bar" }) {
   const items = [["finance", "Finance", "/dashboard", LayoutDashboard], ["vehicles", "Vehicles", "/vehicle-dashboard", Car]] as const;
   return (
-    <div role="group" aria-label="Section" className={cn("grid grid-cols-2 gap-1 rounded-lg p-1", variant === "sidebar" ? "mx-1 mb-3 bg-white/5" : "mx-3 mb-1 bg-muted")}>
+    <div role="group" aria-label="Section" className={cn("grid grid-cols-2 gap-1 rounded-lg p-1", variant === "sidebar" ? "mx-1 mb-3 bg-white/5" : "mx-3 mb-0.5 gap-0.5 p-0.5 bg-muted")}>
       {items.map(([k, label, href, Icon]) => (
-        <Link key={k} href={href} aria-current={area === k ? "true" : undefined} className={cn("flex items-center justify-center gap-1.5 rounded-md px-2 text-[13px] font-semibold transition-colors", variant === "sidebar" ? "py-1.5" : "min-h-[34px]", area === k ? (variant === "sidebar" ? "bg-white text-sidebar" : "bg-primary text-primary-foreground shadow-sm") : variant === "sidebar" ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-muted-foreground")}>
+        <Link key={k} href={href} aria-current={area === k ? "true" : undefined} className={cn("flex items-center justify-center gap-1.5 rounded-md px-2 text-[13px] font-semibold transition-colors", variant === "sidebar" ? "py-1.5" : "min-h-[28px] text-xs", area === k ? (variant === "sidebar" ? "bg-white text-sidebar" : "bg-primary text-primary-foreground shadow-sm") : variant === "sidebar" ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-muted-foreground")}>
           <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
         </Link>
       ))}
@@ -93,9 +93,9 @@ function DemoBanner() {
     } finally { setBusy(false); }
   };
   return (
-    <div role="status" className="border-b border-warning/30 bg-warning/10 px-4 py-2 text-sm sm:px-6">
+    <div role="status" className="border-b border-warning/30 bg-warning/10 px-4 py-1.5 text-[13px] sm:px-6 sm:py-2 sm:text-sm">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <span><strong>Demo data.</strong> Everything you see here is invented so you can explore.</span>
+        <span><strong>Demo data.</strong><span className="hidden sm:inline"> Everything you see here is invented so you can explore.</span></span>
         {isAdmin ? <Button size="sm" variant="outline" onClick={remove} loading={busy}>Remove demo and start fresh</Button> : <span className="text-muted-foreground">The household administrator can remove it.</span>}
       </div>
     </div>
@@ -108,10 +108,10 @@ function SharingPrompt() {
   const path = usePathname();
   if (!profile || profile.isDemo || profile.sharingReviewed || profile.memberCount < 2 || !canWrite || path.startsWith("/household")) return null;
   return (
-    <div role="status" className="border-b border-accent/30 bg-accent/10 px-4 py-2 text-sm sm:px-6">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <span><strong>Choose what you share.</strong> Your own records can be Personal (only you) or shared with the household. Until you choose, new records are shared.</span>
-        <Link href="/household?tab=sharing" className="font-semibold text-accent underline underline-offset-2">Choose now</Link>
+    <div role="status" className="border-b border-accent/30 bg-accent/10 px-4 py-1.5 text-[13px] sm:px-6 sm:py-2 sm:text-sm">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-x-4 gap-y-1 sm:flex-wrap">
+        <span className="min-w-0 truncate sm:whitespace-normal"><strong>Choose what you share.</strong><span className="hidden sm:inline"> Your own records can be Personal (only you) or shared with the household. Until you choose, new records are shared.</span></span>
+        <Link href="/household?tab=sharing" className="shrink-0 font-semibold text-accent underline underline-offset-2">Choose now</Link>
       </div>
     </div>
   );
@@ -215,12 +215,12 @@ function Shell({ children }: { children: React.ReactNode }) {
         <DemoBanner />
         <SharingPrompt />
         {!me.emailVerified && <VerifyBanner />}
-        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-36 pt-6 outline-none sm:px-6 lg:pb-12">
+        <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl px-3.5 pb-28 pt-3 outline-none sm:px-6 sm:pb-36 sm:pt-6 lg:pb-12">
           {children}
         </main>
       </div>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pt-1.5 backdrop-blur lg:hidden safe-bottom" aria-label="Mobile navigation">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pt-1 backdrop-blur lg:hidden safe-bottom" aria-label="Mobile navigation">
         {!limitedRole(profile?.myRole) && <div className="mx-auto max-w-lg"><AreaSwitch area={area} variant="bar" /></div>}
         <ul className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pt-0.5">
           {area === "finance" ? (
@@ -228,8 +228,8 @@ function Shell({ children }: { children: React.ReactNode }) {
               <BottomLink href="/dashboard" label="Home" icon={LayoutDashboard} active={isActive(path, "/dashboard")} />
               <BottomLink href="/transactions" label="Ledger" icon={ArrowLeftRight} active={isActive(path, "/transactions")} />
               <li className="flex justify-center">
-                <button onClick={() => tx.open()} aria-label="Add a transaction" className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
-                  <Plus className="h-7 w-7" />
+                <button onClick={() => tx.open()} aria-label="Add a transaction" className="-mt-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
+                  <Plus className="h-6 w-6" />
                 </button>
               </li>
               <BottomLink href="/budgets" label="Budgets" icon={Wallet} active={isActive(path, "/budgets")} />
@@ -239,15 +239,15 @@ function Shell({ children }: { children: React.ReactNode }) {
               <BottomLink href="/vehicle-dashboard" label="Overview" icon={LayoutDashboard} active={isActive(path, "/vehicle-dashboard")} />
               <BottomLink href="/vehicles" label="Vehicles" icon={Car} active={isActive(path, "/vehicles")} />
               <li className="flex justify-center">
-                <button onClick={() => setAddVehicle(true)} aria-label="Add or log something for a vehicle" className="-mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
-                  <Plus className="h-7 w-7" />
+                <button onClick={() => setAddVehicle(true)} aria-label="Add or log something for a vehicle" className="-mt-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-pop">
+                  <Plus className="h-6 w-6" />
                 </button>
               </li>
               <BottomLink href="/maintenance" label="Service" icon={Wrench} active={isActive(path, "/maintenance") || isActive(path, "/service-history")} />
             </>
           )}
           <li>
-            <button onClick={() => setMore(true)} className="flex min-h-[52px] w-full flex-col items-center justify-center gap-0.5 rounded-lg text-[11px] font-medium text-muted-foreground" aria-haspopup="dialog">
+            <button onClick={() => setMore(true)} className="flex min-h-[46px] w-full flex-col items-center justify-center gap-0 rounded-lg text-[10.5px] font-medium text-muted-foreground" aria-haspopup="dialog">
               <Menu className="h-5 w-5" aria-hidden />
               More
             </button>
@@ -299,7 +299,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 function BottomLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: React.ElementType; active: boolean }) {
   return (
     <li>
-      <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex min-h-[52px] flex-col items-center justify-center gap-0.5 rounded-lg text-[11px] font-medium", active ? "text-primary" : "text-muted-foreground")}>
+      <Link href={href} aria-current={active ? "page" : undefined} className={cn("flex min-h-[46px] flex-col items-center justify-center gap-0 rounded-lg text-[10.5px] font-medium", active ? "text-primary" : "text-muted-foreground")}>
         <Icon className="h-5 w-5" aria-hidden />
         {label}
       </Link>
@@ -340,11 +340,11 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
   const { canWrite, profile } = useFin();
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur safe-top">
-      <div className="mx-auto flex h-14 max-w-7xl items-center gap-2 px-4 sm:px-6">
+      <div className="mx-auto flex h-12 max-w-7xl items-center gap-1 px-3 sm:h-14 sm:gap-2 sm:px-6">
         <Logo className="lg:hidden [&_span.display]:hidden sm:[&_span.display]:inline" />
         <div className="hidden items-center gap-3 lg:flex"><HouseholdSwitcher /><ViewSwitch /></div>
         <div className="ml-auto flex items-center gap-1">
-          <div className="lg:hidden"><ViewSwitch className="text-xs [&_button]:px-2" /></div>
+          <div className="lg:hidden"><ViewSwitch always className="text-xs [&_button]:px-2" /></div>
           <Button variant="ghost" size="icon" onClick={onSearch} aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)"><Search className="h-5 w-5" /></Button>
           {canWrite && <div className="hidden sm:block"><Dropdown label="Add" trigger={(p) => <Button size="sm" {...p}><Plus className="h-4 w-4" aria-hidden /> Add <ChevronDown className="h-3.5 w-3.5 opacity-80" aria-hidden /></Button>}>
             <MenuItem onClick={() => tx.open()} icon={<Plus className="h-4 w-4" />}>Transaction</MenuItem>

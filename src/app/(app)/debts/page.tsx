@@ -49,7 +49,7 @@ function Inner() {
     <div>
       <PageHeader eyebrow="Debt" title="Debt" description="Outstanding balances come from each debt's ledger account. Repayments split into principal and interest automatically." actions={<Add label="Add debt" onClick={() => setEdit("new")} />} />
       <ViewNote />
-      {data && <section className="mb-5 grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-5 sm:grid-cols-4" aria-label="Debt totals"><Figure label="Total debt" value={data.totals.totalDebt} /><Figure label="Monthly payments" value={data.totals.monthlyPayments} /><Figure label="Interest paid" value={data.totals.interestPaid} size="md" hint="Recorded payments" /><Figure label="Principal repaid" value={data.totals.principalPaid} size="md" hint="Recorded payments" /></section>}
+      {data && <section className="mb-5 grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-4 sm:p-5 sm:grid-cols-4" aria-label="Debt totals"><Figure label="Total debt" value={data.totals.totalDebt} /><Figure label="Monthly payments" value={data.totals.monthlyPayments} /><Figure label="Interest paid" value={data.totals.interestPaid} size="md" hint="Recorded payments" /><Figure label="Principal repaid" value={data.totals.principalPaid} size="md" hint="Recorded payments" /></section>}
       {(data?.items ?? []).filter((d: any) => Number(d.outstanding) <= 0 && Number(d.repaidPercent ?? 0) >= 100).map((d: any) => (
         <div key={d.id} role="status" className="mb-3 rounded-xl border border-success/40 bg-success/10 p-4 text-sm"><p className="font-semibold text-success">Paid off: {d.name}</p><p className="text-muted-foreground">You cleared this debt{Number(d.interestPaid) > 0 ? ` and paid ${fmt.money(d.interestPaid)} in interest along the way` : ""}. Redirect its old payment to savings or the next debt.</p></div>
       ))}
@@ -104,7 +104,7 @@ function Strategies() {
   const [extra, setExtra] = React.useState("200");
   const { data, isLoading } = useFinQuery<any>("/debts/strategies", { extra: extra || "0", view: "all" });
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-wrap items-end gap-3"><Field label="Extra you could pay each month" className="w-60">{(p) => <Input {...p} inputMode="decimal" value={extra} onChange={(e) => setExtra(e.target.value.replace(/[^0-9.]/g, ""))} className="money text-right" />}</Field><p className="pb-2 text-sm text-muted-foreground">Minimum payments are always made. The extra goes to one debt at a time.</p></div>
       {isLoading || !data ? <div className="skeleton h-48 w-full" /> : data.debts.length === 0 ? <EmptyState title="No debts to plan" description="Add debts with balances and minimum payments to compare repayment strategies." /> : (
         <>

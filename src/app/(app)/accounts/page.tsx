@@ -50,12 +50,12 @@ function Inner() {
       <ViewNote />
       {data && data.hiddenAccountCount > 0 && <div className="mb-4"><Notice>{data.hiddenAccountCount} account{data.hiddenAccountCount === 1 ? " is" : "s are"} private to other members and not shown or included in your totals. Each member decides what they share.</Notice></div>}
       {data && (
-        <section className="mb-6 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-3" aria-label="Consolidated balances">
-          {[["Assets", data.totals.assets], ["Liabilities", data.totals.liabilities], ["Net", data.totals.netWorth]].map(([k, v]) => <div key={k} className="bg-card p-4"><p className="text-[11px] uppercase tracking-[0.12em] text-muted-foreground">{k}</p><p className="mt-1 text-2xl money">{fmt.money(v)}</p></div>)}
+        <section className="mb-4 grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-border bg-border sm:mb-6" aria-label="Consolidated balances">
+          {[["Assets", data.totals.assets], ["Liabilities", data.totals.liabilities], ["Net", data.totals.netWorth]].map(([k, v]) => <div key={k} className="min-w-0 bg-card p-3 sm:p-4"><p className="text-[10px] uppercase tracking-[0.1em] text-muted-foreground sm:text-[11px]">{k}</p><p className="mt-0.5 truncate text-base money sm:mt-1 sm:text-2xl">{fmt.money(v)}</p></div>)}
         </section>
       )}
       {data?.totals.unconverted?.length > 0 && <div className="mb-4"><Alert tone="warning">No exchange rate is set for: {data.totals.unconverted.join(", ")}. They are left out of the totals until you add one in Household settings.</Alert></div>}
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {isLoading ? <div className="skeleton h-48 w-full" /> : GROUPS.map(([title, test]) => {
           const rows = data.items.filter(test);
           if (!rows.length) return null;

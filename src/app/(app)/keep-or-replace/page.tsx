@@ -28,7 +28,7 @@ function Inner() {
   const { data: res, error } = useCalc<any>("/vehicles/keep-or-replace", ok ? { years: Number(years), keep: conv(k), replace: conv(r) } : null);
   const field = (o: Record<string, string>, set: (f: (s: Record<string, string>) => Record<string, string>) => void, key: string, label: string) => <label key={key} className="text-sm">{label}<Input inputMode="decimal" value={o[key]} onChange={(e) => set((s) => ({ ...s, [key]: e.target.value }))} className="mt-1 text-right" /></label>;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Vehicles" title="Keep or replace" description="Compare the real cost of keeping your current vehicle with replacing it. Pick a vehicle to start from what it has actually cost you." />
       <Section title="Start from a vehicle (optional)"><div className="max-w-sm">{(opts.data?.length ?? 0) > 0 ? <VehicleSelect value={vid} onChange={setVid} /> : <p className="text-sm text-muted-foreground">No vehicles yet. Enter the numbers by hand.</p>}</div>{def && <p className="mt-2 text-xs text-muted-foreground">{def.basis}</p>}{defErr && <p className="mt-2 text-xs text-muted-foreground">Costs for this vehicle are not available to you, so enter them by hand.</p>}</Section>
       <div className="grid gap-4 lg:grid-cols-2">
@@ -40,7 +40,7 @@ function Inner() {
       {res && (
         <>
           <Alert tone={res.cheaper === "SAME" ? "info" : "success"}>{res.cheaper === "SAME" ? "The two options cost about the same." : `${res.cheaper === "KEEP" ? "Keeping" : "Replacing"} costs about ${fmt.money(res.difference)} less over ${years} years.`}{res.breakEvenYear ? ` Replacing breaks even in year ${res.breakEvenYear}.` : ""}</Alert>
-          <section className="grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-5 sm:grid-cols-4" aria-label="Totals">
+          <section className="grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-4 sm:p-5 sm:grid-cols-4" aria-label="Totals">
             <Figure label="Keep, total cost" value={<span className="text-2xl money">{fmt.money(res.keepTotal)}</span>} />
             <Figure label="Replace, total cost" value={<span className="text-2xl money">{fmt.money(res.replaceTotal)}</span>} />
             <Figure label="New loan payment" value={<span className="text-2xl money">{fmt.money(res.replaceMonthlyPayment)}</span>} hint="a month" />

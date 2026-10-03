@@ -21,7 +21,7 @@ function Inner() {
   };
   React.useEffect(() => { if (hid) void load(); }, [hid]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Tools" title="Backup and history" description="Keep your own copy of your data, and see what has changed." />
       <Section title="Download my data" description="Everything you are allowed to see in this household, as one file you can keep or open in a spreadsheet tool.">
         <a href={`/api/finance/${hid}/export-all`} className="inline-flex h-10 items-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90"><Download className="h-4 w-4" aria-hidden /> Download backup (JSON)</a>

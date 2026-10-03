@@ -52,7 +52,7 @@ function Inner() {
             </dl>
           </section>
           {n.unconverted.length > 0 && <div className="mb-4"><Alert tone="warning">No exchange rate is set for {n.unconverted.join(", ")}, so they are left out. Add a rate under Household settings.</Alert></div>}
-          <div className="mb-6 grid gap-6 lg:grid-cols-2">
+          <div className="mb-6 grid gap-4 sm:gap-6 lg:grid-cols-2">
             <ChartCard title="Net worth history" unit={fmt.currency} data={n.history} columns={[{ key: "month", label: "Month" }, { key: "netWorth", label: "Net worth" }]} action={<select aria-label="History length" className="h-8 rounded-md border border-input bg-card px-2 text-xs" value={months} onChange={(e) => setMonths(Number(e.target.value))}>{[6, 12, 24, 36].map((m) => <option key={m} value={m}>{m} months</option>)}</select>}>
               <Lines area data={n.history.map((h: any) => ({ m: fmt.month(h.month), "Net worth": Number(h.netWorth) }))} xKey="m" series={[{ key: "Net worth", label: "Net worth" }]} fmt={(v) => fmt.money(v)} />
             </ChartCard>
@@ -60,7 +60,7 @@ function Inner() {
               <Lines data={n.history.map((h: any) => ({ m: fmt.month(h.month), Assets: Number(h.assets), Liabilities: Number(h.liabilities) }))} xKey="m" series={[{ key: "Assets", label: "Assets" }, { key: "Liabilities", label: "Liabilities" }]} fmt={(v) => fmt.money(v)} />
             </ChartCard>
           </div>
-          <div className="grid gap-6 lg:grid-cols-2 [&>*]:min-w-0">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2 [&>*]:min-w-0">
             {[["Assets", "asset", assetsLines], ["Liabilities", "liability", liabLines]].map(([title, side, groups]: any) => (
               <Section key={title} title={title} flush>
                 {groups.length === 0 ? <p className="p-5 text-sm text-muted-foreground">None recorded.</p> : groups.map((g: any) => (

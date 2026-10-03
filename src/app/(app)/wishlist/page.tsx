@@ -23,7 +23,7 @@ function Inner() {
   const bought = useFinMutation<any, any>("POST", (b) => `/wishlist/${b.id}/purchased`, { success: "Marked as bought" });
   const cancel = useFinMutation<any, any>("POST", (b) => `/wishlist/${b.id}/cancel`, { success: "Wish cancelled" });
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Money" title="Wish list" description="Ask for something you would like. A parent or another adult in the household approves or declines it." actions={data?.canRequest ? <Add label="Add a wish" onClick={() => setAdd(true)} /> : undefined} />
       {data?.summary.pending > 0 && <p className="text-sm text-muted-foreground">{data.summary.pending} waiting for a decision, about <span className="money">{fmt.money(data.summary.pendingTotal)}</span> in total.</p>}
       {isLoading ? <div className="skeleton h-40 w-full" /> : !data?.items.length ? <EmptyState title="Nothing on the list" description="Wishes appear here with their status." action={data?.canRequest ? <Button onClick={() => setAdd(true)}>Add a wish</Button> : undefined} /> : (

@@ -26,7 +26,7 @@ function Inner() {
   const body = ok ? { currentAge: n.currentAge, retireAge: n.retireAge, lifeAge: n.lifeAge, savings: v.savings, monthlyContribution: v.monthlyContribution, returnPct: n.returnPct, inflationPct: n.inflationPct, annualSpending: v.annualSpending, benefitIncome: v.benefitIncome, benefitAge: n.benefitAge, withdrawalPct: n.withdrawalPct } : null;
   const { data: r, error } = useCalc<any>("/retirement/project", body);
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Plan" title="Retirement and financial independence" description="See whether your savings can carry you, and what to change if not. Nothing here is saved." />
       <Section title="Your numbers">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -39,7 +39,7 @@ function Inner() {
       {r && (
         <>
           <Alert tone={r.onTrack ? "success" : "warning"}>{r.onTrack ? `On track: your money lasts to age ${v.lifeAge} in this projection.` : `Your money runs out around age ${r.depletionAge} in this projection.`}</Alert>
-          <section className="grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-5 sm:grid-cols-4" aria-label="Summary">
+          <section className="grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-4 sm:p-5 sm:grid-cols-4" aria-label="Summary">
             <Figure label="Independence number" value={<span className="text-2xl money">{fmt.money(r.fiNumber)}</span>} hint="What you need at retirement" />
             <Figure label="Projected at retirement" value={<span className="text-2xl money">{fmt.money(r.atRetirement)}</span>} hint={`${r.fundedPercent}% of the number`} />
             <Figure label="Gap" value={<span className="text-2xl money">{fmt.money(r.gap)}</span>} />

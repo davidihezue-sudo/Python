@@ -84,7 +84,7 @@ export function VehicleForm({ mode, vehicleId, defaults = {}, onSaved, onCancel,
   const conf = (k: string) => (confirmedFields.includes(k) ? "You've confirmed this value - decoding won't overwrite it." : undefined);
 
   return (
-    <form id={formId} onSubmit={submit} className="space-y-6" noValidate>
+    <form id={formId} onSubmit={submit} className="space-y-4 sm:space-y-6" noValidate>
       {error && <Alert tone="danger">{error}</Alert>}
       <fieldset className="space-y-4">
         <legend className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Identity</legend>

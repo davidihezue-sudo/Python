@@ -36,8 +36,8 @@ function Inner() {
             {list.slice(0, 18).map((x) => <button key={x.id} role="tab" aria-selected={selId === x.id} onClick={() => setSelId(x.id)} className={`rounded-md border px-3 py-1.5 text-sm ${selId === x.id ? "border-primary bg-primary/10 font-medium text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}>{x.name}<span className="ml-1.5 text-xs opacity-70">{fmt.date(x.from)}{x.scope === "PERSONAL" ? " · personal" : ""}</span></button>)}
           </div>
           {b && (
-            <div className="space-y-6">
-              <section className="rounded-xl border border-border bg-card p-5" aria-label="Budget summary">
+            <div className="space-y-4 sm:space-y-6">
+              <section className="rounded-xl border border-border bg-card p-4 sm:p-5" aria-label="Budget summary">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div><h2 className="display text-2xl">{b.name}</h2><p className="text-sm text-muted-foreground">{humanize(b.period)} · {fmt.date(b.from)} to {fmt.date(b.to)} · {b.scope === "PERSONAL" ? "Personal" : "Household"}</p><p className="mt-0.5 text-xs text-muted-foreground">{b.basis}</p></div>
                   <div className="flex flex-wrap gap-2">{canWrite && <><Button size="sm" variant="outline" onClick={() => setEditing(b)}><Pencil className="h-4 w-4" /> Edit</Button><Button size="sm" variant="outline" onClick={() => dup.mutate({ id: b.id })}><Copy className="h-4 w-4" /> Copy to next period</Button><Button size="sm" variant="ghost" className="text-danger" aria-label="Delete budget" onClick={async () => { if (await confirm({ title: `Delete ${b.name}?`, confirmLabel: "Delete", tone: "danger" })) del.mutate({ id: b.id }); }}><Trash2 className="h-4 w-4" /></Button></>}</div>

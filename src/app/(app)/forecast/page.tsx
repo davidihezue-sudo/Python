@@ -33,15 +33,15 @@ function Inner() {
         <p className="max-w-sm pb-1 text-xs text-muted-foreground">Returns default to zero so nothing assumes market gains. Change them to explore.</p>
       </div>
       {isLoading || !f ? <div className="skeleton h-72 w-full" /> : (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {f.warnings.map((w: string) => <Alert key={w} tone="warning">{w}</Alert>)}
-          <section className="grid gap-5 rounded-xl border border-border bg-card p-5 sm:grid-cols-4" aria-label="Forecast summary">
+          <section className="grid gap-5 rounded-xl border border-border bg-card p-4 sm:p-5 sm:grid-cols-4" aria-label="Forecast summary">
             <Figure label={`Net worth at ${fmt.date(f.to)}`} value={f.end.netWorth} hint={`Today ${fmt.money(f.start.netWorth)}`} />
             <Figure label="Cash at the end" value={f.end.liquid} hint={`Lowest ${fmt.money(f.lowestLiquid.amount)} on ${fmt.date(f.lowestLiquid.date)}`} />
             <Figure label="Debt at the end" value={f.end.debt} hint={f.debtFreeDate ? `Debt free ${fmt.date(f.debtFreeDate)}` : `Today ${fmt.money(f.start.debt)}`} />
             <Figure label="Net cash flow" value={<Money value={f.totals.netCashFlow} delta size="lg" />} hint="Income minus expenses" />
           </section>
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             <ChartCard title="Cash flow by month" description="Actual months first, then forecast" unit={fmt.currency} data={rows} columns={[{ key: "month", label: "Month" }, { key: "kind", label: "Actual or forecast" }, { key: "income", label: "Income" }, { key: "expenses", label: "Expenses" }]}>
               <StackedBars data={rows.map((r: any) => ({ m: `${fmt.month(r.month)}${r.kind === "actual" ? "" : "*"}`, Income: Number(r.income), Expenses: Number(r.expenses) }))} xKey="m" series={[{ key: "Income", label: "Income" }, { key: "Expenses", label: "Expenses" }]} fmt={(v) => fmt.money(v)} />
             </ChartCard>

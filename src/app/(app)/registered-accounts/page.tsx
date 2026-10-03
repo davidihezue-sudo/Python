@@ -18,7 +18,7 @@ function Inner() {
   const save = useFinMutation<any, any>("PUT", "/registered-room", { success: "Saved" });
   if (isLoading || !d) return <div className="skeleton h-64 w-full" />;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Wealth" title="Registered accounts" description="Track your RRSP, TFSA and FHSA contribution room so you do not over-contribute." actions={<select aria-label="Year" value={d.year} onChange={(e) => setYear(Number(e.target.value))} className="h-10 rounded-md border border-input bg-card px-3 text-sm">{[...new Set([...d.years, d.year])].sort().map((y: number) => <option key={y}>{y}</option>)}</select>} />
       <Alert tone="info">{d.privacy} Room figures come from the notice of assessment (CRA My Account). Enter yours, and contributions you record on your own investment accounts are subtracted automatically.</Alert>
       <div className="grid gap-4 md:grid-cols-3">

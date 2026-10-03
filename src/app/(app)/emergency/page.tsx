@@ -37,7 +37,7 @@ function Mine() {
   const sec = sections ?? data?.sections ?? [], tr = trusted ?? data?.trustedMemberIds ?? [], bal = balances ?? data?.includeBalances ?? false;
   if (isLoading || !data) return <div className="skeleton h-64 w-full" />;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Tools" title="If something happens to me" description="A page for the people you trust: who to call, where things are, and a list of the records you own. Do not type passwords here." actions={<Button variant="outline" onClick={() => window.print()}>Print</Button>} />
       <Alert tone="info">{data.privacy}</Alert>
       {(shared?.length ?? 0) > 0 && <Section title="Shared with you"><ul className="space-y-1 text-sm">{shared!.map((s) => <li key={s.ownerMemberId}><Link className="text-primary hover:underline" href={`/emergency?owner=${s.ownerMemberId}`}>{s.owner}'s page</Link></li>)}</ul></Section>}
@@ -69,7 +69,7 @@ function Shared({ owner }: { owner: string }) {
   if (isLoading) return <div className="skeleton h-64 w-full" />;
   if (error || !data) return <div className="space-y-4"><PageHeader eyebrow="Tools" title="Not available" description="This page does not exist or has not been shared with you." /><Link className="text-primary hover:underline" href="/emergency">Back</Link></div>;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Tools" title={`If something happens to ${data.owner}`} description={`Last updated ${fmt.date(data.updatedAt.slice(0, 10))}. ${data.owner} was told that you opened this page.`} actions={<Button variant="outline" onClick={() => window.print()}>Print</Button>} />
       {data.sections.filter((s: any) => s.body.trim()).map((s: any, i: number) => <Section key={i} title={s.title}><p className="whitespace-pre-wrap text-sm">{s.body}</p></Section>)}
       <Section title="Records"><Summary s={data.summary} /></Section>

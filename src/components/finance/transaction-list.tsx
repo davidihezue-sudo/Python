@@ -50,13 +50,13 @@ export function TransactionList({ initial, lockedTypes, showAdd = true, exportEn
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <Input aria-label="Search transactions" type="search" value={f.q} onChange={(e) => set("q", e.target.value)} placeholder="Search description, merchant or notes" className="h-9 max-w-xs flex-1" />
+        <Input aria-label="Search transactions" type="search" value={f.q} onChange={(e) => set("q", e.target.value)} placeholder="Search description, merchant or notes" className="h-9 w-full sm:w-auto sm:max-w-xs sm:flex-1" />
         <Select aria-label="Whose transactions" value={f.view} onChange={(e) => set("view", e.target.value)} className="h-9 w-auto"><option value="all">Everything I can see</option><option value="my">Mine</option><option value="household">Shared with the household</option></Select>
         <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)} aria-expanded={showFilters}><Filter className="h-4 w-4" /> Filters</Button>
         {(saved.data?.length ?? 0) > 0 && <Select aria-label="Saved filters" value={savedPick} onChange={(e) => { const v = saved.data!.find((x) => x.id === e.target.value); setSavedPick(e.target.value); if (v) { setF(emptyFilters({ ...v.params })); setPage(1); setShowFilters(true); } }} className="h-9 w-auto"><option value="">Saved filters</option>{saved.data!.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select>}
         {savedPick && <Button variant="ghost" size="sm" onClick={() => { delView.mutate({ id: savedPick }); setSavedPick(""); }}>Delete saved filter</Button>}
-        <Button variant="outline" size="sm" onClick={() => { const name = window.prompt("Name this filter"); if (name?.trim()) { const p: Record<string, string> = {}; for (const [k, v] of Object.entries(f)) if (v && k !== "sort" && !(k === "view" && v === "all")) p[k] = v; saveView.mutate({ name: name.trim(), kind: "transactions", params: p }); } }}>Save filter</Button>
-        <a href={exportHref} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-card px-3 text-sm font-medium hover:bg-muted"><Download className="h-4 w-4" aria-hidden /> CSV</a>
+        <Button variant="outline" size="sm" onClick={() => { const name = window.prompt("Name this filter"); if (name?.trim()) { const p: Record<string, string> = {}; for (const [k, v] of Object.entries(f)) if (v && k !== "sort" && !(k === "view" && v === "all")) p[k] = v; saveView.mutate({ name: name.trim(), kind: "transactions", params: p }); } }}><span className="sm:hidden">Save</span><span className="hidden sm:inline">Save filter</span></Button>
+        <a href={exportHref} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-card px-3 text-sm font-medium hover:bg-muted"><Download className="h-4 w-4" aria-hidden /> <span className="sr-only sm:not-sr-only">CSV</span></a>
         {showAdd && <><Button size="sm" onClick={() => tx.open()}>Add</Button><Button size="sm" variant="outline" onClick={() => tx.open({ kind: "TRANSFER" })}>Transfer</Button></>}
       </div>
       {showFilters && (

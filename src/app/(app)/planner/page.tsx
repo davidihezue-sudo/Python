@@ -35,7 +35,7 @@ function Inner() {
       <Tabs label="Planner sections" value={tab} onChange={setTab} tabs={[{ key: "mortgage", label: "Mortgage calculator" }, { key: "afford", label: "How much can we afford" }, { key: "down", label: "Down payment planner" }, { key: "compare", label: "Compare scenarios", count: scn.length }]} />
       <div className="pt-5">
         <TabPanel id="mortgage" active={tab === "mortgage"}>
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
+          <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
             <Section title="Purchase" description="Change any value to see the effect immediately.">
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">{f("price", "Purchase price")}</div>{f("downPayment", "Down payment")}{f("aprPercent", "Interest rate %")}
@@ -47,11 +47,11 @@ function Inner() {
               <div className="mt-4 flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => setScn((s) => [...s, { name: `Scenario ${s.length + 1}: ${fmt.money(inp.price)}`, input: inp }])}>Add to comparison</Button><Button variant="outline" size="sm" onClick={() => save.mutate({ name: `${fmt.money(inp.price)} at ${inp.aprPercent}%`, input: body(inp) })}>Save</Button></div>
               {saved && saved.length > 0 && <div className="mt-3"><p className="text-xs font-medium text-muted-foreground">Saved</p><ul className="mt-1 space-y-1">{saved.map((s) => <li key={s.id}><button className="text-sm text-primary hover:underline" onClick={() => setInp({ ...D0, ...(s.input as any) })}>{s.name}</button></li>)}</ul></div>}
             </Section>
-            <div className="min-w-0 space-y-6">
+            <div className="min-w-0 space-y-4 sm:space-y-6">
               {err && <Alert tone="danger">{err}</Alert>}
               {res && (
                 <>
-                  <section className="rounded-xl border border-border bg-card p-5" aria-label="Mortgage result">
+                  <section className="rounded-xl border border-border bg-card p-4 sm:p-5" aria-label="Mortgage result">
                     <div className="grid gap-5 sm:grid-cols-4">
                       <Figure label={`Payment (${inp.accelerated ? "accelerated " : ""}${inp.frequency.toLowerCase().replace("_", "-")})`} value={<span className="text-3xl money">{fmt.money(res.payment)}</span>} hint={`${fmt.money(res.monthlyEquivalent)} a month equivalent`} />
                       <Figure label="Total housing cost per month" value={res.housingCostMonthly} hint="Mortgage, tax, heat, insurance, condo" />
@@ -91,9 +91,9 @@ function Afford({ defaults }: { defaults: any }) {
   React.useEffect(() => { const t = setTimeout(async () => { if (Number(i.grossAnnualIncome) > 0) { try { setR(await api(`/api/finance/${hid}/planner/affordability`, { method: "POST", body: { ...i, amortisationYears: Number(i.amortisationYears) } })); } catch { setR(null); } } }, 400); return () => clearTimeout(t); }, [i, hid]);
   const f = (k: string, label: string, hint?: string) => <Field label={label} hint={hint}>{(p) => <Input {...p} inputMode="decimal" value={i[k]} onChange={(e) => setI((s: any) => ({ ...s, [k]: e.target.value.replace(/[^0-9.]/g, "") }))} className="money text-right" />}</Field>;
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
+    <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
       <Section title="Your numbers" description="Prefilled from your records where possible."><div className="grid grid-cols-2 gap-3">{f("grossAnnualIncome", "Household gross income per year")}{f("downPayment", "Down payment available")}{f("aprPercent", "Interest rate %")}{f("amortisationYears", "Amortization (years)")}{f("propertyTaxAnnual", "Property tax per year")}{f("heatingMonthly", "Heating per month")}{f("condoFeesMonthly", "Condo fees per month")}{f("otherDebtMonthly", "Other debt payments per month")}</div></Section>
-      {r && <section className="rounded-xl border border-border bg-card p-5"><Figure label="Estimated maximum purchase price" value={<span className="text-4xl money">{fmt.money(r.maxPrice)}</span>} hint={`At the stress test rate of ${fmt.pct(r.qualifyingRatePercent, 2)}`} />{r.ratios && <p className="mt-3 text-sm text-muted-foreground">GDS {fmt.pct(r.ratios.gds)} and TDS {fmt.pct(r.ratios.tds)} at that price.</p>}<dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2"><div className="flex justify-between border-b border-border/60 py-1.5"><dt className="text-muted-foreground">Estimated payment</dt><dd className="money">{fmt.money(r.estimate.monthlyEquivalent)} a month</dd></div><div className="flex justify-between border-b border-border/60 py-1.5"><dt className="text-muted-foreground">Cash needed</dt><dd className="money">{fmt.money(r.estimate.cashRequired)}</dd></div></dl><p className="mt-3 text-xs text-muted-foreground">{r.disclaimer}</p></section>}
+      {r && <section className="rounded-xl border border-border bg-card p-4 sm:p-5"><Figure label="Estimated maximum purchase price" value={<span className="text-4xl money">{fmt.money(r.maxPrice)}</span>} hint={`At the stress test rate of ${fmt.pct(r.qualifyingRatePercent, 2)}`} />{r.ratios && <p className="mt-3 text-sm text-muted-foreground">GDS {fmt.pct(r.ratios.gds)} and TDS {fmt.pct(r.ratios.tds)} at that price.</p>}<dl className="mt-4 grid gap-2 text-sm sm:grid-cols-2"><div className="flex justify-between border-b border-border/60 py-1.5"><dt className="text-muted-foreground">Estimated payment</dt><dd className="money">{fmt.money(r.estimate.monthlyEquivalent)} a month</dd></div><div className="flex justify-between border-b border-border/60 py-1.5"><dt className="text-muted-foreground">Cash needed</dt><dd className="money">{fmt.money(r.estimate.cashRequired)}</dd></div></dl><p className="mt-3 text-xs text-muted-foreground">{r.disclaimer}</p></section>}
     </div>
   );
 }
@@ -105,9 +105,9 @@ function Down({ defaults }: { defaults: any }) {
   React.useEffect(() => { const t = setTimeout(async () => { try { setR(await api(`/api/finance/${hid}/planner/down-payment`, { method: "POST", body: { ...i, targetDate: i.targetDate || undefined, currentSavings: i.currentSavings || "0", monthlySaving: i.monthlySaving || "0" } })); } catch { setR(null); } }, 400); return () => clearTimeout(t); }, [i, hid]);
   const f = (k: string, label: string, type = "text") => <Field label={label}>{(p) => <Input {...p} type={type} inputMode={type === "text" ? "decimal" : undefined} value={i[k]} onChange={(e) => setI((s: any) => ({ ...s, [k]: type === "text" ? e.target.value.replace(/[^0-9.]/g, "") : e.target.value }))} className={type === "text" ? "money text-right" : ""} />}</Field>;
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
+    <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
       <Section title="Down payment plan"><div className="grid grid-cols-2 gap-3">{f("price", "Target price")}{f("targetPercent", "Down payment %")}{f("currentSavings", "Saved so far")}{f("monthlySaving", "Saving per month")}<div className="col-span-2">{f("targetDate", "Buy by (optional)", "date")}</div></div></Section>
-      {r && <section className="rounded-xl border border-border bg-card p-5"><div className="grid gap-5 sm:grid-cols-3"><Figure label="Target down payment" value={r.targetDownPayment} hint={`Minimum for this price: ${fmt.money(r.minimumForPrice)}`} /><Figure label="Still to save" value={r.remaining} hint={`${fmt.pct(r.percentComplete, 0)} complete`} /><Figure label="Reached around" value={<span className="text-2xl">{r.estimatedDate ? fmt.date(r.estimatedDate) : "n/a"}</span>} hint={r.requiredMonthly ? `${fmt.money(r.requiredMonthly)} a month needed for your date` : undefined} /></div></section>}
+      {r && <section className="rounded-xl border border-border bg-card p-4 sm:p-5"><div className="grid gap-5 sm:grid-cols-3"><Figure label="Target down payment" value={r.targetDownPayment} hint={`Minimum for this price: ${fmt.money(r.minimumForPrice)}`} /><Figure label="Still to save" value={r.remaining} hint={`${fmt.pct(r.percentComplete, 0)} complete`} /><Figure label="Reached around" value={<span className="text-2xl">{r.estimatedDate ? fmt.date(r.estimatedDate) : "n/a"}</span>} hint={r.requiredMonthly ? `${fmt.money(r.requiredMonthly)} a month needed for your date` : undefined} /></div></section>}
     </div>
   );
 }

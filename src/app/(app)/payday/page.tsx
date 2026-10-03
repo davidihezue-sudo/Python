@@ -30,7 +30,7 @@ function Inner() {
   const target = (l: Line) => (l.goalId ? `goal:${l.goalId}` : l.toAccountId ? `acct:${l.toAccountId}` : "");
   const pick = (i: number, v: string) => setLine(i, v.startsWith("goal:") ? { goalId: v.slice(5), toAccountId: null } : { toAccountId: v.slice(5), goalId: null });
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Money" title="Pay day plan" description="Split each paycheck into transfers to your savings, goals and bills account with one click. Plans are private to you." actions={canWrite ? <Add label="New plan" onClick={() => setEdit("new")} /> : undefined} />
       {isLoading ? <div className="skeleton h-40 w-full" /> : !plans?.length ? <EmptyState title="No pay day plan yet" description="For example: 10% to savings, $200 to the vacation goal, $500 to the bills account." action={canWrite ? <Button onClick={() => setEdit("new")}>Create a plan</Button> : undefined} /> : (
         <div className="grid gap-4 lg:grid-cols-2">

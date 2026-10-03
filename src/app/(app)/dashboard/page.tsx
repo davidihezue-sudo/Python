@@ -41,18 +41,18 @@ function Dashboard() {
   if (error) return <EmptyState title="The dashboard could not load" description={(error as Error).message} />;
   const catLink = (id: string | null) => `/transactions?view=${view}${id ? `&categoryIds=${id}` : ""}&from=${d?.range.from}&to=${d?.range.to}`;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow={view === "household" ? profile?.name ?? "Household" : "My finances"} title={`Welcome back, ${first}`} description={d?.privacyNote} actions={<div className="flex flex-wrap items-center gap-2"><ViewSwitch className="lg:hidden" /><Select aria-label="Reporting period" value={range} onChange={(e) => setRange(e.target.value)} className="h-9 w-auto">{RANGES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</Select>{range === "custom" && <><Input aria-label="From date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-9 w-auto" /><Input aria-label="To date" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-9 w-auto" /></>}</div>} />
       {isLoading || !d ? <div className="space-y-4"><div className="skeleton h-48 w-full" /><div className="skeleton h-64 w-full" /></div> : (
         <>
           {d.alerts.length > 0 && <Alerts alerts={d.alerts} />}
           <SafeToSpend />
           {/* Position: the one number that matters most, in a quiet dark panel */}
-          <section className="hero-card rounded-xl p-5 sm:p-7" aria-label="Financial position">
-            <div className="flex flex-wrap items-end justify-between gap-6">
+          <section className="hero-card rounded-xl p-4 sm:p-7" aria-label="Financial position">
+            <div className="flex flex-wrap items-end justify-between gap-4 sm:gap-6">
               <div>
                 <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/55">{view === "household" ? "Household net worth" : "My net worth"}</p>
-                <p className="display mt-1 text-5xl leading-none sm:text-6xl money">{fmt.money(d.overview.netWorth)}</p>
+                <p className="display mt-1 text-4xl leading-none sm:text-6xl money">{fmt.money(d.overview.netWorth)}</p>
                 <p className="mt-2 text-sm text-white/65">
                   {d.position.monthOverMonth ? <>{fmt.money(d.position.monthOverMonth.change, { sign: true })} since last month</> : "History builds as months pass"}
                   {d.position.yearOverYear ? <> · {Number(d.position.yearOverYear.change) < 0 ? `down ${fmt.money(String(Math.abs(Number(d.position.yearOverYear.change))))}` : `up ${fmt.money(d.position.yearOverYear.change)}`} over twelve months</> : null}
@@ -62,13 +62,13 @@ function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%"><AreaChart data={d.position.history.map((h: any) => ({ m: h.month, v: Number(h.netWorth) }))}><Area dataKey="v" stroke="rgb(var(--accent))" fill="rgb(var(--accent))" fillOpacity={0.18} strokeWidth={2} type="monotone" /></AreaChart></ResponsiveContainer>
               </div>
             </div>
-            <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-white/15 pt-5 sm:grid-cols-4">
+            <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 border-t border-white/15 pt-4 sm:mt-6 sm:gap-y-4 sm:pt-5 sm:grid-cols-4">
               {[["Total assets", d.overview.totalAssets], ["Total liabilities", d.overview.totalLiabilities], ["Available cash", d.overview.availableCash], ["Outstanding debt", d.overview.totalDebt]].map(([k, v]) => <div key={k}><dt className="text-[11px] uppercase tracking-[0.12em] text-white/50">{k}</dt><dd className="mt-0.5 text-xl money">{fmt.money(v as string)}</dd></div>)}
             </dl>
           </section>
 
           {/* Cash flow */}
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
             <Section className="lg:col-span-2" title="Income and expenses" description={`${fmt.date(d.range.from)} to ${fmt.date(d.range.to)}. Compared with ${fmt.date(d.range.previous.from)} to ${fmt.date(d.range.previous.to)}.`}>
               <div className="h-60" role="img" aria-label="Monthly income and expenses chart">
                 <ResponsiveContainer width="100%" height="100%">
@@ -95,7 +95,7 @@ function Dashboard() {
           </div>
 
           {/* Income and expenses by member */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             <Section title="Household income" description="Expected each month. Gross and net are never mixed." action={<Link href="/income" className="text-sm text-primary hover:underline">Manage</Link>}>
               <table className="w-full text-sm"><caption className="sr-only">Monthly income by member</caption>
                 <thead><tr className="text-left text-[11px] uppercase tracking-[0.1em] text-muted-foreground"><th className="pb-2 font-medium">Member</th><th className="pb-2 text-right font-medium">Gross</th><th className="pb-2 text-right font-medium">Net</th></tr></thead>
@@ -137,7 +137,7 @@ function Dashboard() {
           </Section>
 
           {/* Position as a balance sheet, and contributions */}
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             <Section title="Financial position" description="As of today" action={<Link href="/networth" className="text-sm text-primary hover:underline">Net worth</Link>}>
               <dl className="text-sm">
                 {[["Cash", d.position.cash], ["Savings", d.position.savings], ["Investments", d.position.investments], ["Property, vehicles and other assets", d.position.otherAssets]].map(([k, v]) => <div key={k} className="flex justify-between border-b border-border py-2"><dt>{k}</dt><dd className="money">{fmt.money(v as string)}</dd></div>)}
@@ -160,7 +160,7 @@ function Dashboard() {
             )}
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
             <Section title="Financial health" description="Each measure is explained. There is no single score."><dl className="divide-y divide-border">
               {d.health.map((h: any) => (
                 <div key={h.key} className="py-3 first:pt-0 last:pb-0">

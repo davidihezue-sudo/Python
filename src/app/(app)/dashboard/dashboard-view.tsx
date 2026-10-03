@@ -43,7 +43,7 @@ export function DashboardView() {
   const selected = vehicles.find((v) => v.id === vehicleId);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title={selected ? selected.nickname : "Vehicle overview"}
         description={selected ? `${selected.year} ${selected.make} ${selected.model}` : "Household overview across all your vehicles"}

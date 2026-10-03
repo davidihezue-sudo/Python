@@ -17,7 +17,7 @@ function Inner() {
   const { data, isLoading } = useFinQuery<any>("/sinking-funds", { view: "all" });
   const create = useFinMutation<any, any>("POST", "/goals", { success: "Fund added" });
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader eyebrow="Plan" title="Sinking funds" description="Save a little each month for costs you know are coming, such as insurance, property tax, gifts and car repairs, so the bill never hurts." actions={canWrite ? <Add label="New fund" onClick={() => setAdd(true)} /> : undefined} />
       <ViewNote />
       {isLoading ? <div className="skeleton h-40 w-full" /> : !data?.items.length ? <EmptyState title="No sinking funds yet" description="Add a cost with a due date and we work out what to set aside each month." action={canWrite ? <Button onClick={() => setAdd(true)}>Add a fund</Button> : undefined} /> : (

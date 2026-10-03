@@ -29,7 +29,7 @@ function Inner() {
       {data && data.vehicles.length === 0 && <EmptyState icon={<Car className="h-5 w-5" />} title="No vehicles yet" description="Add a vehicle to track its maintenance, then tag fuel, insurance and repair transactions with it to see what it really costs." action={<Link href="/vehicles/new" className="rounded-md border border-border px-3 py-1.5 text-sm">Add a vehicle</Link>} />}
       {data && data.vehicles.length > 0 && (
         <>
-          <section className="mb-5 grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-5 sm:grid-cols-3" aria-label="Summary">
+          <section className="mb-5 grid grid-cols-2 gap-4 rounded-xl border border-border bg-card p-4 sm:p-5 sm:grid-cols-3" aria-label="Summary">
             <Figure label="Total running cost" value={<span className="money text-2xl">{fmt.money(data.totalCost)}</span>} hint={`${fmt.date(data.from)} to ${fmt.date(data.to)}`} />
             <Figure label="Vehicles" value={<span className="text-2xl">{data.vehicles.length}</span>} />
             <Figure label="Maintenance overdue" value={<span className={`text-2xl ${data.vehicles.some((v: any) => v.overdueCount) ? "text-danger" : ""}`}>{data.vehicles.reduce((a: number, v: any) => a + v.overdueCount, 0)}</span>} />

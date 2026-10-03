@@ -31,14 +31,14 @@ export const humanize = (s: string | null | undefined) => (s ? s.toLowerCase().r
 // ───── page structure
 export function PageHeader({ title, description, actions, eyebrow, children }: { title: string; description?: React.ReactNode; actions?: React.ReactNode; eyebrow?: string; children?: React.ReactNode }) {
   return (
-    <div className="mb-6">
-      {eyebrow && <p className="mb-1 text-xs font-medium uppercase tracking-[0.14em] text-accent">{eyebrow}</p>}
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-3 sm:mb-6">
+      {eyebrow && <p className="mb-1 hidden text-xs font-medium uppercase tracking-[0.14em] text-accent sm:block">{eyebrow}</p>}
+      <div className="flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
         <div className="min-w-0">
-          <h1 className="display text-3xl leading-tight sm:text-4xl">{title}</h1>
-          {description && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>}
+          <h1 className="display text-2xl leading-tight sm:text-4xl">{title}</h1>
+          {description && <p className="mt-0.5 line-clamp-2 max-w-2xl text-[13px] leading-snug text-muted-foreground sm:mt-1 sm:line-clamp-none sm:text-sm">{description}</p>}
         </div>
-        {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 [&_button]:h-9 [&_a]:h-9 sm:[&_button]:h-10 sm:[&_a]:h-10">{actions}</div>}
       </div>
       {children}
     </div>
@@ -240,6 +240,8 @@ export function DataTable<T extends { id?: string }>({ cols, rows, empty, onRow,
   if (!rows.length) return <div className="p-4">{empty ?? <EmptyState title="Nothing here yet" />}</div>;
   const key = (r: T, i: number) => (rowKey ? rowKey(r) : r.id ?? String(i));
   const primary = cols.find((c) => c.primary) ?? cols[0];
+  // On a phone the figure sits beside the title and the rest of the details run along one wrapped line.
+  const amountCol = [...cols].reverse().find((c) => c.align === "right" && c !== primary && c.header);
   return (
     <>
       <div className="hidden overflow-x-auto md:block">
@@ -258,10 +260,10 @@ export function DataTable<T extends { id?: string }>({ cols, rows, empty, onRow,
       <ul className="divide-y divide-border md:hidden" aria-label={caption}>
         {rows.map((r, i) => (
           <li key={key(r, i)}>
-            <div role={onRow ? "button" : undefined} tabIndex={onRow ? 0 : undefined} onClick={onRow ? () => onRow(r) : undefined} onKeyDown={onRow ? (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onRow(r); } } : undefined} className={cn("block w-full px-4 py-3 text-left", onRow && "cursor-pointer")}>
-              <div className="flex items-start justify-between gap-3"><div className="min-w-0 font-medium">{primary.cell(r)}</div></div>
-              <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                {cols.filter((c) => c !== primary && !c.hideOnMobile).map((c) => <div key={c.key} className={cn("min-w-0", c.align === "right" && "text-right")}><dt className="text-muted-foreground">{c.header}</dt><dd className="truncate text-sm text-foreground">{c.cell(r)}</dd></div>)}
+            <div role={onRow ? "button" : undefined} tabIndex={onRow ? 0 : undefined} onClick={onRow ? () => onRow(r) : undefined} onKeyDown={onRow ? (e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onRow(r); } } : undefined} className={cn("block w-full px-4 py-2.5 text-left", onRow && "cursor-pointer")}>
+              <div className="flex items-start justify-between gap-3"><div className="min-w-0 flex-1 font-medium">{primary.cell(r)}</div>{amountCol && <div className="shrink-0 text-right text-sm">{amountCol.cell(r)}</div>}</div>
+              <dl className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                {cols.filter((c) => c !== primary && c !== amountCol && !c.hideOnMobile && c.header).map((c) => <div key={c.key} className="flex min-w-0 max-w-full items-center gap-1"><dt className="sr-only">{c.header}</dt><dd className="min-w-0 truncate">{c.cell(r)}</dd></div>)}
               </dl>
             </div>
           </li>
@@ -271,12 +273,13 @@ export function DataTable<T extends { id?: string }>({ cols, rows, empty, onRow,
   );
 }
 
-export function ViewSwitch({ className }: { className?: string }) {
+/** Mine | Household. On a phone it lives in the top bar only, so page-level copies are hidden below the large breakpoint. */
+export function ViewSwitch({ className, always }: { className?: string; always?: boolean }) {
   const { view, setView } = useFin();
   return (
-    <div role="radiogroup" aria-label="Financial view" className={cn("inline-flex rounded-md border border-border bg-card p-0.5 text-sm", className)}>
+    <div role="radiogroup" aria-label="Financial view" className={cn("inline-flex rounded-md border border-border bg-card p-0.5 text-sm", !always && "max-lg:hidden", className)}>
       {([["my", "My finances"], ["household", "Household"]] as const).map(([k, l]) => (
-        <button key={k} role="radio" aria-checked={view === k} onClick={() => setView(k)} className={cn("rounded px-3 py-1.5 font-medium transition-colors", view === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{l}</button>
+        <button key={k} role="radio" aria-checked={view === k} onClick={() => setView(k)} className={cn("whitespace-nowrap rounded px-3 py-1.5 font-medium transition-colors", view === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{k === "my" ? <><span className="sm:hidden">Mine</span><span className="hidden sm:inline">{l}</span></> : l}</button>
       ))}
     </div>
   );

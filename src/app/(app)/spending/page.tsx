@@ -38,9 +38,9 @@ function Analysis() {
   const { data: tagData } = useFinQuery<any>("/tags/summary", { view: scope === "my" ? "my" : "household" });
   if (!data) return <div className="skeleton h-64 w-full" />;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-wrap items-center gap-2"><label className="text-sm">Show <select className="ml-1 h-9 rounded-md border border-input bg-card px-2 text-sm" value={scope} onChange={(e) => setScope(e.target.value)} aria-label="Scope"><option value="my">My spending</option><option value="household">Household spending</option></select></label><span className="text-xs text-muted-foreground">{fmt.date(data.from)} to {fmt.date(data.to)}</span></div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         <ChartCard title="Spending by month" unit={fmt.currency} data={data.series} columns={[{ key: "month", label: "Month" }, { key: "expenses", label: "Expenses" }]}>
           <StackedBars data={data.series.map((s: any) => ({ month: fmt.month(s.month), Expenses: Number(s.expenses) }))} xKey="month" series={[{ key: "Expenses", label: "Expenses" }]} fmt={(v) => fmt.money(v)} />
         </ChartCard>

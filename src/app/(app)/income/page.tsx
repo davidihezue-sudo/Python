@@ -56,8 +56,8 @@ function Inner() {
       <PageHeader eyebrow="Income" title="Income" description="Record each income source with gross and net amounts. Monthly figures are derived from how often you are paid." actions={<Add label="Add income" onClick={() => setEdit("new")} />} />
       <ViewNote />
       {summary && (
-        <section className="mb-6 rounded-xl border border-border bg-card p-5" aria-label="Income summary">
-          <div className="grid gap-6 sm:grid-cols-4">
+        <section className="mb-6 rounded-xl border border-border bg-card p-4 sm:p-5" aria-label="Income summary">
+          <div className="grid gap-4 sm:gap-6 sm:grid-cols-4">
             <Figure label="Combined gross per month" value={summary.combinedMonthlyGross} hint="Before tax" />
             <Figure label="Combined net per month" value={summary.combinedMonthlyNet} hint="Used for cash flow" />
             <Figure label="Net per year" value={summary.combinedAnnualNet} size="md" />
