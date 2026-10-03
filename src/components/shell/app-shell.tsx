@@ -368,8 +368,10 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
 
 function ThemeToggle() {
   const [theme, setTheme] = React.useState<string>("system");
+  const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => {
     setTheme(document.documentElement.dataset.theme || "system");
+    setMounted(true); // the icon depends on the device's dark mode, which the server cannot know, so it is chosen after mount
   }, []);
   const qc = useQueryClient();
   const set = (t: string) => {
@@ -379,7 +381,7 @@ function ThemeToggle() {
     document.cookie = `av_theme=${t}; path=/; max-age=31536000; samesite=lax`;
     void api("/api/users/me/preferences", { method: "PATCH", body: { theme: t } }).then(() => qc.invalidateQueries({ queryKey: ["me"] })).catch(() => undefined);
   };
-  const dark = theme === "dark" || (theme === "system" && typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches);
+  const dark = mounted && (theme === "dark" || (theme === "system" && window.matchMedia?.("(prefers-color-scheme: dark)").matches));
   return (
     <Dropdown label="Theme" trigger={(p) => (
       <Button {...p} variant="ghost" size="icon" aria-label="Change theme">
