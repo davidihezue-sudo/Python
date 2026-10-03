@@ -1,0 +1,19 @@
+{
+  "name": "eazyfoods",
+  "private": true,
+  "version": "1.0.0",
+  "description": "EAZyfoods multi-sided food marketplace platform (standalone, self-contained)",
+  "workspaces": ["apps/api", "apps/web"],
+  "scripts": {
+    "db:migrate": "npm run migrate -w apps/api",
+    "db:seed": "npm run seed -w apps/api",
+    "db:reset": "npm run reset -w apps/api",
+    "dev:api": "npm run dev -w apps/api",
+    "dev:worker": "npm run dev:worker -w apps/api",
+    "dev:web": "npm run dev -w apps/web",
+    "build": "npm run build -w apps/api && npm run build -w apps/web",
+    "test": "npm test -w apps/api",
+    "lint:content": "node scripts/check-content.mjs"
+  },
+  "engines": { "node": ">=20" }
+}

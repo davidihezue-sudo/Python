@@ -1,0 +1,13 @@
+node_modules
+dist
+.next
+.env
+.env.local
+.storage
+.storage-test
+*.log
+coverage
+test-results
+playwright-report
+.turbo
+next-env.d.ts
