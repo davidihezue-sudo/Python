@@ -43,3 +43,9 @@ Do not open a public issue for a vulnerability. Contact the maintainer privately
 - **Expiry:** `accessExpiresAt` is checked when the finance context is built and in the vehicle and household access helpers. Expired members also disappear from the household list.
 - **API tokens:** hashed at rest, read-only, one household, GET only, revocable, expiring. They never reach the token management endpoints.
 - Both limited roles are covered by isolation tests in `tests/integration/finance/phase4.test.ts`.
+
+## Receipts, emergency page and history
+
+- **Receipt scan** returns candidate values only. The file is not stored by the scan. When the AI reader is configured (`OCR_PROVIDER=anthropic`) the image is sent to that provider; leave it off if that is not acceptable. A misread date or amount is dropped rather than guessed.
+- **Emergency page** is authorised by the owner naming trusted members. A read by anyone else is audited and notified to the owner. Not named, a child, an accountant and a missing page all return the same "not found".
+- **Change history** lists only the caller's own actions (plus membership and settings changes for administrators) and never includes before or after values.

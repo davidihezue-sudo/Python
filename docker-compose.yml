@@ -28,7 +28,8 @@ services:
       NODE_ENV: production
       APP_URL: ${APP_URL:-http://localhost:3000}
       STORAGE_LOCAL_DIR: /app/storage
-    ports: ["3000:3000"]
+    # WEB_BIND=127.0.0.1:3000 keeps the app reachable only through the HTTPS proxy (see deploy/docker-compose.https.yml)
+    ports: ["${WEB_BIND:-3000}:3000"]
     volumes: [uploads:/app/storage]
     command: ["web"]
 

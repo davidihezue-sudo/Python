@@ -1,0 +1,19 @@
+# Adds an HTTPS front door to the normal stack.
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.https.yml up -d --build
+# Required in .env:  DOMAIN=finance.example.com   APP_URL=https://finance.example.com   WEB_BIND=127.0.0.1:3000
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [web]
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env, for example finance.example.com}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

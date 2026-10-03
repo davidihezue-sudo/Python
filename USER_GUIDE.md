@@ -75,5 +75,11 @@ Everyone signs in with their own account. An administrator invites each person b
 - **Wish list:** a child (or anyone) adds something they would like. Another adult approves or declines it with a note, and the requester is notified. You cannot approve your own wish.
 - **API access:** read-only tokens for spreadsheets and scripts. See API.md.
 
+## 9g. Safety
+- **Scan a receipt:** in the Add dialog, tap "Scan a receipt" (on a phone this opens the camera). If receipt reading is set up on the server (`OCR_PROVIDER`), the amount, date and merchant are filled in for you to check. Nothing is saved until you press Save, and the photo is attached to the transaction and is as private as it is. Without OCR the photo is still attached and you type the details. With the AI reader enabled, the photo is sent to that provider to be read.
+- **If something happens to me:** your own page of notes (who to call, where papers are, wishes) plus an automatic list of the accounts, insurance, debts and other records you own. You choose who can read it. They are the only ones who can, and you are notified each time one of them opens it. Do not type passwords there.
+- **Backup and history:** download everything you can see as a JSON file, and see a list of your own changes. Administrators also see membership and settings changes. Server backups and restore are in DEPLOYMENT.md.
+- **HTTPS:** DEPLOYMENT.md explains how to serve the app over HTTPS with the included Caddy setup.
+
 ## 10. Demo data
 Demo records are labelled and can be removed in Household, Data, Remove demo data. This deletes only the demo household.

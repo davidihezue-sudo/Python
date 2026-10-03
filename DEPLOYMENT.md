@@ -79,3 +79,32 @@ PostgreSQL 16 (local), Node 22, Chromium via Playwright: migrations, seeds, type
 * Background Sync / push availability depends on the browser (iOS needs the installed PWA, 16.4+); fallbacks are in place.
 * Multi-currency amounts are never converted; analytics use the dominant/preferred currency and report excluded rows.
 * Intervals in the library are generic suggestions - **not** manufacturer data (the BMW X3 profile deliberately contains no authoritative BMW intervals).
+
+## HTTPS with Caddy (recommended for anything beyond your own computer)
+
+Phones, and password managers, expect HTTPS, and the app only marks its session cookie `Secure` when `APP_URL` starts with `https://`. The repository includes a small Caddy setup that gets and renews a free certificate for you.
+
+1. Point a domain (for example `finance.example.com`) at the machine that runs Docker, and open ports 80 and 443.
+2. In `.env` set:
+   ```
+   DOMAIN=finance.example.com
+   APP_URL=https://finance.example.com
+   WEB_BIND=127.0.0.1:3000
+   ```
+   `WEB_BIND` stops the app from being reachable directly over plain HTTP from other machines.
+3. Start everything:
+   ```bash
+   docker compose -f docker-compose.yml -f deploy/docker-compose.https.yml up -d --build
+   ```
+4. Open `https://finance.example.com`.
+
+Notes
+- Certificates are stored in the `caddy_data` volume. Do not delete it, or Caddy will ask for new certificates and may hit rate limits.
+- If you already run another reverse proxy (nginx, Traefik, a cloud load balancer), do not use Caddy: proxy to `web:3000`, forward the `Host` and `X-Forwarded-*` headers, and set `APP_URL` to the public https address.
+- Using this app only at home? You can use `http://` on your own network. Some browser features (installing the app on a phone, the camera for receipts on some devices) need HTTPS, which is another reason to set this up.
+- This setup file has not been run against a live domain in the build environment. Check the first start with `docker compose logs caddy`.
+
+## Backups and restore
+
+- **Whole database (administrator):** `npm run backup` (or `pg_dump -Fc`) writes a dump; restore it into an empty database with `pg_restore`. Back up the `uploads` volume (or your S3 bucket) too, because receipts and documents are files, not database rows. There is no in-app restore.
+- **Per person:** Tools, Backup and history downloads everything that member can see as JSON.

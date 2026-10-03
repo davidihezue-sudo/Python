@@ -40,6 +40,9 @@ import * as Mile from "./mileage";
 import * as FuelPost from "./fuelpost";
 import * as People from "./people";
 import * as Tok from "./tokens";
+import * as Legacy from "./legacy";
+import * as Hist from "./history";
+import * as Rcpt from "./receipts";
 import * as Pay from "./payday";
 import * as Demo from "./demo";
 import { analyticsQuery, getAnalytics, auditHistory, fxSchema, listFx, saveFx, deleteFx, exportMyData } from "./misc";
@@ -239,6 +242,13 @@ export const ROUTES: Def[] = [
   { method: "GET", path: "/api-tokens", h: ({ ctx }) => Tok.listTokens(ctx) },
   { method: "POST", path: "/api-tokens", need: "write", body: Tok.tokenSchema, status: 201, h: ({ ctx, body }) => Tok.createToken(ctx, body) },
   { method: "DELETE", path: "/api-tokens/:id", need: "write", h: ({ ctx, params }) => Tok.revokeToken(ctx, params.id) },
+  // safety: receipt capture, emergency page, change history
+  { method: "POST", path: "/receipts/scan", need: "write", raw: true, rate: { limit: 20, windowSec: 600 }, h: async ({ ctx, req }) => { const { file: f } = await file(req); return NextResponse.json({ data: await Rcpt.scanReceipt(ctx, f) }, { headers: { "cache-control": "no-store" } }); } },
+  { method: "GET", path: "/legacy", h: ({ ctx }) => Legacy.getMyLegacy(ctx) },
+  { method: "PUT", path: "/legacy", need: "write", body: Legacy.legacySchema, h: ({ ctx, body }) => Legacy.saveMyLegacy(ctx, body) },
+  { method: "GET", path: "/legacy/shared", h: ({ ctx }) => Legacy.sharedWithMe(ctx) },
+  { method: "GET", path: "/legacy/shared/:id", h: ({ ctx, params }) => Legacy.readSharedLegacy(ctx, params.id) },
+  { method: "GET", path: "/change-history", query: Hist.historyQuery, h: ({ ctx, query }) => Hist.changeHistory(ctx, query) },
   // planning and insight
   { method: "GET", path: "/retirement/defaults", h: ({ ctx }) => Insight.retirementDefaults(ctx) },
   { method: "POST", path: "/retirement/project", body: Insight.retirementSchema, h: ({ ctx, body }) => Insight.projectRetirementNow(ctx, body) },

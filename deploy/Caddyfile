@@ -1,0 +1,20 @@
+# Caddy terminates HTTPS and gets a free certificate for your domain automatically.
+# DOMAIN comes from .env (for example DOMAIN=finance.example.com). The domain must point at this machine, and ports 80 and 443 must be open.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# The app listens on port 3000 inside the compose network
+	reverse_proxy web:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Uploaded receipts and imports can be large
+	request_body {
+		max_size 25MB
+	}
+}

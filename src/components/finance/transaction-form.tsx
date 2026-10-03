@@ -6,6 +6,7 @@ import { Alert, Button, Checkbox, Field, Input, Select, Textarea } from "@/compo
 import { Modal } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/client/api";
 import { useToast } from "@/components/ui/toast";
+import { api } from "@/lib/client/api";
 import { finApi, useFin, useFinMutation, useFinQuery } from "./provider";
 import { AccountSelect, CategorySelect, FREQ_OPTIONS, MemberSelect, VehicleSelect, VisibilityField, useAccounts, useMembers, useVehicleOptions } from "./ui";
 
@@ -58,6 +59,9 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
   const [dup, setDup] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [showMore, setShowMore] = React.useState(false);
+  const [receipt, setReceipt] = React.useState<File | null>(null);
+  const [scanning, setScanning] = React.useState(false);
+  const [scanNote, setScanNote] = React.useState("");
   const set = (k: string, x: any) => setV((s) => ({ ...s, [k]: x }));
   const create = useFinMutation<any, any>("POST", (b) => (b.__transfer ? "/transfers" : "/transactions"), { success: "Saved" });
   const patch = useFinMutation<any, any>("PATCH", (b) => `/transactions/${preset.id}`, { success: "Saved" });
@@ -80,10 +84,24 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
     if (mode === "MEMBER") return { mode: "MEMBER", memberId: v.allocMember };
     return { mode };
   };
+  /** Photo or PDF of a receipt: fills in what it can read, never saves anything. The person checks the values and saves as usual. */
+  const scan = async (f: File | undefined) => {
+    if (!f) return;
+    setReceipt(f); setScanning(true); setScanNote("");
+    try {
+      const form = new FormData(); form.set("file", f);
+      const r = await api<any>(`/api/finance/${hid}/receipts/scan`, { method: "POST", body: form });
+      if (!r.candidates) { setScanNote(r.reason ?? "The receipt could not be read. Enter the details yourself. The photo will still be attached."); return; }
+      const c = r.candidates;
+      setV((x) => ({ ...x, amount: x.amount || c.total || "", date: c.date && !editing ? c.date : x.date, description: x.description || c.merchant || "", merchant: x.merchant || c.merchant || "" }));
+      setScanNote(`Read from the receipt${c.total ? "" : " (no total found)"}. Please check every value.`);
+    } catch (e) { setScanNote((e as Error).message); } finally { setScanning(false); }
+  };
   const submit = async (e: React.FormEvent, force = false) => {
     e.preventDefault();
     setBusy(true); setErrors({}); setGeneral(""); setDup(false);
     try {
+      let createdId: string | undefined;
       if (kind === "TRANSFER") {
         await create.mutateAsync({ __transfer: true, fromAccountId: v.accountId, toAccountId: v.toAccountId, amount: v.amount, ...(acct && toAcct && acct.currency !== toAcct.currency ? { toAmount: v.toAmount } : {}), date: v.date, description: v.description || "Transfer", notes: v.notes || undefined });
       } else {
@@ -94,12 +112,17 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
         else if (v.repeat && (kind === "INCOME" || kind === "EXPENSE")) {
           // The rule starts from this entry (marked as already posted), so the first one is not duplicated and later ones follow the schedule.
           const rule = await finApi<{ id: string }>(hid as string, "/recurring", { method: "POST", body: { type: kind, description: v.description, amount: v.amount, accountId: v.accountId, categoryId: v.categoryId || null, merchantName: v.merchant || null, frequency: v.repeat, startDate: v.date, endDate: v.repeatEnd || null, autoPost: !!v.autoPost, lastPostedOn: v.date, visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined } });
-          try { await create.mutateAsync({ ...body, recurringRuleId: rule.id }); } catch (e) { await finApi(hid as string, `/recurring/${rule.id}`, { method: "DELETE" }).catch(() => undefined); throw e; }
+          try { createdId = (await create.mutateAsync({ ...body, recurringRuleId: rule.id }))?.id; } catch (e) { await finApi(hid as string, `/recurring/${rule.id}`, { method: "DELETE" }).catch(() => undefined); throw e; }
         } else {
           const r = await create.mutateAsync(body);
+          createdId = r?.id;
           const n = r?.nudge;
           if (n) toast({ title: n.over ? `Over budget: ${n.category}` : `${n.percentUsed}% of ${n.category} budget used`, description: n.over ? `${n.budget} is over by ${fmt.money(String(Math.abs(Number(n.remaining))))}.` : `${fmt.money(n.remaining)} left in ${n.budget}.`, variant: "error" });
         }
+      }
+      if (receipt && createdId) {
+        try { const form = new FormData(); form.set("file", receipt); form.set("entity", "transaction"); form.set("entityId", createdId); await api(`/api/finance/${hid}/documents`, { method: "POST", body: form }); toast({ title: "Receipt attached" }); }
+        catch { toast({ title: "Saved, but the receipt could not be attached", description: "You can attach it from the Receipts page.", variant: "error" }); }
       }
       onClose();
     } catch (x) {
@@ -125,6 +148,17 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
                 <button key={k} type="button" role="tab" aria-selected={kind === k} onClick={() => setKind(k)} className={`rounded-md border px-3 py-1.5 text-sm font-medium ${kind === k ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:bg-muted"}`}>{KIND_LABEL[k].split(" ")[0]}</button>
               ))}
             </div>
+          </div>
+        )}
+        {!editing && kind === "EXPENSE" && (
+          <div className="sm:col-span-2 rounded-md border border-dashed border-border p-3">
+            <label className="flex cursor-pointer flex-wrap items-center gap-3 text-sm font-medium text-primary">
+              <input type="file" accept="image/*,application/pdf" capture="environment" className="sr-only" onChange={(e) => void scan(e.target.files?.[0])} />
+              <span className="inline-flex h-9 items-center rounded-md border border-input bg-card px-3 hover:bg-muted">{scanning ? "Reading receipt..." : receipt ? "Choose another receipt" : "Scan a receipt"}</span>
+              {receipt && <span className="text-xs font-normal text-muted-foreground">{receipt.name}</span>}
+            </label>
+            {scanNote && <p className="mt-2 text-xs text-muted-foreground" role="status">{scanNote}</p>}
+            {!receipt && <p className="mt-1 text-xs text-muted-foreground">Take a photo or pick a file. It is attached to this transaction when you save and is as private as the transaction.</p>}
           </div>
         )}
         <Field label="Amount" required error={err("amount")}>{(p) => <Input {...p} inputMode="decimal" autoFocus autoComplete="off" value={v.amount} onChange={(e) => set("amount", e.target.value)} placeholder="0.00" className="money text-right text-lg" />}</Field>
