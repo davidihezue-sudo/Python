@@ -528,6 +528,10 @@ async function simulateOrders(total: number, ctx: Ctx) {
 }
 
 if (process.argv[1] && /seed\.(ts|js)$/.test(process.argv[1])) {
+  if (config.isProd && process.env.ALLOW_DEMO_SEED !== 'true') {
+    console.error('Refusing to load demo data into a production environment. Set ALLOW_DEMO_SEED=true only for a staging or demo deployment.');
+    process.exit(1);
+  }
   seed({ force: process.argv.includes('--force') })
     .then(() => pool.end())
     .catch((e) => { console.error(e); process.exit(1); });

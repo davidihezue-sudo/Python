@@ -1,0 +1,22 @@
+# EAZyfoods API and worker image. The same image runs the API (default) or the worker (command override).
+FROM node:22-slim AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+RUN npm ci --workspace apps/api --include-workspace-root
+COPY apps/api apps/api
+RUN npm run build -w apps/api
+
+FROM node:22-slim
+ENV NODE_ENV=production
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+RUN npm ci --omit=dev --workspace apps/api --include-workspace-root
+COPY --from=build /app/apps/api/dist apps/api/dist
+WORKDIR /app/apps/api
+EXPOSE 4000
+USER node
+CMD ["node", "dist/server.js"]

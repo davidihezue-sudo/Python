@@ -93,12 +93,12 @@ export function Stat({ label, value, delta, hint }: { label: string; value: Reac
 }
 
 /* ---------- form controls ---------- */
-export function Field({ label, hint, error, children, full, optional }: { label: string; hint?: string; error?: string | null; children: (p: { id: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }) => ReactNode; full?: boolean; optional?: boolean }) {
+export function Field({ label, hint, error, children, full, optional, hideLabel }: { hideLabel?: boolean; label: string; hint?: string; error?: string | null; children: (p: { id: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }) => ReactNode; full?: boolean; optional?: boolean }) {
   const id = useId();
   const d = error ? `${id}-e` : hint ? `${id}-h` : undefined;
   return (
     <div className={cx('field', full && 'full')}>
-      <label htmlFor={id}>{label}{optional && <span className="muted"> (optional)</span>}</label>
+      <label htmlFor={id} className={hideLabel ? 'sr-only' : undefined}>{label}{optional && <span className="muted"> (optional)</span>}</label>
       {children({ id, 'aria-describedby': d, 'aria-invalid': error ? true : undefined })}
       {error ? <div id={`${id}-e`} className="error-text">{error}</div> : hint ? <div id={`${id}-h`} className="hint">{hint}</div> : null}
     </div>
@@ -111,9 +111,9 @@ export function Input({ label, value, onChange, type = 'text', hint, error, full
 export function Textarea({ label, value, onChange, hint, error, full, optional, rows = 4, ...rest }: { label: string; value: any; onChange: (v: string) => void; hint?: string; error?: string | null; full?: boolean; optional?: boolean; rows?: number; placeholder?: string; maxLength?: number; required?: boolean }) {
   return <Field label={label} hint={hint} error={error} full={full} optional={optional}>{(p) => <textarea className="textarea" rows={rows} value={value ?? ''} onChange={(e) => onChange(e.target.value)} {...p} {...rest} />}</Field>;
 }
-export function Select({ label, value, onChange, options, hint, error, full, optional, placeholder, disabled }: { label: string; value: any; onChange: (v: string) => void; options: (string | { value: string; label: string })[]; hint?: string; error?: string | null; full?: boolean; optional?: boolean; placeholder?: string; disabled?: boolean }) {
+export function Select({ label, value, onChange, options, hint, error, full, optional, placeholder, disabled, hideLabel }: { hideLabel?: boolean; label: string; value: any; onChange: (v: string) => void; options: (string | { value: string; label: string })[]; hint?: string; error?: string | null; full?: boolean; optional?: boolean; placeholder?: string; disabled?: boolean }) {
   return (
-    <Field label={label} hint={hint} error={error} full={full} optional={optional}>
+    <Field label={label} hint={hint} error={error} full={full} optional={optional} hideLabel={hideLabel}>
       {(p) => (
         <select className="select" value={value ?? ''} onChange={(e) => onChange(e.target.value)} disabled={disabled} {...p}>
           {placeholder !== undefined && <option value="">{placeholder}</option>}

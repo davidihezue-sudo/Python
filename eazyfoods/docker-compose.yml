@@ -1,0 +1,48 @@
+# Local production-like stack: Postgres, API, worker and web. Usage: docker compose up --build
+# Then create the tables and load demo data once: docker compose --profile tools run --rm migrate
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: eazy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-locally}
+      POSTGRES_DB: eazyfoods
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck: { test: ["CMD-SHELL", "pg_isready -U eazy -d eazyfoods"], interval: 5s, retries: 10 }
+
+  api: &api
+    build: { context: ., dockerfile: deploy/Dockerfile.api }
+    environment: &env
+      NODE_ENV: production
+      DATABASE_URL: postgres://eazy:${POSTGRES_PASSWORD:-change-me-locally}@db:5432/eazyfoods
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      CORS_ORIGINS: ${APP_URL:-http://localhost:3000}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-sandbox}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STORAGE_LOCAL_DIR: /data/uploads
+    volumes: ["uploads:/data/uploads"]
+    depends_on: { db: { condition: service_healthy } }
+    ports: ["4000:4000"]
+
+  worker:
+    <<: *api
+    command: ["node", "dist/worker.js"]
+    ports: []
+
+  migrate:
+    <<: *api
+    profiles: ["tools"]
+    environment: { <<: *env, ALLOW_DEMO_SEED: "true" }
+    command: ["sh", "-c", "node dist/migrate.js && node dist/seed.js"]
+    ports: []
+
+  web:
+    build: { context: ., dockerfile: deploy/Dockerfile.web, args: { NEXT_PUBLIC_SITE_URL: "${APP_URL:-http://localhost:3000}" } }
+    environment:
+      API_INTERNAL_URL: http://api:4000
+      NEXT_PUBLIC_SITE_URL: ${APP_URL:-http://localhost:3000}
+    depends_on: [api]
+    ports: ["3000:3000"]
+
+volumes: { pgdata: {}, uploads: {} }
