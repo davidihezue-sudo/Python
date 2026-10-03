@@ -1,0 +1,1 @@
+{ "name": "EAZyfoods Driver", "short_name": "EZ Driver", "start_url": "/driver", "scope": "/driver", "display": "standalone", "background_color": "#faf6ee", "theme_color": "#1d1a16", "icons": [{ "src": "/img/brand/logo-default.svg", "sizes": "any", "type": "image/svg+xml" }] }
