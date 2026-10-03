@@ -10,6 +10,7 @@ import { clampToAccount, requireAccount, requireWriter, resolveVisibility, visWh
 import { loadCategories } from "./load";
 import { upsertMerchant } from "./categories";
 import type { ReportData } from "../services/reports";
+import { withRules } from "./rules";
 
 const MAX_ROWS = 5000;
 const idxOrNull = z.number().int().min(0).max(200).nullable();
@@ -44,7 +45,7 @@ export async function analyzeCsv(ctx: FinCtx, input: z.infer<typeof analyzeSchem
     for (const h of have) { const k = fingerprint(acct.id, dateIso(h.date)!, h.amount.toString(), h.description); existing.set(k, (existing.get(k) ?? 0) + 1); }
   }
   const dup = markDuplicates(keys.map((key) => ({ key })), existing);
-  const out = rows.map((r, i) => {
+  const out = await Promise.all(rows.map(async (r, i) => {
     const type = r.errors.length ? "SKIP" : r.typeHint === "TRANSFER" ? "SKIP" : dup[i] ? "SKIP" : (r.typeHint ?? "EXPENSE");
     const kind = type === "INCOME" ? "INCOME" : "EXPENSE";
     let catId: string | null = null, catName: string | null = null;
@@ -53,9 +54,14 @@ export async function analyzeCsv(ctx: FinCtx, input: z.infer<typeof analyzeSchem
       const m = merchants.find((x) => r.description.toLowerCase().includes(x.name.toLowerCase()));
       if (m?.defaultCategoryId) { catId = m.defaultCategoryId; catName = cats.find((c) => c.id === catId)?.name ?? null; }
     }
+    if (!catId && r.amount && (type === "INCOME" || type === "EXPENSE" || type === "REFUND")) {
+      const ruled = await withRules(ctx, { type, accountId: acct.id, amount: r.amount.toFixed(2), description: r.description, categoryId: null as string | null, vehicleId: null as string | null, merchant: null as string | null, tags: [] as string[] }, { count: false });
+      const k = ruled.categoryId ? cats.find((c) => c.id === ruled.categoryId) : null;
+      if (k && k.kind === kind) { catId = k.id; catName = k.name; }
+    }
     if (!catId) { const guess = suggestCategoryName(r.description); if (guess) { const k = guess === "Salary" ? `INCOME:salary` : `EXPENSE:${guess.toLowerCase()}`; catId = byName.get(k) ?? cats.find((c) => c.name.toLowerCase() === guess.toLowerCase() && c.kind === kind)?.id ?? null; catName = catId ? guess : null; } }
     return { line: r.line, date: r.date, description: r.description, amount: r.amount ? money(r.amount) : null, type, suggestedType: r.typeHint, categoryId: catId, categoryName: catName, duplicate: dup[i], possibleTransfer: r.typeHint === "TRANSFER", errors: r.errors, key: keys[i] };
-  });
+  }));
   return { accountId: acct.id, accountName: acct.name, currency: acct.currency, rows: out, summary: { total: out.length, ready: out.filter((r) => r.type !== "SKIP").length, duplicates: out.filter((r) => r.duplicate).length, errors: out.filter((r) => r.errors.length).length, possibleTransfers: out.filter((r) => r.possibleTransfer).length }, typeOptions: TYPE_OPTIONS, notes: ["Rows that look like transfers or card payments are skipped by default. Import them as transfers from the Transfers screen so they are not counted as income or expenses.", "Rows already in the account (same date, amount and description) are marked as duplicates and skipped."] };
 }
 
@@ -97,9 +103,12 @@ export async function commitImport(ctx: FinCtx, input: z.infer<typeof commitSche
     seen.set(key, n);
     if (input.skipDuplicates && n <= (existing.get(key) ?? 0)) { duplicates++; continue; }
     const want = r.type === "INCOME" ? "INCOME" : "EXPENSE";
-    const category = r.categoryId && catKind.get(r.categoryId) === want ? r.categoryId : null;
-    const merchantId = await upsertMerchant(ctx.householdId, r.description.slice(0, 60), category);
-    await db.finTransaction.create({ data: { householdId: ctx.householdId, accountId: acct.id, type: r.type, amount: money(signed), currency: acct.currency, date: toDate(r.date), description: r.description, categoryId: category, merchantId, ownerMemberId: ctx.me.id, payerMemberId: r.type === "INCOME" ? ctx.me.id : joint ? null : ctx.me.id, allocationMode: r.type === "EXPENSE" && joint ? "HOUSEHOLD" : "OWNER", ...vis, createdById: ctx.actor.id, updatedById: ctx.actor.id, importBatchId: batch.id, importHash: key } });
+    const chosen = r.categoryId && catKind.get(r.categoryId) === want ? r.categoryId : null;
+    // the person's rules fill in what the file left empty (category, vehicle, tags), never what was chosen
+    const ruled = await withRules(ctx, { type: r.type, accountId: acct.id, amount: money(signed), description: r.description, categoryId: chosen, vehicleId: null as string | null, merchant: null as string | null, tags: [] as string[] });
+    const category = ruled.categoryId && catKind.get(ruled.categoryId) === want ? ruled.categoryId : null;
+    const merchantId = await upsertMerchant(ctx.householdId, ruled.merchant ?? r.description.slice(0, 60), category);
+    await db.finTransaction.create({ data: { householdId: ctx.householdId, accountId: acct.id, type: r.type, amount: money(signed), currency: acct.currency, date: toDate(r.date), description: r.description, categoryId: category, vehicleId: ruled.vehicleId, tags: ruled.tags ?? [], merchantId, ownerMemberId: ctx.me.id, payerMemberId: r.type === "INCOME" ? ctx.me.id : joint ? null : ctx.me.id, allocationMode: r.type === "EXPENSE" && joint ? "HOUSEHOLD" : "OWNER", ...vis, createdById: ctx.actor.id, updatedById: ctx.actor.id, importBatchId: batch.id, importHash: key } });
     imported++;
   }
   await db.importBatch.update({ where: { id: batch.id }, data: { importedCount: imported, duplicateCount: duplicates, skippedCount: skipped } });

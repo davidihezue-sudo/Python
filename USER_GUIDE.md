@@ -47,5 +47,13 @@ Alerts for due bills, budgets, low balances, renewals and unusual spending appea
 ## 9b. Each person keeps their own books
 Everyone signs in with their own account. An administrator invites each person by email (Household, Members, Invite a member). If email is not set up, copy the link shown in the dialog (or use Get a new link next to a pending invitation) and send it yourself. The invited person registers or signs in with that same email address, accepts, and lands in the shared household. They should then choose what they share (Household, My sharing): everything shared, everything personal, or per type. From then on they enter their own accounts, income and spending as usual; Personal records are visible only to them, and the Household view and totals combine only what has been shared.
 
+## 9c. Money tools
+- **Auto rules** (Tools): "if the description contains costco, set the category to Groceries and add the tag bulk". Rules only fill empty fields, never override your choice, and run on new entries and on imports. Preview shows how many past entries a rule would catch; "Apply to past entries" back-fills uncategorised ones. Rules are personal unless an administrator makes them household-wide.
+- **Tags and saved filters:** add comma-separated tags to any entry, filter by tag, see spending by tag in Expenses. On Transactions, "Save filter" keeps a filter for later. Saved filters are private to you.
+- **Safe to spend** (Dashboard): cash in chequing and cash accounts minus bills and payments due before your next pay day. It is a guide: it cannot know about spending you have not recorded.
+- **RRSP, TFSA, FHSA** (Wealth): enter the room from your CRA notice of assessment; contributions on your investment accounts are subtracted. Only you can see it. Limits shown are reference values for 2024 to 2026: confirm at canada.ca.
+- **Pay day plan** (Money): split a paycheck into transfers to accounts and goals. Running it creates ordinary transfers, and a plan refuses to run twice for the same date unless you confirm.
+- **Budget nudge:** saving an expense that takes a budget to 80 percent or more shows a short message.
+
 ## 10. Demo data
 Demo records are labelled and can be removed in Household, Data, Remove demo data. This deletes only the demo household.

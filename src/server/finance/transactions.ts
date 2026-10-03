@@ -20,6 +20,8 @@ import { csvList, currencyCode, dateIso, id, isoDate, moneyIn, optText, pageQ, p
 import { canEdit, canSee, clampToAccount, memberRef, ownerFor, requireAccount, requireInHousehold, requireMember, requireVisible, requireWriter, resolveVisibility, visibilityFields, visWhere, type FinCtx, type View } from "./access";
 import { upsertMerchant } from "./categories";
 import { assertVehicleLink } from "./vehicles";
+import { withRules } from "./rules";
+import { normaliseTags } from "./engine/rules";
 
 export const TX_TYPES = ["INCOME", "EXPENSE", "REFUND", "REIMBURSEMENT", "ADJUSTMENT"] as const;
 const splitPart = z.object({ memberId: id.nullable(), percent: z.union([z.string(), z.number()]).optional(), amount: moneyIn.optional() });
@@ -44,6 +46,7 @@ export const txCreateSchema = z.object({
   ...visibilityFields,
   incomeSourceId: id.nullish(),
   vehicleId: id.nullish(),
+  tags: z.array(z.string().max(40)).max(10).optional(),
   recurringRuleId: id.nullish(),
   force: z.boolean().optional(),
   idempotencyKey: z.string().max(80).nullish(),
@@ -51,7 +54,7 @@ export const txCreateSchema = z.object({
 export const txPatchSchema = z.object({
   amount: moneyIn.optional(), date: isoDate.optional(), postingDate: isoDate.nullish(), description: text(200).optional(), categoryId: id.nullish(), merchant: optText(100), notes: optText(2000),
   type: z.enum(["INCOME", "EXPENSE", "REFUND", "REIMBURSEMENT"]).optional(), accountId: id.optional(), status: z.enum(["POSTED", "PLANNED"]).optional(),
-  payer: z.string().max(40).nullish(), vehicleId: id.nullish(), allocation: allocationSchema.optional(), assignToMemberId: id.nullish(), reconciliation: z.enum(["UNRECONCILED", "CLEARED", "RECONCILED"]).optional(), ...visibilityFields,
+  payer: z.string().max(40).nullish(), vehicleId: id.nullish(), tags: z.array(z.string().max(40)).max(10).optional(), allocation: allocationSchema.optional(), assignToMemberId: id.nullish(), reconciliation: z.enum(["UNRECONCILED", "CLEARED", "RECONCILED"]).optional(), ...visibilityFields,
 });
 export const transferSchema = z.object({ fromAccountId: id, toAccountId: id, amount: posMoney, toAmount: posMoney.optional(), date: isoDate, description: text(200).default("Transfer"), notes: optText(1000), idempotencyKey: z.string().max(80).nullish() });
 
@@ -99,7 +102,7 @@ export function txView(ctx: FinCtx, t: TxFull) {
   const amountAbs = D(t.amount).abs();
   const allocations = !hasAllocations(t.type) ? [] : t.allocationMode === "SPLIT" ? t.allocations.map((a) => ({ memberId: a.memberId, member: a.memberId ? memberRef(ctx, a.memberId) : null, amount: money(a.amount), percent: a.percent ? a.percent.toString() : null })) : t.allocationMode === "HOUSEHOLD" ? [{ memberId: null, member: null, amount: money(amountAbs), percent: "100" }] : [{ memberId: t.allocationMode === "MEMBER" ? t.allocatedMemberId : t.ownerMemberId, member: memberRef(ctx, t.allocationMode === "MEMBER" ? t.allocatedMemberId : t.ownerMemberId), amount: money(amountAbs), percent: "100" }];
   return {
-    id: t.id, vehicleId: t.vehicleId, date: dateIso(t.date), postingDate: dateIso(t.postingDate), description: t.description, amount: money(t.amount), type: t.type, status: t.status, currency: t.currency,
+    id: t.id, vehicleId: t.vehicleId, tags: t.tags, date: dateIso(t.date), postingDate: dateIso(t.postingDate), description: t.description, amount: money(t.amount), type: t.type, status: t.status, currency: t.currency,
     accountId: t.accountId, accountName: ctx.accountIds.has(t.accountId) ? t.account.name : "Private account", categoryId: t.categoryId, categoryName: t.category ? (t.category.parent ? `${t.category.parent.name} / ${t.category.name}` : t.category.name) : null,
     merchant: t.merchant?.name ?? null, notes: t.notes, owner: memberRef(ctx, t.ownerMemberId), payer: t.payerMemberId ? memberRef(ctx, t.payerMemberId) : null, paidByHousehold: !t.payerMemberId && hasAllocations(t.type),
     enteredBy: byUser(ctx, t.createdById), lastModifiedBy: byUser(ctx, t.updatedById), createdAt: t.createdAt.toISOString(), updatedAt: t.updatedAt.toISOString(), edited: t.updatedAt.getTime() - t.createdAt.getTime() > 1500,
@@ -109,7 +112,7 @@ export function txView(ctx: FinCtx, t: TxFull) {
 }
 
 export const txQuerySchema = z.object({
-  vehicleId: id.optional(), view: z.enum(["my", "household", "all"]).default("all"), member: id.optional(), from: isoDate.optional(), to: isoDate.optional(), types: csvList, categoryIds: csvList, accountId: id.optional(), merchant: z.string().max(100).optional(), q: z.string().max(100).optional(),
+  vehicleId: id.optional(), tag: z.string().max(40).optional(), view: z.enum(["my", "household", "all"]).default("all"), member: id.optional(), from: isoDate.optional(), to: isoDate.optional(), types: csvList, categoryIds: csvList, accountId: id.optional(), merchant: z.string().max(100).optional(), q: z.string().max(100).optional(),
   minAmount: z.coerce.number().optional(), maxAmount: z.coerce.number().optional(), recurring: z.enum(["1", "0"]).optional(), status: z.enum(["POSTED", "PLANNED"]).optional(), reconciliation: z.enum(["UNRECONCILED", "CLEARED", "RECONCILED"]).optional(),
   sort: z.enum(["date_desc", "date_asc", "amount_desc", "amount_asc"]).default("date_desc"), ...pageQ,
 });
@@ -122,6 +125,7 @@ export async function txWhere(ctx: FinCtx, q: Partial<z.infer<typeof txQuerySche
   }
   if (q.q) and.push({ OR: [{ description: { contains: q.q, mode: "insensitive" } }, { notes: { contains: q.q, mode: "insensitive" } }, { merchant: { name: { contains: q.q, mode: "insensitive" } } }] });
   if (q.vehicleId) and.push({ vehicleId: q.vehicleId });
+  if (q.tag) and.push({ tags: { has: normaliseTags([q.tag])[0] ?? q.tag } });
   if (q.merchant) and.push({ merchant: { name: { contains: q.merchant, mode: "insensitive" } } });
   if (q.minAmount !== undefined || q.maxAmount !== undefined) {
     // amounts are signed; compare magnitudes
@@ -190,6 +194,7 @@ export async function createTransaction(ctx: FinCtx, input: z.infer<typeof txCre
       return { id: prev.id, idempotentReplay: true };
     }
   }
+  input = await withRules(ctx, input);
   await checkCategory(ctx, input.categoryId, input.type);
   await assertVehicleLink(ctx, input.vehicleId);
   const owner = ownerFor(ctx, input.assignToMemberId);
@@ -205,7 +210,7 @@ export async function createTransaction(ctx: FinCtx, input: z.infer<typeof txCre
   const merchantId = await upsertMerchant(ctx.householdId, input.merchant, input.categoryId);
   const t = await db.$transaction(async (tx) => {
     const row = await tx.finTransaction.create({
-      data: { householdId: ctx.householdId, accountId: acct.id, type: input.type, status: input.status, amount: signed, currency: acct.currency, date: toDate(input.date), postingDate: input.postingDate ? toDate(input.postingDate) : null, description: input.description, notes: input.notes ?? null, categoryId: input.categoryId ?? null, merchantId, ownerMemberId: owner, payerMemberId: payerId, allocationMode: alloc.mode, allocatedMemberId: alloc.allocatedMemberId, ...vis, createdById: ctx.actor.id, updatedById: ctx.actor.id, incomeSourceId: input.incomeSourceId ?? null, vehicleId: input.vehicleId ?? null, recurringRuleId: input.recurringRuleId ?? null, idempotencyKey: input.idempotencyKey ?? null },
+      data: { householdId: ctx.householdId, accountId: acct.id, type: input.type, status: input.status, amount: signed, currency: acct.currency, date: toDate(input.date), postingDate: input.postingDate ? toDate(input.postingDate) : null, description: input.description, notes: input.notes ?? null, categoryId: input.categoryId ?? null, merchantId, ownerMemberId: owner, payerMemberId: payerId, allocationMode: alloc.mode, allocatedMemberId: alloc.allocatedMemberId, ...vis, createdById: ctx.actor.id, updatedById: ctx.actor.id, incomeSourceId: input.incomeSourceId ?? null, vehicleId: input.vehicleId ?? null, tags: normaliseTags(input.tags), recurringRuleId: input.recurringRuleId ?? null, idempotencyKey: input.idempotencyKey ?? null },
     });
     if (alloc.rows.length) await tx.transactionAllocation.createMany({ data: alloc.rows.map((r) => ({ transactionId: row.id, memberId: r.memberId, amount: r.amount, percent: r.percent })) });
     await audit(tx, ctx.actor, { entity: "FinTransaction", entityId: row.id, action: "create", householdId: ctx.householdId, after: { type: input.type, amount: signed, date: input.date, owner, payer: payerId, allocation: alloc.mode, visibility: vis.visibility, enteredBy: ctx.me.id } });
@@ -299,7 +304,7 @@ export async function updateTransaction(ctx: FinCtx, txId: string, patch: z.infe
   await db.$transaction(async (tx) => {
     await tx.finTransaction.update({
       where: { id: t.id },
-      data: { type, amount: signed, ...(patch.vehicleId !== undefined ? { vehicleId: patch.vehicleId } : {}), ...(patch.date ? { date: toDate(patch.date) } : {}), ...(patch.postingDate !== undefined ? { postingDate: patch.postingDate ? toDate(patch.postingDate) : null } : {}), ...(patch.description ? { description: patch.description } : {}), ...(patch.notes !== undefined ? { notes: patch.notes } : {}), ...(patch.categoryId !== undefined ? { categoryId: patch.categoryId } : {}), ...(merchantId !== undefined ? { merchantId } : {}), ...(acct ? { accountId: acct.id } : {}), ...(patch.status ? { status: patch.status } : {}), ...(patch.reconciliation ? { reconciliation: patch.reconciliation } : {}), ownerMemberId: owner, payerMemberId: payerId, ...(alloc ? { allocationMode: alloc.mode, allocatedMemberId: alloc.allocatedMemberId } : {}), ...(vis ?? {}), updatedById: ctx.actor.id },
+      data: { type, amount: signed, ...(patch.vehicleId !== undefined ? { vehicleId: patch.vehicleId } : {}), ...(patch.tags !== undefined ? { tags: normaliseTags(patch.tags) } : {}), ...(patch.date ? { date: toDate(patch.date) } : {}), ...(patch.postingDate !== undefined ? { postingDate: patch.postingDate ? toDate(patch.postingDate) : null } : {}), ...(patch.description ? { description: patch.description } : {}), ...(patch.notes !== undefined ? { notes: patch.notes } : {}), ...(patch.categoryId !== undefined ? { categoryId: patch.categoryId } : {}), ...(merchantId !== undefined ? { merchantId } : {}), ...(acct ? { accountId: acct.id } : {}), ...(patch.status ? { status: patch.status } : {}), ...(patch.reconciliation ? { reconciliation: patch.reconciliation } : {}), ownerMemberId: owner, payerMemberId: payerId, ...(alloc ? { allocationMode: alloc.mode, allocatedMemberId: alloc.allocatedMemberId } : {}), ...(vis ?? {}), updatedById: ctx.actor.id },
     });
     if (alloc) {
       await tx.transactionAllocation.deleteMany({ where: { transactionId: t.id } });

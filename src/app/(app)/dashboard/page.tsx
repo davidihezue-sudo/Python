@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/ui/empty";
 import { useMe } from "@/components/shell/providers";
 import { useFin, useFinQuery } from "@/components/finance/provider";
 import { Add, Figure, MemberChip, Money, NeedsHousehold, PageHeader, ProgressBar, Section, StatusBadge, VisibilityBadge, ViewNote, ViewSwitch, humanize } from "@/components/finance/ui";
+import { SafeToSpend } from "@/components/finance/safe-to-spend";
 import { TransactionDetail } from "@/components/finance/tx-detail";
 import { useTxDialog } from "@/components/finance/transaction-form";
 import { PALETTE } from "@/components/ui/charts";
@@ -42,6 +43,7 @@ function Dashboard() {
       {isLoading || !d ? <div className="space-y-4"><div className="skeleton h-48 w-full" /><div className="skeleton h-64 w-full" /></div> : (
         <>
           {d.alerts.length > 0 && <Alerts alerts={d.alerts} />}
+          <SafeToSpend />
           {/* Position: the one number that matters most, in a quiet dark panel */}
           <section className="hero-card rounded-xl p-5 sm:p-7" aria-label="Financial position">
             <div className="flex flex-wrap items-end justify-between gap-6">

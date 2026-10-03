@@ -5,6 +5,7 @@ import { z } from "zod";
 import { Alert, Button, Checkbox, Field, Input, Select, Textarea } from "@/components/ui/primitives";
 import { Modal } from "@/components/ui/dialog";
 import { ApiError } from "@/lib/client/api";
+import { useToast } from "@/components/ui/toast";
 import { finApi, useFin, useFinMutation, useFinQuery } from "./provider";
 import { AccountSelect, CategorySelect, FREQ_OPTIONS, MemberSelect, VehicleSelect, VisibilityField, useAccounts, useMembers, useVehicleOptions } from "./ui";
 
@@ -40,13 +41,14 @@ const today = () => new Date().toISOString().slice(0, 10);
 export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose: () => void }) {
   const { profile, fmt, hid } = useFin();
   const { members } = useMembers();
+  const { toast } = useToast();
   const vehicles = useVehicleOptions();
   const { accounts } = useAccounts();
   const editing = !!preset.id;
   const init = preset.initial;
   const [kind, setKind] = React.useState<TxKind>(init?.type ?? preset.kind ?? "EXPENSE");
   const [v, setV] = React.useState<Record<string, any>>(() => ({
-    accountId: init?.accountId ?? preset.accountId ?? "", toAccountId: "", amount: init ? String(Math.abs(Number(init.amount))) : preset.amount ?? "", toAmount: "", date: init?.date ?? profile?.today ?? today(), description: init?.description ?? preset.description ?? "", categoryId: init?.categoryId ?? preset.categoryId ?? "", merchant: init?.merchant ?? "", vehicleId: init?.vehicleId ?? "", notes: init?.notes ?? "",
+    accountId: init?.accountId ?? preset.accountId ?? "", toAccountId: "", amount: init ? String(Math.abs(Number(init.amount))) : preset.amount ?? "", toAmount: "", date: init?.date ?? profile?.today ?? today(), description: init?.description ?? preset.description ?? "", categoryId: init?.categoryId ?? preset.categoryId ?? "", merchant: init?.merchant ?? "", vehicleId: init?.vehicleId ?? "", notes: init?.notes ?? "", tags: (init?.tags ?? []).join(", "),
     status: init?.status ?? "POSTED", assignTo: "", payer: init ? (init.paidByHousehold ? "HOUSEHOLD" : init.payer?.id ?? "") : "", allocMode: init?.allocationMode ?? "", allocMember: init?.allocations?.[0]?.memberId ?? "", splitKind: init?.allocationMode === "SPLIT" ? (init.allocations.every((a: any) => a.percent && Number(a.percent) !== 100 && false) ? "percent" : "amount") : "equal",
     repeat: "", repeatEnd: "", autoPost: true,
     splits: init?.allocationMode === "SPLIT" ? init.allocations.map((a: any) => ({ memberId: a.memberId, percent: a.percent ?? "", amount: a.amount })) : [], visibility: init?.visibility ?? undefined, sharedWithMemberIds: init?.sharedWithMemberIds ?? [],
@@ -85,7 +87,7 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
       if (kind === "TRANSFER") {
         await create.mutateAsync({ __transfer: true, fromAccountId: v.accountId, toAccountId: v.toAccountId, amount: v.amount, ...(acct && toAcct && acct.currency !== toAcct.currency ? { toAmount: v.toAmount } : {}), date: v.date, description: v.description || "Transfer", notes: v.notes || undefined });
       } else {
-        const body: any = { type: kind, accountId: v.accountId, amount: v.amount, date: v.date, description: v.description, categoryId: v.categoryId || null, vehicleId: v.vehicleId || null, merchant: v.merchant || undefined, notes: v.notes || undefined, status: v.status, allocation: buildAllocation(), visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined, force: force || undefined };
+        const body: any = { type: kind, accountId: v.accountId, amount: v.amount, date: v.date, description: v.description, categoryId: v.categoryId || null, vehicleId: v.vehicleId || null, merchant: v.merchant || undefined, notes: v.notes || undefined, tags: String(v.tags ?? "").split(",").map((t: string) => t.trim()).filter(Boolean), status: v.status, allocation: buildAllocation(), visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined, force: force || undefined };
         if (v.assignTo) body.assignToMemberId = v.assignTo;
         if (v.payer) body.payer = v.payer;
         if (editing) await patch.mutateAsync({ ...body, type: undefined, force: undefined });
@@ -93,7 +95,11 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
           // The rule starts from this entry (marked as already posted), so the first one is not duplicated and later ones follow the schedule.
           const rule = await finApi<{ id: string }>(hid as string, "/recurring", { method: "POST", body: { type: kind, description: v.description, amount: v.amount, accountId: v.accountId, categoryId: v.categoryId || null, merchantName: v.merchant || null, frequency: v.repeat, startDate: v.date, endDate: v.repeatEnd || null, autoPost: !!v.autoPost, lastPostedOn: v.date, visibility: v.visibility, sharedWithMemberIds: v.visibility === "SELECTED" ? v.sharedWithMemberIds : undefined } });
           try { await create.mutateAsync({ ...body, recurringRuleId: rule.id }); } catch (e) { await finApi(hid as string, `/recurring/${rule.id}`, { method: "DELETE" }).catch(() => undefined); throw e; }
-        } else await create.mutateAsync(body);
+        } else {
+          const r = await create.mutateAsync(body);
+          const n = r?.nudge;
+          if (n) toast({ title: n.over ? `Over budget: ${n.category}` : `${n.percentUsed}% of ${n.category} budget used`, description: n.over ? `${n.budget} is over by ${fmt.money(String(Math.abs(Number(n.remaining))))}.` : `${fmt.money(n.remaining)} left in ${n.budget}.`, variant: "error" });
+        }
       }
       onClose();
     } catch (x) {
@@ -192,6 +198,7 @@ export function TransactionDialog({ preset, onClose }: { preset: Preset; onClose
             {kind !== "TRANSFER" && <Field label="Merchant" error={err("merchant")}>{(p) => <Input {...p} value={v.merchant} onChange={(e) => set("merchant", e.target.value)} />}</Field>}
             {kind !== "TRANSFER" && !editing && <Field label="Status" hint="Expected items do not change balances or reports until posted.">{(p) => <Select {...p} value={v.status} onChange={(e) => set("status", e.target.value)}><option value="POSTED">Posted (it happened)</option><option value="PLANNED">Expected (planned)</option></Select>}</Field>}
             {members.length > 1 && !editing && <Field label="Record this for another member" hint="Default is you. Only use this when entering on someone's behalf.">{(p) => <MemberSelect id={p.id} value={v.assignTo} onChange={(x) => set("assignTo", x)} includeNone="Me (default)" />}</Field>}
+            {kind !== "TRANSFER" && <Field label="Tags" hint="Separate with commas, for example: vacation, tax-deductible">{(p) => <Input {...p} value={v.tags} onChange={(e) => set("tags", e.target.value)} />}</Field>}
             <Field label="Notes" className="sm:col-span-2">{(p) => <Textarea {...p} value={v.notes} onChange={(e) => set("notes", e.target.value)} />}</Field>
             {kind !== "TRANSFER" && <div className="sm:col-span-2"><VisibilityField value={v.visibility ?? "HOUSEHOLD"} shared={v.sharedWithMemberIds} onChange={(x) => setV((s) => ({ ...s, ...x }))} lockedHousehold={false} /></div>}
           </>

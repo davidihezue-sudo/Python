@@ -8,8 +8,8 @@ import { CategorySelect, DataTable, MemberChip, Money, VisibilityBadge, humanize
 import { TransactionDetail } from "./tx-detail";
 import { useTxDialog } from "./transaction-form";
 
-export interface TxFilters { view: string; q: string; types: string; accountId: string; vehicleId: string; categoryIds: string; member: string; from: string; to: string; minAmount: string; maxAmount: string; status: string; recurring: string; reconciliation: string; sort: string }
-export const emptyFilters = (over: Partial<TxFilters> = {}): TxFilters => ({ view: "all", q: "", types: "", accountId: "", vehicleId: "", categoryIds: "", member: "", from: "", to: "", minAmount: "", maxAmount: "", status: "", recurring: "", reconciliation: "", sort: "date_desc", ...over });
+export interface TxFilters { view: string; q: string; types: string; accountId: string; vehicleId: string; tag: string; categoryIds: string; member: string; from: string; to: string; minAmount: string; maxAmount: string; status: string; recurring: string; reconciliation: string; sort: string }
+export const emptyFilters = (over: Partial<TxFilters> = {}): TxFilters => ({ view: "all", q: "", types: "", accountId: "", vehicleId: "", tag: "", categoryIds: "", member: "", from: "", to: "", minAmount: "", maxAmount: "", status: "", recurring: "", reconciliation: "", sort: "date_desc", ...over });
 
 export function TransactionList({ initial, lockedTypes, showAdd = true, exportEntity = "transactions", focus }: { initial?: Partial<TxFilters>; lockedTypes?: string; showAdd?: boolean; exportEntity?: string; focus?: string | null }) {
   const { fmt, view: globalView, hid } = useFin();
@@ -23,6 +23,11 @@ export function TransactionList({ initial, lockedTypes, showAdd = true, exportEn
   const { accounts } = useAccounts();
   const vehicleOpts = useVehicleOptions();
   const { members } = useMembers();
+  const tags = useFinQuery<any[]>("/tags");
+  const saved = useFinQuery<any[]>("/saved-views", { kind: "transactions" });
+  const saveView = useFinMutation<any, any>("POST", "/saved-views", { success: "Filter saved" });
+  const delView = useFinMutation<any, any>("DELETE", (b) => `/saved-views/${b.id}`, { success: "Saved filter removed" });
+  const [savedPick, setSavedPick] = React.useState("");
   const set = (k: keyof TxFilters, v: string) => { setF((s) => ({ ...s, [k]: v })); setPage(1); };
   const params: Record<string, string | number> = { page, pageSize: 40, sort: f.sort };
   for (const [k, v] of Object.entries(f)) if (v && k !== "sort") params[k] = v;
@@ -34,7 +39,7 @@ export function TransactionList({ initial, lockedTypes, showAdd = true, exportEn
   const cols: Col<any>[] = [
     { key: "pick", header: "", className: "w-8", hideOnMobile: true, cell: (r) => <span onClick={(e) => e.stopPropagation()}><Checkbox aria-label={`Select ${r.description}`} checked={picked.has(r.id)} disabled={!r.canEdit || r.type === "TRANSFER"} onChange={(e) => setPicked((s) => { const n = new Set(s); if (e.target.checked) n.add(r.id); else n.delete(r.id); return n; })} /></span> },
     { key: "date", header: "Date", cell: (r) => <span className="whitespace-nowrap text-muted-foreground">{fmt.date(r.date)}</span> },
-    { key: "desc", header: "Description", primary: true, cell: (r) => <span className="flex min-w-0 flex-col"><span className="truncate font-medium">{r.description}{r.status === "PLANNED" ? " (expected)" : ""}</span>{r.merchant && r.merchant !== r.description && <span className="truncate text-xs text-muted-foreground">{r.merchant}</span>}</span> },
+    { key: "desc", header: "Description", primary: true, cell: (r) => <span className="flex min-w-0 flex-col"><span className="truncate font-medium">{r.description}{r.status === "PLANNED" ? " (expected)" : ""}</span>{r.tags?.length > 0 && <span className="flex flex-wrap gap-1">{r.tags.map((t: string) => <span key={t} className="rounded bg-muted px-1.5 text-[11px] text-muted-foreground">#{t}</span>)}</span>}{r.merchant && r.merchant !== r.description && <span className="truncate text-xs text-muted-foreground">{r.merchant}</span>}</span> },
     { key: "cat", header: "Category", cell: (r) => <span className="text-muted-foreground">{r.type === "TRANSFER" ? "Transfer" : r.categoryName ?? humanize(r.type)}</span> },
     { key: "acct", header: "Account", hideOnMobile: true, cell: (r) => <span className="text-muted-foreground">{r.accountName}</span> },
     { key: "owner", header: "Owner", cell: (r) => <MemberChip member={r.owner} /> },
@@ -48,6 +53,9 @@ export function TransactionList({ initial, lockedTypes, showAdd = true, exportEn
         <Input aria-label="Search transactions" type="search" value={f.q} onChange={(e) => set("q", e.target.value)} placeholder="Search description, merchant or notes" className="h-9 max-w-xs flex-1" />
         <Select aria-label="Whose transactions" value={f.view} onChange={(e) => set("view", e.target.value)} className="h-9 w-auto"><option value="all">Everything I can see</option><option value="my">Mine</option><option value="household">Shared with the household</option></Select>
         <Button variant="outline" size="sm" onClick={() => setShowFilters((s) => !s)} aria-expanded={showFilters}><Filter className="h-4 w-4" /> Filters</Button>
+        {(saved.data?.length ?? 0) > 0 && <Select aria-label="Saved filters" value={savedPick} onChange={(e) => { const v = saved.data!.find((x) => x.id === e.target.value); setSavedPick(e.target.value); if (v) { setF(emptyFilters({ ...v.params })); setPage(1); setShowFilters(true); } }} className="h-9 w-auto"><option value="">Saved filters</option>{saved.data!.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select>}
+        {savedPick && <Button variant="ghost" size="sm" onClick={() => { delView.mutate({ id: savedPick }); setSavedPick(""); }}>Delete saved filter</Button>}
+        <Button variant="outline" size="sm" onClick={() => { const name = window.prompt("Name this filter"); if (name?.trim()) { const p: Record<string, string> = {}; for (const [k, v] of Object.entries(f)) if (v && k !== "sort" && !(k === "view" && v === "all")) p[k] = v; saveView.mutate({ name: name.trim(), kind: "transactions", params: p }); } }}>Save filter</Button>
         <a href={exportHref} className="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-card px-3 text-sm font-medium hover:bg-muted"><Download className="h-4 w-4" aria-hidden /> CSV</a>
         {showAdd && <><Button size="sm" onClick={() => tx.open()}>Add</Button><Button size="sm" variant="outline" onClick={() => tx.open({ kind: "TRANSFER" })}>Transfer</Button></>}
       </div>
@@ -59,6 +67,7 @@ export function TransactionList({ initial, lockedTypes, showAdd = true, exportEn
           <label className="text-xs">Category<div className="mt-1"><CategorySelect value={f.categoryIds} onChange={(v) => set("categoryIds", v)} includeNone="All categories" /></div></label>
           <label className="text-xs">Account<Select value={f.accountId} onChange={(e) => set("accountId", e.target.value)} className="mt-1 h-9"><option value="">All accounts</option>{accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}</Select></label>
           {(vehicleOpts.data?.length ?? 0) > 0 && <label className="text-xs">Vehicle<Select value={f.vehicleId} onChange={(e) => set("vehicleId", e.target.value)} className="mt-1 h-9"><option value="">All vehicles</option>{vehicleOpts.data!.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</Select></label>}
+          <label className="text-xs">Tag<Select value={f.tag} onChange={(e) => set("tag", e.target.value)} className="mt-1 h-9"><option value="">Any tag</option>{(tags.data ?? []).map((t: any) => <option key={t.tag} value={t.tag}>{t.tag} ({t.count})</option>)}</Select></label>
           <label className="text-xs">Member<Select value={f.member} onChange={(e) => set("member", e.target.value)} className="mt-1 h-9"><option value="">All members</option>{members.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</Select></label>
           <label className="text-xs">Smallest amount<Input inputMode="decimal" value={f.minAmount} onChange={(e) => set("minAmount", e.target.value)} className="mt-1 h-9 text-right" /></label>
           <label className="text-xs">Largest amount<Input inputMode="decimal" value={f.maxAmount} onChange={(e) => set("maxAmount", e.target.value)} className="mt-1 h-9 text-right" /></label>

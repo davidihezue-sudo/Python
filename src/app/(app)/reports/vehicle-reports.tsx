@@ -35,7 +35,7 @@ function Analytics() {
   if (isLoading || !a) return <Skeleton className="h-96" />;
   if (!a.hasFinancialAccess) return <Alert tone="info" title="Financial analytics are restricted">You don't have permission to view cost details for the selected vehicle(s).</Alert>;
   const cur = a.currency;
-  const m = (n: number | null | undefined) => (n == null ? "—" : f.money(n, cur));
+  const m = (n: number | null | undefined) => (n == null ? "n/a" : f.money(n, cur));
   const cpd = a.costPerDistance;
   return (
     <div className="space-y-4">
@@ -44,7 +44,7 @@ function Analytics() {
         {range === "custom" && <><input aria-label="From" type="date" className="h-9 rounded-md border border-input bg-card px-2 text-sm" value={from} onChange={(e) => setFrom(e.target.value)} /><input aria-label="To" type="date" className="h-9 rounded-md border border-input bg-card px-2 text-sm" value={to} onChange={(e) => setTo(e.target.value)} /></>}
         <fieldset className="flex flex-wrap items-center gap-3 text-sm"><legend className="sr-only">Exclude categories from totals and cost per distance</legend><span className="text-muted-foreground">Exclude:</span>{["FINANCING", "INSURANCE", "FUEL"].map((c) => <Checkbox key={c} label={label(c)} checked={exclude.includes(c)} onChange={() => toggle(c)} />)}</fieldset>
       </div>
-      {a.otherCurrencyExpenses > 0 && <Alert tone="warning">{a.otherCurrencyExpenses} expense(s) in other currencies are excluded — no exchange rates are applied.</Alert>}
+      {a.otherCurrencyExpenses > 0 && <Alert tone="warning">{a.otherCurrencyExpenses} expense(s) in other currencies are excluded, no exchange rates are applied.</Alert>}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" aria-label="Spending summary">
         {[["Total (selected)", m(a.totals.all), `${a.totals.count} expenses`], ["Maintenance", m(a.totals.maintenance), `avg ${m(a.averages.monthlyMaintenance)} / month`], ["Repairs", m(a.totals.repairs), a.averages.averageRepairCost != null ? `avg ${m(a.averages.averageRepairCost)} per repair` : "none"], ["Ownership / month", m(a.averages.monthlyOwnership), `≈ ${m(a.averages.annualOwnership)} / year`]].map(([k, v, h]) => <Card key={k as string} className="p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{k}</p><p className="mt-2 text-2xl font-semibold tabular">{v}</p><p className="text-xs text-muted-foreground">{h}</p></Card>)}
       </section>
@@ -53,7 +53,7 @@ function Analytics() {
         <CardBody>
           <div className="grid gap-3 sm:grid-cols-3">
             {([["Total ownership expense", cpd.totalOwnership], ["Maintenance only", cpd.maintenanceOnly], ["Repairs only", cpd.repairOnly]] as const).map(([k, c]) => (
-              <div key={k} className="rounded-lg border border-border p-4"><p className="text-sm text-muted-foreground">{k}</p><p className="mt-1 text-2xl font-semibold tabular">{c.costPerKm === null ? "—" : f.perDistance(c.costPerKm)}</p><p className="text-xs text-muted-foreground">{c.distanceKm ? `${m(c.totalCost)} over ${f.distance(c.distanceKm)}` : "Needs at least two odometer readings in this period"}{c.partialCoverage ? " · partial coverage" : ""}</p></div>
+              <div key={k} className="rounded-lg border border-border p-4"><p className="text-sm text-muted-foreground">{k}</p><p className="mt-1 text-2xl font-semibold tabular">{c.costPerKm === null ? "n/a" : f.perDistance(c.costPerKm)}</p><p className="text-xs text-muted-foreground">{c.distanceKm ? `${m(c.totalCost)} over ${f.distance(c.distanceKm)}` : "Needs at least two odometer readings in this period"}{c.partialCoverage ? " · partial coverage" : ""}</p></div>
             ))}
           </div>
           {cpd.totalOwnership.excludedOutsideCoverage?.count > 0 && <p className="mt-3 text-sm text-warning">{cpd.totalOwnership.excludedOutsideCoverage.count} expense(s) totalling {m(cpd.totalOwnership.excludedOutsideCoverage.amount)} fall outside your odometer history, so they are not included in this figure.</p>}

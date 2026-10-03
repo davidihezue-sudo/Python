@@ -544,6 +544,10 @@ model Household {
   alertSettings      FinAlertSetting[]
   contributionRules  ContributionRule[]
   settlements        Settlement[]
+  finRules           FinRule[]
+  savedViews         SavedView[]
+  paydayPlans        PaydayPlan[]
+  registeredRooms    RegisteredRoom[]
 
   members      HouseholdMember[]
   invites      HouseholdInvite[]
@@ -1755,6 +1759,7 @@ model FinTransaction {
   insurancePolicyId   String?
   debtPaymentId       String?
   vehicleId           String?
+  tags                String[]          @default([])
   importBatchId       String?
   importHash          String?
   reconciliation      FinReconciliation @default(UNRECONCILED)
@@ -1777,6 +1782,7 @@ model FinTransaction {
   @@index([householdId, categoryId, date])
   @@index([transferGroupId])
   @@index([householdId, importHash])
+  @@index([tags], type: Gin)
 }
 
 model TransactionAllocation {
@@ -2387,4 +2393,84 @@ model FinAlertSetting {
   household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
 
   @@unique([userId, householdId])
+}
+
+// ───────────────────────── Rules, saved views, pay day plans, registered account room ─────────────────────────
+
+enum RuleScope {
+  MINE
+  HOUSEHOLD
+}
+
+/// "If the description contains X (and the amount is between...), then set the category / vehicle / tags." Applied when a transaction is created or imported.
+/// MINE rules apply to the transactions their owner enters; HOUSEHOLD rules (administrators only) apply to everyone's.
+model FinRule {
+  id            String    @id @default(cuid())
+  householdId   String
+  ownerMemberId String
+  scope         RuleScope @default(MINE)
+  name          String
+  priority      Int       @default(100)
+  active        Boolean   @default(true)
+  conditions    Json
+  actions       Json
+  hitCount      Int       @default(0)
+  lastHitAt     DateTime? @db.Timestamptz
+  createdAt     DateTime  @default(now()) @db.Timestamptz
+  updatedAt     DateTime  @updatedAt @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, active])
+}
+
+/// A member's own saved filter or report setup. Private to that member.
+model SavedView {
+  id          String   @id @default(cuid())
+  householdId String
+  memberId    String
+  name        String
+  kind        String
+  params      Json
+  createdAt   DateTime @default(now()) @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, memberId, kind])
+}
+
+/// A member's plan for splitting a paycheck: fixed amounts or percentages to accounts and goals. Private to its owner.
+model PaydayPlan {
+  id              String    @id @default(cuid())
+  householdId     String
+  ownerMemberId   String
+  name            String
+  sourceAccountId String
+  incomeSourceId  String?
+  lines           Json
+  active          Boolean   @default(true)
+  lastRunOn       DateTime? @db.Date
+  createdAt       DateTime  @default(now()) @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@index([householdId, ownerMemberId])
+}
+
+/// Contribution room at the start of a year for one person and one registered plan, as entered from their CRA notice. Private to that person.
+model RegisteredRoom {
+  id          String         @id @default(cuid())
+  householdId String
+  memberId    String
+  kind        InvestmentKind
+  year        Int
+  openingRoom Decimal        @db.Decimal(14, 2)
+  note        String?
+  updatedAt   DateTime       @updatedAt @db.Timestamptz
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+
+  @@unique([memberId, kind, year])
+  @@index([householdId])
 }

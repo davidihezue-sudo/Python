@@ -140,3 +140,22 @@ export async function compareBudgets(ctx: FinCtx, ids: string[]) {
   return reports.map((r) => ({ id: r.id, name: r.name, from: r.from, to: r.to, budgeted: r.totals.budgeted, actual: r.totals.actual, remaining: r.totals.remaining, percentUsed: r.totals.percentUsed }));
 }
 export { requireInHousehold };
+
+/** After an expense is saved: if it pushes a category of the member's or the household's current budget to 80 percent or more, say so. */
+export async function budgetNudge(ctx: FinCtx, txId: string) {
+  const t = await db.finTransaction.findUnique({ where: { id: txId }, select: { type: true, categoryId: true, category: { select: { parentId: true } }, date: true, ownerMemberId: true, visibility: true } });
+  if (!t || t.type !== "EXPENSE" || !t.categoryId) return null;
+  const ids = [t.categoryId, t.category?.parentId].filter(Boolean) as string[];
+  const day = dateIso(t.date) as string;
+  const budgets = await db.finBudget.findMany({ where: { ...visible(ctx), active: true, startDate: { lte: toDate(day) }, endDate: { gte: toDate(day) } } });
+  let worst: { budget: string; category: string; percentUsed: number; remaining: string; over: boolean } | null = null;
+  for (const b of budgets) {
+    const r = await budgetReport(ctx, b.id);
+    for (const l of r.lines) {
+      if (!ids.includes(l.categoryId) || l.percentUsed === null) continue;
+      const pct = Number(l.percentUsed);
+      if (pct >= 80 && (!worst || pct > worst.percentUsed)) worst = { budget: r.name, category: l.category, percentUsed: Math.round(pct), remaining: l.remaining, over: pct > 100 };
+    }
+  }
+  return worst;
+}

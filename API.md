@@ -21,6 +21,7 @@ Query parameter `view` is `my`, `household` (or `all` where noted). Dates are `Y
 | Contributions | `GET /contributions`, `POST /contributions/preview`, `/contributions/rules`, `/settlements`, `GET /comparison` |
 | Tax | `/tax/records`, `GET /tax/summary?year=`, `GET,PUT /tax/rules` (PUT admin) |
 | Vehicles | `GET /vehicles/options`, `GET /vehicles/overview?view=&from=&to=` (costs from tagged ledger rows plus maintenance status). Transactions accept `vehicleId` and `GET /transactions?vehicleId=` filters by it |
+| Money tools | `/rules` (GET, POST, PATCH, DELETE), `POST /rules/preview`, `POST /rules/apply`, `GET /tags`, `GET /tags/summary`, `/saved-views` (private to the member), `GET /safe-to-spend?view=&buffer=`, `GET,PUT /registered-room?year=` (the caller's own room only), `GET /registered-room/rrsp-helper`, `/payday-plans` (owner only) and `POST /payday-plans/:id/run`. `POST /transactions` also returns `nudge` when the entry brings a budget to 80 percent or more. |
 | Insight | `GET /dashboard`, `GET /analytics`, `GET /calendar`, `/calendar/events`, `GET /alerts`, `POST /alerts/refresh`, `/alert-settings` |
 | Reports and data | `GET /reports`, `GET /reports/run?type=&format=pdf|xlsx|csv|json`, `GET /export/:entity`, `GET /export-all`, `/import/preview`, `/import/analyze`, `/import/commit`, `/import/batches`, `POST /import/batches/:id/undo` |
 | Documents | `GET,POST /documents` (multipart), `DELETE /documents/:id`; download through `/api/documents/:id/file` |

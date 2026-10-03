@@ -31,6 +31,11 @@ import * as Doc from "./documents";
 import * as As from "./assistant";
 import * as Veh from "./vehicles";
 import * as Hk from "./housekeeping";
+import * as Rules from "./rules";
+import * as Tags from "./tags";
+import * as Safe from "./safe";
+import * as Reg from "./registered";
+import * as Pay from "./payday";
 import * as Demo from "./demo";
 import { analyticsQuery, getAnalytics, auditHistory, fxSchema, listFx, saveFx, deleteFx, exportMyData } from "./misc";
 import { renderReport, REPORT_FORMATS, type ReportFormat } from "../services/report-render";
@@ -75,7 +80,7 @@ export const ROUTES: Def[] = [
   { method: "GET", path: "/merchants", query: z.object({ q: z.string().max(60).optional() }), h: ({ ctx, query }) => C.listMerchants(ctx, query.q) },
   // ───── transactions
   { method: "GET", path: "/transactions", query: T.txQuerySchema, h: ({ ctx, query }) => T.listTransactions(ctx, query) },
-  { method: "POST", path: "/transactions", need: "write", body: T.txCreateSchema, status: 201, h: ({ ctx, body }) => T.createTransaction(ctx, body) },
+  { method: "POST", path: "/transactions", need: "write", body: T.txCreateSchema, status: 201, h: async ({ ctx, body }) => { const r = await T.createTransaction(ctx, body); return r.idempotentReplay ? r : { ...r, nudge: await Bud.budgetNudge(ctx, r.id) }; } },
   { method: "POST", path: "/transactions/bulk", need: "write", body: T.bulkSchema, h: ({ ctx, body }) => T.bulkUpdate(ctx, body) },
   { method: "POST", path: "/transfers", need: "write", body: T.transferSchema, status: 201, h: ({ ctx, body }) => T.createTransfer(ctx, body) },
   { method: "GET", path: "/transactions/:id", h: ({ ctx, params }) => T.getTransaction(ctx, params.id) },
@@ -187,6 +192,28 @@ export const ROUTES: Def[] = [
   { method: "GET", path: "/settlements", h: ({ ctx }) => Con.listSettlements(ctx) },
   { method: "POST", path: "/settlements", need: "write", body: Con.settlementSchema, status: 201, h: ({ ctx, body }) => Con.createSettlement(ctx, body) },
   { method: "DELETE", path: "/settlements/:id", need: "write", h: ({ ctx, params }) => Con.deleteSettlement(ctx, params.id) },
+  // ───── rules, tags, saved views
+  { method: "GET", path: "/rules", h: ({ ctx }) => Rules.listRules(ctx) },
+  { method: "POST", path: "/rules", need: "write", body: Rules.ruleSchema, status: 201, h: ({ ctx, body }) => Rules.createRule(ctx, body) },
+  { method: "POST", path: "/rules/preview", body: Rules.previewSchema, h: ({ ctx, body }) => Rules.previewRule(ctx, body) },
+  { method: "POST", path: "/rules/apply", need: "write", body: Rules.applyExistingSchema, h: ({ ctx, body }) => Rules.applyRulesToExisting(ctx, body) },
+  { method: "PATCH", path: "/rules/:id", need: "write", body: Rules.rulePatchSchema, h: ({ ctx, params, body }) => Rules.updateRule(ctx, params.id, body) },
+  { method: "DELETE", path: "/rules/:id", need: "write", h: ({ ctx, params }) => Rules.deleteRule(ctx, params.id) },
+  { method: "GET", path: "/tags", h: ({ ctx }) => Tags.listTags(ctx) },
+  { method: "GET", path: "/tags/summary", query: Tags.tagSummaryQuery, h: ({ ctx, query }) => Tags.tagSummary(ctx, query) },
+  { method: "GET", path: "/saved-views", query: z.object({ kind: z.string().max(20).optional() }), h: ({ ctx, query }) => Tags.listSavedViews(ctx, query.kind) },
+  { method: "POST", path: "/saved-views", need: "write", body: Tags.savedViewSchema, status: 201, h: ({ ctx, body }) => Tags.createSavedView(ctx, body) },
+  { method: "DELETE", path: "/saved-views/:id", need: "write", h: ({ ctx, params }) => Tags.deleteSavedView(ctx, params.id) },
+  // ───── safe to spend, registered account room, pay day plans
+  { method: "GET", path: "/safe-to-spend", query: Safe.safeQuery, h: ({ ctx, query }) => Safe.safeSpend(ctx, query) },
+  { method: "GET", path: "/registered-room", query: Reg.roomQuery, h: ({ ctx, query }) => Reg.registeredStatus(ctx, query) },
+  { method: "PUT", path: "/registered-room", need: "write", body: Reg.roomSchema, h: ({ ctx, body }) => Reg.saveRoom(ctx, body) },
+  { method: "GET", path: "/registered-room/rrsp-helper", query: Reg.rrspHelperQuery, h: async ({ query }) => Reg.rrspHelper(query) },
+  { method: "GET", path: "/payday-plans", h: ({ ctx }) => Pay.listPlans(ctx) },
+  { method: "POST", path: "/payday-plans", need: "write", body: Pay.planSchema, status: 201, h: ({ ctx, body }) => Pay.createPlan(ctx, body) },
+  { method: "PATCH", path: "/payday-plans/:id", need: "write", body: Pay.planPatchSchema, h: ({ ctx, params, body }) => Pay.updatePlan(ctx, params.id, body) },
+  { method: "DELETE", path: "/payday-plans/:id", need: "write", h: ({ ctx, params }) => Pay.deletePlan(ctx, params.id) },
+  { method: "POST", path: "/payday-plans/:id/run", need: "write", body: Pay.runSchema, h: ({ ctx, params, body }) => Pay.runPlan(ctx, params.id, body) },
   // ───── vehicles (cost of ownership from the ledger, maintenance from the vehicle module)
   { method: "GET", path: "/vehicles/options", h: ({ ctx }) => Veh.vehicleOptions(ctx) },
   { method: "GET", path: "/vehicles/overview", query: Veh.vehicleOverviewQuery, h: ({ ctx, query }) => Veh.vehicleOverview(ctx, query) },

@@ -9,7 +9,7 @@ export default function TransactionsPage() {
 }
 function Inner() {
   const sp = useSearchParams();
-  const initial = { view: sp.get("view") ?? "all", categoryIds: sp.get("categoryIds") ?? "", from: sp.get("from") ?? "", to: sp.get("to") ?? "", accountId: sp.get("accountId") ?? "", vehicleId: sp.get("vehicleId") ?? "", member: sp.get("member") ?? "", types: sp.get("types") ?? "" };
+  const initial = { view: sp.get("view") ?? "all", categoryIds: sp.get("categoryIds") ?? "", from: sp.get("from") ?? "", to: sp.get("to") ?? "", accountId: sp.get("accountId") ?? "", vehicleId: sp.get("vehicleId") ?? "", tag: sp.get("tag") ?? "", member: sp.get("member") ?? "", types: sp.get("types") ?? "" };
   return (
     <div>
       <PageHeader eyebrow="Ledger" title="Transactions" description="Every income, expense, transfer, refund and adjustment, with who owns it, who paid and who entered it." />

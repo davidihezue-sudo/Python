@@ -35,6 +35,7 @@ function Analysis() {
   const [scope, setScope] = React.useState<string>(view);
   const { data } = useFinQuery<any>("/analytics", { scope: scope === "my" ? "my" : "household" });
   const { data: members } = useFinQuery<any>("/members");
+  const { data: tagData } = useFinQuery<any>("/tags/summary", { view: scope === "my" ? "my" : "household" });
   if (!data) return <div className="skeleton h-64 w-full" />;
   return (
     <div className="space-y-6">
@@ -47,6 +48,11 @@ function Analysis() {
           <Donut data={data.byCategory.slice(0, 8).map((c: any) => ({ name: c.name, value: Number(c.amount) }))} nameKey="name" valueKey="value" fmt={(v) => fmt.money(v)} />
         </ChartCard>
       </div>
+      {tagData?.tags?.length > 0 && (
+        <Section title="Spending by tag" description={tagData.note}>
+          <ul className="divide-y divide-border text-sm">{tagData.tags.slice(0, 12).map((t: any) => <li key={t.tag} className="flex justify-between gap-3 py-1.5"><a className="text-primary hover:underline" href={`/transactions?tag=${encodeURIComponent(t.tag)}`}>#{t.tag}</a><span className="money">{fmt.money(t.spend)} <span className="text-xs text-muted-foreground">({t.count})</span></span></li>)}</ul>
+        </Section>
+      )}
       <Section title="Spending patterns" description="Compared with the previous period of the same length">
         <dl className="grid gap-4 sm:grid-cols-3">
           {(["income", "expenses", "net"] as const).map((k) => <div key={k}><dt className="text-xs uppercase tracking-wide text-muted-foreground">{humanize(k)}</dt><dd className="mt-1 text-xl money">{fmt.money(data.comparison[k].current)}</dd><p className="text-xs text-muted-foreground">Previous {fmt.money(data.comparison[k].previous)} ({data.comparison[k].changePct ? `${data.comparison[k].changePct}%` : "n/a"})</p></div>)}
