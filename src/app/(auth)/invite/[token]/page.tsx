@@ -14,7 +14,9 @@ export default function InvitePage() {
   const accept = async () => {
     setState("working");
     try {
-      await api(`/api/invites/${token}/accept`, { method: "POST" });
+      const r = await api<{ householdId: string }>(`/api/invites/${token}/accept`, { method: "POST" });
+      // open the household you were just invited to (everyone also has their own empty household from sign-up)
+      try { if (r?.householdId) localStorage.setItem("ffh:household", r.householdId); } catch { /* storage unavailable */ }
       setState("done");
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) setState("needLogin");
@@ -31,7 +33,7 @@ export default function InvitePage() {
       <h1 className="text-2xl font-semibold">You're invited</h1>
       <p className="mt-2 text-muted-foreground"><strong>{data.invitedBy}</strong> invited <strong>{data.email}</strong> to join the household <strong>{data.householdName}</strong> on Family Finance Hub.</p>
       {state === "done" ? (
-        <div className="mt-6"><Alert tone="success" title="You've joined the household" /><Link href="/dashboard" className="mt-4 inline-block"><Button>Open dashboard</Button></Link></div>
+        <div className="mt-6"><Alert tone="success" title="You've joined the household" /><p className="mt-3 text-sm text-muted-foreground">You have your own space in this household. First choose what you want to share with everyone and what stays personal.</p><Link href="/household?tab=sharing" className="mt-4 inline-block"><Button>Choose what I share</Button></Link></div>
       ) : state === "needLogin" ? (
         <div className="mt-6 space-y-3">
           <Alert tone="info">Sign in (or create an account) with <strong>{data.email}</strong> to accept this invitation.</Alert>

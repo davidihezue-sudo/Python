@@ -53,7 +53,8 @@ export async function createFinanceHousehold(actor: Actor, input: z.infer<typeof
 
 export async function getProfile(ctx: FinCtx) {
   const h = ctx.household;
-  return { id: h.id, name: h.name, countryCode: h.countryCode, region: h.region, city: h.city, currency: h.currency, timezone: h.timezone, fiscalYearStartMonth: h.fiscalYearStartMonth, dateFormat: h.dateFormat, numberLocale: h.numberLocale, structure: h.structure, goalsPreference: h.goalsPreference, budgetPeriod: h.budgetPeriod, dashboardLayout: h.dashboardLayout, onboarded: !!h.onboardedAt, isDemo: h.isDemo, myRole: ctx.me.role, myMemberId: ctx.me.id, canWrite: ctx.canWrite, today: ctx.today, hiddenAccountCount: ctx.hiddenAccountCount };
+  const mp = await db.memberPrivacy.findUnique({ where: { householdMemberId: ctx.me.id }, select: { reviewedAt: true } });
+  return { id: h.id, name: h.name, countryCode: h.countryCode, region: h.region, city: h.city, currency: h.currency, timezone: h.timezone, fiscalYearStartMonth: h.fiscalYearStartMonth, dateFormat: h.dateFormat, numberLocale: h.numberLocale, structure: h.structure, goalsPreference: h.goalsPreference, budgetPeriod: h.budgetPeriod, dashboardLayout: h.dashboardLayout, onboarded: !!h.onboardedAt, isDemo: h.isDemo, myRole: ctx.me.role, myMemberId: ctx.me.id, sharingReviewed: !!mp?.reviewedAt, memberCount: ctx.members.length, canWrite: ctx.canWrite, today: ctx.today, hiddenAccountCount: ctx.hiddenAccountCount };
 }
 
 export async function updateProfile(ctx: FinCtx, input: Partial<z.infer<typeof profileSchema>>) {
@@ -110,7 +111,8 @@ export async function updateMember(ctx: FinCtx, memberId: string, patch: z.infer
 /** A member's own default visibility for the records they create. Only the member themselves can change it. */
 export async function updateMySharing(ctx: FinCtx, patch: z.infer<typeof sharingSchema>) {
   const data = { ...(patch.income ? { incomeDefault: patch.income } : {}), ...(patch.accounts ? { accountsDefault: patch.accounts } : {}), ...(patch.transactions ? { transactionsDefault: patch.transactions } : {}), ...(patch.savings ? { savingsDefault: patch.savings } : {}), ...(patch.debts ? { debtsDefault: patch.debts } : {}), ...(patch.other ? { otherDefault: patch.other } : {}) };
-  await db.memberPrivacy.upsert({ where: { householdMemberId: ctx.me.id }, create: { householdMemberId: ctx.me.id, ...data }, update: data });
+  const reviewed = { ...data, reviewedAt: new Date() };
+  await db.memberPrivacy.upsert({ where: { householdMemberId: ctx.me.id }, create: { householdMemberId: ctx.me.id, ...reviewed }, update: reviewed });
   await audit(null, ctx.actor, { entity: "MemberPrivacy", entityId: ctx.me.id, action: "update-defaults", householdId: ctx.householdId, after: patch });
   return { ok: true };
 }

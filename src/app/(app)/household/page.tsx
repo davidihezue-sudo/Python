@@ -11,7 +11,7 @@ import { useFin, useFinMutation, useFinQuery } from "@/components/finance/provid
 import { Add, DataTable, FormModal, Figure, MemberAvatar, MemberChip, Money, NeedsHousehold, Notice, PageHeader, Section, VIS_HELP, humanize, useMembers, type Col } from "@/components/finance/ui";
 import { useRouter } from "next/navigation";
 
-const TABS = [["members", "Members and access"], ["sharing", "My sharing"], ["contributions", "Contributions"], ["comparison", "Comparison"], ["categories", "Categories"], ["alerts", "Alerts"], ["currency", "Currency and region"], ["data", "Data and demo"]] as const;
+const TABS = [["members", "Members and access"], ["sharing", "My sharing"], ["contributions", "Contributions"], ["comparison", "Comparison"], ["categories", "Categories"], ["alerts", "Alerts"], ["currency", "Currency and region"], ["data", "Start fresh and data"]] as const;
 export default function HouseholdPage() {
   return <NeedsHousehold><Inner /></NeedsHousehold>;
 }
@@ -52,6 +52,7 @@ function Members() {
   return (
     <div className="space-y-6">
       <Notice>Roles control what a member can change. They never widen what a member can see: a record marked Personal is visible only to its owner, including to household administrators.</Notice>
+      <Notice title="How each person uses it">Everyone signs in with their own account and keeps their own books: their accounts, income and spending go in under My finances. For each record they choose Personal (only them), Household (everyone, included in household totals) or Selected people. The Household view then combines only what has been shared, so nobody has to merge anything by hand.</Notice>
       <Section title="Members" description="Each person has their own login and enters their own records." action={isAdmin ? <Button onClick={() => { setLink(""); setInvite(true); }}>Invite a member</Button> : undefined} flush>
         <ul className="divide-y divide-border">
           {members.map((m) => (
@@ -62,8 +63,11 @@ function Members() {
           ))}
         </ul>
       </Section>
-      {invites.length > 0 && <Section title="Pending invitations" flush><ul className="divide-y divide-border">{invites.map((i) => <li key={i.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm"><span>{i.email} <span className="text-muted-foreground">as {humanize(i.role)}, expires {new Date(i.expiresAt).toLocaleDateString()}</span></span>{isAdmin && <Button size="sm" variant="ghost" onClick={async () => { await api(`/api/invites/${i.id}`, { method: "DELETE" }); void qcInvalidate(); toast({ title: "Invitation revoked" }); }}>Revoke</Button>}</li>)}</ul></Section>}
-      <FormModal open={invite} onClose={() => setInvite(false)} title="Invite someone to the household" description="They get their own login. If email is not configured, copy the link and send it yourself." fields={[{ name: "email", label: "Email address", required: true }, { name: "role", label: "Role", kind: "select", options: [["MEMBER", "Member: can record and edit"], ["READ_ONLY", "Read-only: can view what is shared"], ["ADMIN", "Administrator: can also manage members"]] }]} initial={{ email: "", role: "MEMBER" }} submitLabel="Send invitation" onSubmit={doInvite}>{() => link ? <Alert tone="success" title="Invitation created">Share this link: <code className="break-all text-xs">{link}</code></Alert> : null}</FormModal>
+      {invites.length > 0 && <Section title="Pending invitations" flush><ul className="divide-y divide-border">{invites.map((i) => <li key={i.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm"><span>{i.email} <span className="text-muted-foreground">as {humanize(i.role)}, expires {new Date(i.expiresAt).toLocaleDateString()}</span></span>{isAdmin && <span className="flex gap-1"><Button size="sm" variant="outline" onClick={async () => { const r = await api<any>(`/api/households/${hid}/invites`, { method: "POST", body: { email: i.email, role: i.role, vehicleAccess: [] } }); setLink(r.inviteUrl); void qcInvalidate(); }}>Get a new link</Button><Button size="sm" variant="ghost" onClick={async () => { await api(`/api/invites/${i.id}`, { method: "DELETE" }); void qcInvalidate(); toast({ title: "Invitation revoked" }); }}>Revoke</Button></span>}</li>)}</ul></Section>}
+      <FormModal open={invite} onClose={() => setInvite(false)} title="Invite someone to the household" description="They get their own login. If email is not configured, copy the link and send it yourself." fields={[{ name: "email", label: "Email address", required: true }, { name: "role", label: "Role", kind: "select", options: [["MEMBER", "Member: can record and edit"], ["READ_ONLY", "Read-only: can view what is shared"], ["ADMIN", "Administrator: can also manage members"]] }]} initial={{ email: "", role: "MEMBER" }} submitLabel="Create invitation" onSubmit={doInvite} />
+      <Modal open={!!link} onClose={() => setLink("")} title="Invitation ready" size="sm" footer={<><Button variant="outline" onClick={() => setLink("")}>Done</Button><Button onClick={async () => { try { await navigator.clipboard.writeText(link); toast({ title: "Link copied" }); } catch { toast({ title: "Select the link and copy it", variant: "info" }); } }}>Copy link</Button></>}>
+        <div className="space-y-3 text-sm"><p>Send this link to the person you invited. If email is set up on this server they also received an email.</p><code className="block break-all rounded-md border border-border bg-muted p-3 text-xs">{link}</code><p className="text-muted-foreground">They must register or sign in with the same email address the invitation was sent to. The link works once and expires in 7 days.</p></div>
+      </Modal>
       <FormModal open={!!edit} onClose={() => setEdit(null)} title={`Edit ${edit?.name ?? ""}`} fields={[...(isAdmin ? [{ name: "role", label: "Role", kind: "select" as const, options: [["ADMIN", "Administrator"], ["MEMBER", "Member"], ["READ_ONLY", "Read-only"]] as [string, string][] }] : []), { name: "responsibilities", label: "Financial responsibilities", placeholder: "e.g. Utilities and insurance" }]} initial={{ role: edit?.role, responsibilities: edit?.responsibilities ?? "" }} onSubmit={(v) => upd.mutateAsync({ id: edit.id, ...(isAdmin ? { role: v.role } : {}), responsibilities: v.responsibilities || null })} />
     </div>
   );
@@ -79,12 +83,20 @@ function Sharing() {
   const rows: [string, string, string][] = [["income", "Income", "Your income sources"], ["accounts", "Accounts", "Accounts you create"], ["transactions", "Transactions", "Expenses and other transactions you enter"], ["savings", "Savings and goals", "Savings accounts and goals you create"], ["debts", "Debts", "Debts you add"], ["other", "Everything else", "Bills, subscriptions, insurance, assets"]];
   return (
     <div className="space-y-5">
+      <Section title="Quick choices" description="Pick a starting point. You can still change any single record when you enter it.">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => save.mutate({ income: "HOUSEHOLD", accounts: "HOUSEHOLD", transactions: "HOUSEHOLD", savings: "HOUSEHOLD", debts: "HOUSEHOLD", other: "HOUSEHOLD" })}>Share everything with the household</Button>
+          <Button variant="outline" onClick={() => save.mutate({ income: "PERSONAL", accounts: "PERSONAL", transactions: "PERSONAL", savings: "PERSONAL", debts: "PERSONAL", other: "PERSONAL" })}>Keep everything personal</Button>
+          <Button variant="ghost" onClick={() => save.mutate({})}>Keep my current choices</Button>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">Personal means only you can see it. Not even the household administrator can. Household totals only ever include what is shared.</p>
+      </Section>
       <Notice>These are the defaults for new records you create. You can change any individual record when you create or edit it. Only you can change your defaults, and nobody else can see records you keep personal.</Notice>
       <Section title="What I share by default" flush>
         <ul className="divide-y divide-border">{rows.map(([k, l, h]) => (
           <li key={k} className="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
             <div><p className="font-medium">{l}</p><p className="text-xs text-muted-foreground">{h}</p></div>
-            <Select aria-label={`${l} default sharing`} className="w-56" value={d[k] ?? "HOUSEHOLD"} onChange={(e) => save.mutate({ [k]: e.target.value })}><option value="HOUSEHOLD">Shared with the household</option><option value="PERSONAL">Personal (only me)</option></Select>
+            <Select aria-label={`${l} default sharing`} className="w-full sm:w-72" value={d[k] ?? "HOUSEHOLD"} onChange={(e) => save.mutate({ [k]: e.target.value })}><option value="HOUSEHOLD">Shared with the household</option><option value="PERSONAL">Personal (only me)</option></Select>
           </li>
         ))}</ul>
       </Section>
@@ -313,21 +325,71 @@ function FormInline({ profile, disabled, onSave }: any) {
   );
 }
 
+/** Asks the person to type a phrase before a destructive action runs. */
+function TypedConfirm({ open, onClose, title, description, phrase, label, onConfirm }: { open: boolean; onClose: () => void; title: string; description: React.ReactNode; phrase: string; label: string; onConfirm: () => Promise<void> }) {
+  const [text, setText] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState("");
+  React.useEffect(() => { if (open) { setText(""); setErr(""); } }, [open]);
+  const go = async () => { setBusy(true); setErr(""); try { await onConfirm(); onClose(); } catch (e) { setErr((e as Error).message); } finally { setBusy(false); } };
+  return (
+    <Modal open={open} onClose={onClose} title={title} size="sm" footer={<><Button variant="outline" onClick={onClose} disabled={busy}>Cancel</Button><Button variant="danger" onClick={go} loading={busy} disabled={text.trim() !== phrase}>{label}</Button></>}>
+      <div className="space-y-3 text-sm">
+        <div className="text-muted-foreground">{description}</div>
+        {err && <Alert tone="danger">{err}</Alert>}
+        <Field label={`Type ${phrase} to confirm`}>{(p) => <Input id={p.id} value={text} onChange={(e) => setText(e.target.value)} autoComplete="off" />}</Field>
+      </div>
+    </Modal>
+  );
+}
+
 function DataTab() {
-  const { hid, profile, isAdmin, households } = useFin();
+  const { hid, profile, isAdmin, households, canWrite } = useFin();
+  const { members } = useMembers();
   const confirm = useConfirm();
   const router = useRouter();
   const { toast } = useToast();
   const qc = useQueryClient();
-  const loadDemo = async () => { try { const r = await api<any>("/api/finance/demo", { method: "POST" }); await qc.invalidateQueries({ queryKey: ["fin"] }); toast({ title: "Demo household created", description: "Switch households from the menu at the top." }); router.refresh(); } catch (e) { toast({ title: "Could not create the demo", description: (e as Error).message, variant: "error" }); } };
-  const removeDemo = async () => { if (!(await confirm({ title: "Remove the demonstration data?", description: "The demo household and everything in it is deleted. Your real households are not affected.", confirmLabel: "Remove demo", tone: "danger" }))) return; try { await api(`/api/finance/${hid}/demo`, { method: "DELETE" }); await qc.invalidateQueries({ queryKey: ["fin"] }); toast({ title: "Demo removed" }); window.location.href = "/dashboard"; } catch (e) { toast({ title: "Could not remove", description: (e as Error).message, variant: "error" }); } };
+  const [clearing, setClearing] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
+  const others = households.filter((h) => h.id !== hid && !h.isDemo);
+  const afterRemoval = async () => { await qc.invalidateQueries(); router.replace(others.length ? "/dashboard" : "/onboarding?new=1"); };
+  const loadDemo = async () => { try { await api<any>("/api/finance/demo", { method: "POST" }); await qc.invalidateQueries({ queryKey: ["fin"] }); toast({ title: "Demo household created", description: "Switch households from the menu at the top." }); router.refresh(); } catch (e) { toast({ title: "Could not create the demo", description: (e as Error).message, variant: "error" }); } };
+  const removeDemo = async () => {
+    if (!(await confirm({ title: "Remove the demonstration data?", description: "The demo household, its demo vehicle and everything in it are deleted, then you can set up your own household. Real households are not affected.", confirmLabel: "Remove demo", tone: "danger" }))) return;
+    try { await api(`/api/finance/${hid}/demo`, { method: "DELETE" }); toast({ title: "Demo removed. Let's set up yours." }); await afterRemoval(); } catch (e) { toast({ title: "Could not remove the demo", description: (e as Error).message, variant: "error" }); }
+  };
   return (
     <div className="space-y-5">
-      <Section title="Your data" description="Export everything you are allowed to see in this household as a machine-readable file."><a className="inline-flex h-10 items-center rounded-md border border-input bg-card px-4 text-sm font-medium hover:bg-muted" href={`/api/finance/${hid}/export-all`}>Download my data (JSON)</a><p className="mt-2 text-xs text-muted-foreground">Account deletion and password settings are in Settings.</p></Section>
-      <Section title="Demonstration data" description="Illustrative household data so you can explore every screen. It is clearly labelled and kept in its own household.">
-        <div className="flex flex-wrap gap-2">{!households.some((h) => h.isDemo) && <Button onClick={loadDemo}>Load the demo household</Button>}{profile?.isDemo && isAdmin && <Button variant="danger" onClick={removeDemo}>Remove this demo household</Button>}</div>
-        {profile?.isDemo ? <p className="mt-2 text-sm text-warning">You are viewing the demonstration household. Its figures are invented.</p> : households.some((h) => h.isDemo) && <p className="mt-2 text-sm text-muted-foreground">A demo household exists. Switch to it from the household menu, then remove it here.</p>}
-      </Section>
+      {profile?.isDemo ? (
+        <Section title="You are viewing demonstration data" description="Everything here is invented so you can explore. When you are ready, remove it and enter your own.">
+          {isAdmin ? <Button variant="danger" onClick={removeDemo}>Remove demo data and start fresh</Button> : <p className="text-sm text-muted-foreground">Only the household administrator can remove the demo.</p>}
+        </Section>
+      ) : (
+        <>
+          {canWrite && (
+            <Section title="Clear my records" description="Starts your own books again. This removes everything you own in this household: your accounts, transactions, income, bills, debts, goals, assets, tax records, budgets and calendar events.">
+              <ul className="mb-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground"><li>Joint accounts, other members' records, categories and household settings stay exactly as they are.</li><li>Transfers between your account and a joint account are removed on both sides, so balances stay correct.</li><li>Vehicles and service records are not touched.</li><li>It cannot be undone. Download your data first if you might want it.</li></ul>
+              <Button variant="danger" onClick={() => setClearing(true)}>Clear my records</Button>
+            </Section>
+          )}
+          {isAdmin && (
+            <Section title="Delete this household" description="Removes the household with its vehicles, finance records and settings. This is only possible when you are the only member, so nobody else's records can be lost.">
+              {members.length > 1 ? <p className="text-sm text-muted-foreground">Other people still belong to this household. Ask them to leave first, or use Clear my records above to remove only what you own.</p> : <Button variant="danger" onClick={() => setDeleting(true)}>Delete this household</Button>}
+            </Section>
+          )}
+        </>
+      )}
+      <Section title="Your data" description="Export everything you are allowed to see in this household as a machine-readable file."><a className="inline-flex h-10 items-center rounded-md border border-input bg-card px-4 text-sm font-medium hover:bg-muted" href={`/api/finance/${hid}/export-all`}>Download my data (JSON)</a><p className="mt-2 text-xs text-muted-foreground">Account deletion and password settings are in Settings, Privacy and data.</p></Section>
+      {!households.some((h) => h.isDemo) && (
+        <Section title="Demonstration data" description="Illustrative household data so you can explore every screen. It is clearly labelled, kept in its own household and removable in one click.">
+          <Button variant="outline" onClick={loadDemo}>Load the demo household</Button>
+        </Section>
+      )}
+      <TypedConfirm open={clearing} onClose={() => setClearing(false)} title="Clear all of my records?" phrase="CLEAR" label="Clear my records" description="Everything you own in this household is permanently deleted. Other members and joint accounts are not affected."
+        onConfirm={async () => { await api(`/api/finance/${hid}/clear-my-records`, { method: "POST", body: { confirm: "CLEAR" } }); toast({ title: "Your records were cleared" }); await qc.invalidateQueries(); router.push("/dashboard"); }} />
+      <TypedConfirm open={deleting} onClose={() => setDeleting(false)} title="Delete this household?" phrase={profile?.name ?? ""} label="Delete household" description="The household, its vehicles and all of its records are permanently deleted for everyone in it."
+        onConfirm={async () => { await api(`/api/finance/${hid}/delete-household`, { method: "POST", body: { confirm: profile?.name } }); toast({ title: "Household deleted" }); await afterRemoval(); }} />
     </div>
   );
 }

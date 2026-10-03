@@ -38,5 +38,14 @@ Reports: choose a report, scope and dates, then download PDF, Excel or CSV. Impo
 ## 9. Alerts and documents
 Alerts for due bills, budgets, low balances, renewals and unusual spending appear under Notifications and can be tuned in Household, Alerts. Attach receipts and statements to records; a file is only as visible as its record.
 
+## 9a. Starting fresh
+- **Demo data:** while you are looking at the demo household, a banner on every page offers **Remove demo and start fresh**. It deletes the demo household (and its demo vehicle), then takes you to set up your own.
+- **Clear my records** (Household, Start fresh and data): permanently removes everything you own in this household so you can enter it again. Joint accounts, other members' records, categories and settings are not touched, and transfers into joint accounts are removed on both sides so balances stay correct. Vehicles are not affected.
+- **Delete this household** (administrator, only when you are the only member): removes the household, its vehicles and records.
+- Nobody can clear or delete another member's records.
+
+## 9b. Each person keeps their own books
+Everyone signs in with their own account. An administrator invites each person by email (Household, Members, Invite a member). If email is not set up, copy the link shown in the dialog (or use Get a new link next to a pending invitation) and send it yourself. The invited person registers or signs in with that same email address, accepts, and lands in the shared household. They should then choose what they share (Household, My sharing): everything shared, everything personal, or per type. From then on they enter their own accounts, income and spending as usual; Personal records are visible only to them, and the Household view and totals combine only what has been shared.
+
 ## 10. Demo data
 Demo records are labelled and can be removed in Household, Data, Remove demo data. This deletes only the demo household.

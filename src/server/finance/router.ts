@@ -30,6 +30,7 @@ import * as Imp from "./imports";
 import * as Doc from "./documents";
 import * as As from "./assistant";
 import * as Veh from "./vehicles";
+import * as Hk from "./housekeeping";
 import * as Demo from "./demo";
 import { analyticsQuery, getAnalytics, auditHistory, fxSchema, listFx, saveFx, deleteFx, exportMyData } from "./misc";
 import { renderReport, REPORT_FORMATS, type ReportFormat } from "../services/report-render";
@@ -54,6 +55,8 @@ export const ROUTES: Def[] = [
   { method: "GET", path: "/members", h: ({ ctx }) => H.listMembers(ctx) },
   { method: "PATCH", path: "/members/:id", need: "write", body: H.memberPatchSchema, h: ({ ctx, params, body }) => H.updateMember(ctx, params.id, body) },
   { method: "PUT", path: "/sharing", need: "write", body: H.sharingSchema, h: ({ ctx, body }) => H.updateMySharing(ctx, body) },
+  { method: "POST", path: "/clear-my-records", need: "write", body: Hk.clearMySchema, h: ({ ctx }) => Hk.clearMyRecords(ctx) },
+  { method: "POST", path: "/delete-household", need: "admin", body: Hk.deleteHouseholdSchema, h: ({ ctx, body }) => Hk.deleteHousehold(ctx, body) },
   { method: "DELETE", path: "/demo", need: "admin", h: ({ ctx, actor }) => H.deleteDemoHousehold(actor, ctx.householdId) },
   // ───── accounts
   { method: "GET", path: "/accounts", query: viewQ, h: ({ ctx, query }) => A.listAccounts(ctx, query.view) },

@@ -9,7 +9,7 @@ import { flushQueue, listQueue, removeQueued, type QueuedRequest } from "@/lib/c
 import { cn } from "@/lib/client/utils";
 import { Alert, Badge, Button, Input } from "@/components/ui/primitives";
 import { Dropdown, MenuItem } from "@/components/ui/menu";
-import { Modal } from "@/components/ui/dialog";
+import { Modal, useConfirm } from "@/components/ui/dialog";
 import { QuickAddProvider, QUICK_ACTIONS, useQuickAdd } from "@/components/forms/quick-dialogs";
 import { FinProvider, useFin } from "@/components/finance/provider";
 import { TxDialogProvider, useTxDialog } from "@/components/finance/transaction-form";
@@ -59,6 +59,49 @@ function AreaSwitch({ area, variant }: { area: Area; variant: "sidebar" | "bar" 
           <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
         </Link>
       ))}
+    </div>
+  );
+}
+
+/** Shown on every page while you are looking at demonstration data, with the one-click way out. */
+function DemoBanner() {
+  const { hid, profile, isAdmin, households } = useFin();
+  const confirm = useConfirm();
+  const router = useRouter();
+  const qc = useQueryClient();
+  const [busy, setBusy] = React.useState(false);
+  if (!profile?.isDemo) return null;
+  const others = households.filter((h) => h.id !== hid && !h.isDemo);
+  const remove = async () => {
+    if (!(await confirm({ title: "Remove the demonstration data?", description: "The demo household, its demo vehicle and everything in it are deleted, then you can set up your own household. Real households are not affected.", confirmLabel: "Remove demo and start fresh", tone: "danger" }))) return;
+    setBusy(true);
+    try {
+      await api(`/api/finance/${hid}/demo`, { method: "DELETE" });
+      await qc.invalidateQueries();
+      router.replace(others.length ? "/dashboard" : "/onboarding?new=1");
+    } finally { setBusy(false); }
+  };
+  return (
+    <div role="status" className="border-b border-warning/30 bg-warning/10 px-4 py-2 text-sm sm:px-6">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <span><strong>Demo data.</strong> Everything you see here is invented so you can explore.</span>
+        {isAdmin ? <Button size="sm" variant="outline" onClick={remove} loading={busy}>Remove demo and start fresh</Button> : <span className="text-muted-foreground">The household administrator can remove it.</span>}
+      </div>
+    </div>
+  );
+}
+
+/** One-time nudge for a member who has not yet chosen what they share, so nothing is shared by accident. */
+function SharingPrompt() {
+  const { profile, canWrite } = useFin();
+  const path = usePathname();
+  if (!profile || profile.isDemo || profile.sharingReviewed || profile.memberCount < 2 || !canWrite || path.startsWith("/household")) return null;
+  return (
+    <div role="status" className="border-b border-accent/30 bg-accent/10 px-4 py-2 text-sm sm:px-6">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-4 gap-y-1">
+        <span><strong>Choose what you share.</strong> Your own records can be Personal (only you) or shared with the household. Until you choose, new records are shared.</span>
+        <Link href="/household?tab=sharing" className="font-semibold text-accent underline underline-offset-2">Choose now</Link>
+      </div>
     </div>
   );
 }
@@ -157,6 +200,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div className="lg:pl-64">
         <TopBar onSearch={() => setSearchOpen(true)} />
         <OfflineBanner />
+        <DemoBanner />
+        <SharingPrompt />
         {!me.emailVerified && <VerifyBanner />}
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-7xl px-4 pb-36 pt-6 outline-none sm:px-6 lg:pb-12">
           {children}
@@ -229,6 +274,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           ))}
           <div className="grid grid-cols-2 gap-2">
             <Link href="/settings" className="flex min-h-[48px] items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><SettingsIcon className="h-4 w-4" /> Settings</Link>
+            <Link href="/household?tab=data" className="flex min-h-[48px] items-center gap-2.5 rounded-lg border border-border px-3 py-2 text-sm font-medium hover:bg-muted"><RefreshCw className="h-4 w-4" /> Start fresh</Link>
             <Button variant="outline" className="h-auto min-h-[48px]" onClick={signOut}><LogOut className="h-4 w-4" /> Sign out</Button>
           </div>
         </div>
@@ -309,6 +355,7 @@ function TopBar({ onSearch }: { onSearch: () => void }) {
                 <div className="my-1 border-t border-border" />
                 <MenuItem href="/household" icon={<Users className="h-4 w-4" />} onClick={close}>Household and sharing</MenuItem>
                 <MenuItem href="/settings" icon={<SettingsIcon className="h-4 w-4" />} onClick={close}>Settings</MenuItem>
+                <MenuItem href="/household?tab=data" icon={<RefreshCw className="h-4 w-4" />} onClick={close}>Start fresh and data</MenuItem>
                 <MenuItem icon={<LogOut className="h-4 w-4" />} onClick={signOut}>Sign out</MenuItem>
               </>
             )}

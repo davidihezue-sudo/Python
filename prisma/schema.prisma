@@ -1652,6 +1652,8 @@ model MemberPrivacy {
   savingsDefault      RecordVisibility @default(HOUSEHOLD)
   debtsDefault        RecordVisibility @default(HOUSEHOLD)
   otherDefault        RecordVisibility @default(HOUSEHOLD)
+  // set when the member has looked at and saved their own sharing choices (used to prompt new members once)
+  reviewedAt          DateTime?        @db.Timestamptz
   updatedAt           DateTime         @updatedAt @db.Timestamptz
   member              HouseholdMember  @relation(fields: [householdMemberId], references: [id], onDelete: Cascade)
 }
